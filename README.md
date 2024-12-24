@@ -32,3 +32,59 @@ Several of the benefits of a global flow lock are as follows:
 
 NOTE: this does not mean that the execution of the graph need always be single-threaded. Only that only one source can be updating the graph at one time. 
 
+
+## Examples
+
+### Initial Data
+
+Like any logic system, we'll start by describing a family tree. 
+
+Let's start by defining the InletStages
+
+```csharp
+var ages = new InletStage<(string Name, int age)>();
+var married = new InletStage<(string A, string B)>();
+var parent = new InletStage<(string Parent, string Child)>();
+```
+
+And populating them with data:
+
+```csharp
+// TODO: Fix formatting here, needs to use a flow instance. 
+age.Add(("James Johnson", 70));
+age.Add(("Margaret Johnson", 68));
+age.Add(("Michael Johnson", 45));
+age.Add(("Sarah Johnson", 43));
+age.Add(("Emily Williams", 40));
+age.Add(("David Williams", 44));
+age.Add(("Hannah Johnson", 16));
+age.Add(("Chris Johnson", 14));
+age.Add(("Daniel Williams", 12));
+age.Add(("Ava Williams", 10));
+
+
+married.Add(("James Johnson", "Margaret Johnson"));
+married.Add(("Michael Johnson", "Sarah Johnson"));
+married.Add(("Emily Williams", "David Williams"));
+```
+
+Now let's write a join query that just gets the age difference for every married couple: 
+
+```csharp
+
+var ageDifference = (from rel in married.Query
+                    join aRel in age.Query on rel.Name equals aRel.Name
+                    join bRel in age.Query on rel.Name equals bRel.Name
+                    select (rel.A, rel.B, Math.Abs(aRel.Age - bRel.Age));
+
+var flow = new Flow();
+
+var results = await flow.All(ageDifference);
+
+// Returns:
+// - (James Johnson, Margaret Johnson, 2)
+// - (Michael Johnson, Sarah Johnson, 2)
+// - (Emily Williams, David Williams, 4)
+
+```
+
