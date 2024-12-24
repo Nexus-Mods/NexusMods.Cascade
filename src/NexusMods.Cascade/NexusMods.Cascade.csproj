@@ -1,3 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+      <RootNamespace>NexusMods.Template</RootNamespace>
+      <LangVersion>13</LangVersion>
+    </PropertyGroup>
     <Import Project="$([MSBuild]::GetPathOfFileAbove('NuGet.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 </Project>
