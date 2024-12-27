@@ -49,6 +49,18 @@ public class Flow : IFlow
         FlowDataFrom(stage, stageId);
     }
 
+    public void RemoveInputData<T>(StageId stageId, ReadOnlySpan<T> input) where T : notnull
+    {
+        if (!_stages.TryGetValue(stageId, out var stage))
+        {
+            throw new ArgumentException("Stage not found", nameof(stageId));
+        }
+
+        ((Inlet<T>)stage).RemoveInputData(input);
+
+        FlowDataFrom(stage, stageId);
+    }
+
     private void FlowDataFrom(IStage value, StageId id)
     {
         foreach (var output in value.Outputs)
@@ -80,8 +92,29 @@ public class Flow : IFlow
             throw new ArgumentException("Stage not found", nameof(stage));
         }
 
-        return ((Outlet<T>)stage).GetResults();
+        if (stage is not Outlet<T> outlet)
+        {
+            throw new ArgumentException("Stage is not an Outlet", nameof(stage));
+        }
+
+        return outlet.GetResults();
     }
+
+    public IObservableResultSet<T> ObserveAllResults<T>(StageId stageId) where T : notnull
+    {
+        if (!_stages.TryGetValue(stageId, out var stage))
+        {
+            throw new ArgumentException("Stage not found", nameof(stage));
+        }
+
+        if (stage is not Outlet<T> outlet)
+        {
+            throw new ArgumentException("Stage is not an Outlet", nameof(stage));
+        }
+
+        return outlet.ObserveResults();
+    }
+
 
     public void Unlock()
     {

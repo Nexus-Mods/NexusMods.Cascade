@@ -30,4 +30,14 @@ public class Inlet<T> : AStage
             _outputSet.Add(in pair);
         }
     }
+
+    public void RemoveInputData(ReadOnlySpan<T> input)
+    {
+        _outputSet.Reset();
+        foreach (var item in input)
+        {
+            var pair = new KeyValuePair<T, int>(item, -1);
+            _outputSet.Add(in pair);
+        }
+    }
 }

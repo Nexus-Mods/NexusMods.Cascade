@@ -7,7 +7,7 @@ namespace NexusMods.Cascade;
 
 public class Outlet<T> : AStage, IOutlet<T> where T : notnull
 {
-    private Dictionary<T, int> _results = new();
+    private ObservableResultSet<T> _results = new();
     public Outlet() : base([(typeof(T), "results")], [])
     {
     }
@@ -19,20 +19,16 @@ public class Outlet<T> : AStage, IOutlet<T> where T : notnull
             throw new ArgumentOutOfRangeException(nameof(index));
         }
 
-
-        foreach (var (key, value) in ((IOutputSet<T>)data).GetResults())
-        {
-            ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, key, out _);
-            delta += value;
-            if (delta == 0)
-            {
-                _results.Remove(key);
-            }
-        }
+        _results.Update(((IOutputSet<T>)data).GetResults());
     }
 
     public IReadOnlyCollection<T> GetResults()
     {
-        return _results.Keys;
+        return _results.GetResults();
+    }
+
+    public IObservableResultSet<T> ObserveResults()
+    {
+        return _results;
     }
 }

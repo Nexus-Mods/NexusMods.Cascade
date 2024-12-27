@@ -26,6 +26,8 @@ public interface IFlow
     /// </summary>
     public IReadOnlyCollection<T> GetAllResults<T>(StageId stageId) where T : notnull;
 
+    public IObservableResultSet<T> ObserveAllResults<T>(StageId stageId) where T : notnull;
+
     /// <summary>
     /// Used by the FlowLock to unlock the flow, should not be called directly
     /// </summary>
