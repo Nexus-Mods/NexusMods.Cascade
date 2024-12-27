@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using NexusMods.Cascade;
@@ -15,7 +16,7 @@ public class Flow : IFlow
     /// <summary>
     /// Mapping of stage outputs to stages that require that output
     /// </summary>
-    private Dictionary<StageId, StageId> _connections = new();
+    private readonly Dictionary<(StageId OutputStage, int OutputIndex), List<(StageId InputStage, int InputIndex)>> _connections = new();
 
     public async ValueTask<FlowLock> LockAsync()
     {
@@ -44,6 +45,25 @@ public class Flow : IFlow
         }
 
         ((Inlet<T>)stage).AddInputData(input);
+
+        FlowDataFrom(stage, stageId);
+    }
+
+    private void FlowDataFrom(IStage value, StageId id)
+    {
+        foreach (var output in value.Outputs)
+        {
+            if (!_connections.TryGetValue((id, 0), out var connections))
+                continue;
+
+            foreach (var (inputStageId, inputIndex) in connections)
+            {
+                var inputStage = (AStage)_stages[inputStageId];
+                inputStage.AddData(output.OutputSet, inputIndex);
+                FlowDataFrom(inputStage, inputStageId);
+            }
+        }
+
     }
 
     public StageId AddStage(IStage stage)
@@ -53,9 +73,14 @@ public class Flow : IFlow
         return newId;
     }
 
-    public IReadOnlyCollection<T> GetAllResults<T>(StageId stage) where T : notnull
+    public IReadOnlyCollection<T> GetAllResults<T>(StageId stageId) where T : notnull
     {
-        throw new System.NotImplementedException();
+        if (!_stages.TryGetValue(stageId, out var stage))
+        {
+            throw new ArgumentException("Stage not found", nameof(stage));
+        }
+
+        return ((Outlet<T>)stage).GetResults();
     }
 
     public void Unlock()
@@ -82,18 +107,10 @@ public class Flow : IFlow
 
     }
 
-
-    public StageId AddOutlet<T>(StageId connectTo) where T : notnull
+    public void Connect(StageId inlet, int outputId, StageId filter, int inputId)
     {
-        var outlet = new Inlet<T>();
-        var outletId = AddStage(outlet);
-        _connections.Add(connectTo, outletId);
-        return outletId;
-
-    }
-
-    public void Connect(StageId inlet, StageId filter)
-    {
-        _connections[inlet] = filter;
+        ref var found = ref CollectionsMarshal.GetValueRefOrAddDefault(_connections, (inlet, outputId), out _);
+        found ??= new List<(StageId, int)>();
+        found.Add((filter, inputId));
     }
 }

@@ -17,7 +17,8 @@ public class DeduppingOutputSet<T> : IOutputSet<T>
 
     public void Add(in KeyValuePair<T, int> valueAndDelta)
     {
-        throw new System.NotImplementedException();
+        ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, valueAndDelta.Key, out _);
+        delta += valueAndDelta.Value;
     }
 
     public void Reset()
@@ -27,6 +28,6 @@ public class DeduppingOutputSet<T> : IOutputSet<T>
 
     public IEnumerable<KeyValuePair<T, int>> GetResults()
     {
-        throw new System.NotImplementedException();
+        return _results;
     }
 }

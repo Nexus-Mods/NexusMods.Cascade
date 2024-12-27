@@ -42,6 +42,7 @@ public interface IOutput
     public Type Type { get; }
 
     public int Index { get; }
+    public IOutputSet OutputSet { get; set; }
 }
 
 public interface IOutput<T> : IOutput

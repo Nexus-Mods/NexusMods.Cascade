@@ -49,14 +49,22 @@ public record Input<T> : IInput
     }
 }
 
-public record Output<T> : IOutput
+public record Output<T> : IOutput<T>
     where T : notnull
 {
     public string Name { get; }
     public Type Type => typeof(T);
     public int Index { get; }
 
-    internal IOutputSet<T> OutputSet { get; set; } = new DeduppingOutputSet<T>();
+    IOutputSet IOutput.OutputSet
+    {
+        get => OutputSet;
+        set => OutputSet = (IOutputSet<T>)value;
+    }
+
+    public IOutputSet<T> OutputSet { get; set; } = new DeduppingOutputSet<T>();
+
+
 
     public Output(string name, int index)
     {
