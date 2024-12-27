@@ -2,5 +2,9 @@
     <PropertyGroup>
         <!-- https://github.com/pengweiqhca/Xunit.DependencyInjection#how-to-disable-xunitdependencyinjection -->
         <EnableXunitDependencyInjectionDefaultTestFrameworkAttribute>false</EnableXunitDependencyInjectionDefaultTestFrameworkAttribute>
+        <RootNamespace>NexusMods.Template.Tests</RootNamespace>
     </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\NexusMods.Cascade\NexusMods.Cascade.csproj" />
+    </ItemGroup>
 </Project>

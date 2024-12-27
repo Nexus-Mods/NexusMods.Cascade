@@ -1,0 +1,6 @@
+﻿<Project>
+  <ItemGroup>
+    <PackageVersion Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageVersion Include="TransparentValueObjects" Version="1.0.2" />
+  </ItemGroup>
+</Project>

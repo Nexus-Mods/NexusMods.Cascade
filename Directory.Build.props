@@ -1,7 +1,8 @@
 <Project>
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <IsPackable>false</IsPackable>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
@@ -19,8 +20,4 @@
         <!-- SYSLIB1006: Multiple logging methods cannot use the same event ID -->
         <NoWarn>$(NoWarn);SYSLIB1006</NoWarn>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2023.*" PrivateAssets="all" />
-    </ItemGroup>
 </Project>
