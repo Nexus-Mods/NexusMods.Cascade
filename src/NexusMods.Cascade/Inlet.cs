@@ -4,7 +4,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Inlet<T> : AStage
+public class Inlet<T> : AStage, IInlet<T>
     where T : notnull
 {
     private readonly Dictionary<T, int> _results = new();
@@ -39,5 +39,10 @@ public class Inlet<T> : AStage
             var pair = new KeyValuePair<T, int>(item, -1);
             _outputSet.Add(in pair);
         }
+    }
+
+    public void AddData<TOutput>(ReadOnlySpan<T> input, TOutput output) where TOutput : IOutputSet<T>
+    {
+        throw new NotImplementedException();
     }
 }

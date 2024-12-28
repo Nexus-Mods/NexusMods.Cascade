@@ -42,22 +42,22 @@ public class BasicOperatorTests
     {
         var flow = new Flow();
 
-        var inletNames = flow.AddStage(new Inlet<(int Id, string Name)>());
-        var inletScores = flow.AddStage(new Inlet<(int Id, int Score)>());
+        var names = flow.AddStage(new Inlet<(int Id, string Name)>());
+        var scores = flow.AddStage(new Inlet<(int Id, int Score)>());
 
         var join = flow.AddStage(new HashJoin<(int Id, string Name), (int Id, int Score), int, (int Id, string Name, int Score)>(
-            l => l.Item1,
+            l => l.Id,
             r => r.Id,
             (l, r) => (l.Id, l.Name, r.Score)));
 
         var outlet = flow.AddStage(new Outlet<(int Id, string Name, int Score)>());
 
-        flow.Connect(inletNames, 0, join, 0);
-        flow.Connect(inletScores, 0, join, 1);
+        flow.Connect(names, 0, join, 0);
+        flow.Connect(scores, 0, join, 1);
         flow.Connect(join, 0, outlet, 0);
 
-        flow.AddInputData(inletNames, [(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
-        flow.AddInputData(inletScores, [(1, 100), (2, 200), (3, 300)]);
+        flow.AddInputData(names, [(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
+        flow.AddInputData(scores, [(1, 100), (2, 200), (3, 300)]);
 
         var results = flow.GetAllResults<(int Id, string Name, int Score)>(outlet);
 

@@ -15,18 +15,26 @@ public interface IFlow
     public FlowLock Lock();
 
     /// <summary>
-    /// Adds a stage to the flow
+    /// Adds a stage to the flow, if the stage has been deduplicated, it will return the
+    /// memoized stage
     /// </summary>
-    public StageId AddStage<T>(IStage stage) where T : notnull;
+    public IStage AddStage<T>(IStage stage) where T : notnull;
 
-    public void AddInputData<T>(StageId stageId, ReadOnlySpan<T> input) where T : notnull;
+    /// <summary>
+    /// Add input data to an inlet stage, if the stage does not exist in the flow yet, it will be added
+    /// </summary>
+    public void AddInputData<T>(IInlet<T> stageId, ReadOnlySpan<T> input) where T : notnull;
 
     /// <summary>
     /// Gets all the results of a stage, calculating the results if required
     /// </summary>
-    public IReadOnlyCollection<T> GetAllResults<T>(StageId stageId) where T : notnull;
+    public IReadOnlyCollection<T> GetAllResults<T>(IOutlet<T> stageId) where T : notnull;
 
-    public IObservableResultSet<T> ObserveAllResults<T>(StageId stageId) where T : notnull;
+    /// <summary>
+    /// Get an observable result set for a stage, the results will be updated as the flow progresses, and observing
+    /// the results will not lock the flow
+    /// </summary>
+    public IObservableResultSet<T> ObserveAllResults<T>(IOutlet<T> stageId) where T : notnull;
 
     /// <summary>
     /// Used by the FlowLock to unlock the flow, should not be called directly
