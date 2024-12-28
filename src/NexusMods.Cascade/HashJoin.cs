@@ -15,11 +15,13 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
     private readonly Dictionary<TKey, Dictionary<TRight, int>> _right = new();
     private readonly Func<TLeft,TKey> _leftKeySelector;
     private readonly Func<TRight,TKey> _rightKeySelector;
+    private readonly Func<TLeft,TRight,TOutput> _resultSelector;
 
-    public HashJoin(Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector)
+    public HashJoin(Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOutput> resultSelector)
     {
         _leftKeySelector = leftKeySelector;
         _rightKeySelector = rightKeySelector;
+        _resultSelector = resultSelector;
     }
 
     protected override void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOutput> outputSet)
@@ -32,6 +34,16 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
 
             ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(found!, itm.Key, out _);
             delta += itm.Value;
+
+            // Now emit the matches in the right
+            if (_right.TryGetValue(joinKey, out var rightMatches))
+            {
+                foreach (var rightMatch in rightMatches)
+                {
+                    var output = _resultSelector(itm.Key, rightMatch.Key);
+                    outputSet.Add(in output, itm.Value * rightMatch.Value);
+                }
+            }
 
             if (delta == 0)
                 found.Remove(itm.Key);
@@ -52,6 +64,16 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
 
             ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(found!, itm.Key, out _);
             delta += itm.Value;
+
+            // Now emit the matches in the left
+            if (_left.TryGetValue(joinKey, out var leftMatches))
+            {
+                foreach (var leftMatch in leftMatches)
+                {
+                    var output = _resultSelector(leftMatch.Key, itm.Key);
+                    outputSet.Add(in output, leftMatch.Value * itm.Value);
+                }
+            }
 
             if (delta == 0)
                 found.Remove(itm.Key);

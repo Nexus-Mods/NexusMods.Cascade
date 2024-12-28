@@ -21,6 +21,12 @@ public class DeduppingOutputSet<T> : IOutputSet<T>
         delta += valueAndDelta.Value;
     }
 
+    public void Add(in T value, int delta)
+    {
+        ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, value, out _);
+        current += delta;
+    }
+
     public void Reset()
     {
         _results.Clear();

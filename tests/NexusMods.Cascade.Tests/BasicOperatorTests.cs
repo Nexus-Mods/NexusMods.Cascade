@@ -45,7 +45,10 @@ public class BasicOperatorTests
         var inletNames = flow.AddStage(new Inlet<(int Id, string Name)>());
         var inletScores = flow.AddStage(new Inlet<(int Id, int Score)>());
 
-        var join = flow.AddStage(new HashJoin<(int Id, string Name), (int Id, int Score), int, (int Id, string Name, int Score)>(l => l.Item1, r => r.Id));
+        var join = flow.AddStage(new HashJoin<(int Id, string Name), (int Id, int Score), int, (int Id, string Name, int Score)>(
+            l => l.Item1,
+            r => r.Id,
+            (l, r) => (l.Id, l.Name, r.Score)));
 
         var outlet = flow.AddStage(new Outlet<(int Id, string Name, int Score)>());
 

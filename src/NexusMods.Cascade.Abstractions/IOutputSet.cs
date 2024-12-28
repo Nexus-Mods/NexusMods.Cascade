@@ -21,5 +21,7 @@ where T : notnull
 
     void Add(in KeyValuePair<T, int> valueAndDelta);
 
+    void Add(in T value, int delta);
+
     IEnumerable<KeyValuePair<T, int>> GetResults();
 }
