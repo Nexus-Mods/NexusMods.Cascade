@@ -10,10 +10,12 @@ public abstract class Join<TLeft, TRight, TOut> : AStage
 {
     private readonly IOutputSet<TOut> _outputSet;
 
-    public Join() : base([(typeof(TLeft), "left"), (typeof(TRight), "right")], [(typeof(TOut), "out")])
+    public Join(IOutput<TLeft> leftUpstream, IOutput<TRight> rightUpstream) :
+        base([(typeof(TLeft), "left"), (typeof(TRight), "right")],
+            [(typeof(TOut), "out")],
+            [leftUpstream, rightUpstream])
     {
         _outputSet = ((IOutput<TOut>)Outputs[0]).OutputSet;
-
 
     }
 

@@ -9,6 +9,8 @@ public interface IStage
     public IInput[] Inputs { get; }
 
     public IOutput[] Outputs { get; }
+
+    public IOutput[] UpstreamInputs { get; }
 }
 
 public interface IInput
@@ -42,6 +44,12 @@ public interface IOutput
     public Type Type { get; }
 
     public int Index { get; }
+
+    /// <summary>
+    /// Gets the associated stage
+    /// </summary>
+    public IStage Stage { get; }
+
     public IOutputSet OutputSet { get; set; }
 }
 

@@ -4,13 +4,14 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public abstract class AUnaryStage<TIn, TOut> : AStage
+public abstract class AUnaryStage<TIn, TOut> : AStage, ISingleOutputStage<TOut>
     where TIn : notnull
     where TOut : notnull
 {
     private readonly IOutputSet<TOut> _outputSet;
 
-    protected AUnaryStage() : base([(typeof(TIn), "input")], [(typeof(TOut), "output")])
+    protected AUnaryStage(IOutput upstream) :
+        base([(typeof(TIn), "input")], [(typeof(TOut), "output")], [upstream])
     {
         _outputSet = ((IOutput<TOut>)Outputs[0]).OutputSet;
     }
@@ -25,4 +26,6 @@ public abstract class AUnaryStage<TIn, TOut> : AStage
         _outputSet.Reset();
         Process((IOutputSet<TIn>)data, _outputSet);
     }
+
+    public IOutput<TOut> Output => (IOutput<TOut>)Outputs[0];
 }

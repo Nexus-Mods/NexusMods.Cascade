@@ -7,17 +7,14 @@ namespace NexusMods.Cascade;
 
 public class Outlet<T> : AStage, IOutlet<T> where T : notnull
 {
-    private ObservableResultSet<T> _results = new();
-    public Outlet() : base([(typeof(T), "results")], [])
+    private readonly ObservableResultSet<T> _results = new();
+    public Outlet(IOutput<T> upstreamInput) : base([(typeof(T), "results")], [], [upstreamInput])
     {
     }
 
     public override void AddData(IOutputSet data, int index)
     {
-        if (index != 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(index));
-        }
+        ArgumentOutOfRangeException.ThrowIfNotEqual(index, 0);
 
         _results.Update(((IOutputSet<T>)data).GetResults());
     }

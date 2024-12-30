@@ -56,6 +56,13 @@ public class Flow : IFlow
         else
         {
             _stages.Add(stage);
+            var idx = 0;
+            foreach (var outlet in stage.UpstreamInputs)
+            {
+                var upstream = AddStage(outlet.Stage);
+                Connect(upstream, outlet.Index, stage, idx);
+                idx++;
+            }
             return stage;
         }
     }
@@ -103,17 +110,42 @@ public class Flow : IFlow
 
     public IReadOnlyCollection<T> GetAllResults<T>(IOutlet<T> stage) where T : notnull
     {
-        if (!_stages.TryGetValue(stage, out var found))
-        {
-            throw new ArgumentException("Stage not found", nameof(stage));
-        }
+        stage = AddStage(stage);
 
-        if (found is not Outlet<T> outlet)
+        if (stage is not Outlet<T> outlet)
         {
             throw new ArgumentException("Stage is not an Outlet", nameof(stage));
         }
 
+        BackPropagate(outlet);
+
         return outlet.GetResults();
+    }
+
+    /// <summary>
+    /// Calculates the given stage by getting the results of the upstream stages and then running
+    /// the logic for this stage
+    /// </summary>
+    private void BackPropagate(IStage stage)
+    {
+        var aStage = (AStage)stage;
+        foreach (var output in aStage.Outputs)
+            output.OutputSet.Reset();
+
+        var idx = 0;
+        if (stage is IHasSnapshot hasSnapshot)
+        {
+            hasSnapshot.OutputSnapshot();
+        }
+        else
+        {
+            foreach (var upstream in aStage.UpstreamInputs)
+            {
+                BackPropagate(AddStage(upstream.Stage));
+                aStage.AddData(upstream.Stage.Outputs[upstream.Index].OutputSet, idx);
+                idx++;
+            }
+        }
     }
 
     public IObservableResultSet<T> ObserveAllResults<T>(IOutlet<T> stage) where T : notnull
