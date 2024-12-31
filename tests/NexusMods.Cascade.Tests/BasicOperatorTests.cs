@@ -42,7 +42,6 @@ public class BasicOperatorTests
     }
 
     [Fact]
-
     public void JoinTest()
     {
         var flow = new Flow();
@@ -59,6 +58,27 @@ public class BasicOperatorTests
         var results = flow.GetAllResults(outlet);
 
         results.Should().BeEquivalentTo([(1, "Alice", 100), (2, "Bob", 200), (3, "Charlie", 300)]);
+    }
+
+    [Fact]
+    public void FlowsAreIndepentant()
+    {
+        var flowA = new Flow();
+        var flowB = new Flow();
+
+        var inlet = new Inlet<int>();
+        var outlet = inlet
+            .Filter(static i => i % 2 == 0)
+            .Outlet();
+
+        flowA.AddInputData(inlet, [1, 2, 3, 4, 5, 6, 3, 1, 2]);
+
+        var resultsA = flowA.GetAllResults(outlet);
+        resultsA.Should().BeEquivalentTo([2, 4, 6]);
+
+        var resultsB = flowB.GetAllResults(outlet);
+        resultsB.Should().BeEmpty();
+
     }
 
 }
