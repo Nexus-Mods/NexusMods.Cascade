@@ -45,23 +45,13 @@ public class BasicOperatorTests
 
     public void JoinTest()
     {
-        throw new NotImplementedException();
-        /*
         var flow = new Flow();
 
-        var names = flow.AddStage(new Inlet<(int Id, string Name)>());
-        var scores = flow.AddStage(new Inlet<(int Id, int Score)>());
+        var names = new Inlet<(int Id, string Name)>();
+        var scores = new Inlet<(int Id, int Score)>();
+        var outlet = names.Join(scores, l => l.Id, r => r.Id, (l, r) => (l.Id, l.Name, r.Score))
+            .Outlet();
 
-        var join = flow.AddStage(new HashJoin<(int Id, string Name), (int Id, int Score), int, (int Id, string Name, int Score)>(
-            l => l.Id,
-            r => r.Id,
-            (l, r) => (l.Id, l.Name, r.Score)));
-
-        var outlet = flow.AddStage(new Outlet<(int Id, string Name, int Score)>());
-
-        flow.Connect(names, 0, join, 0);
-        flow.Connect(scores, 0, join, 1);
-        flow.Connect(join, 0, outlet, 0);
 
         flow.AddInputData(names, [(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
         flow.AddInputData(scores, [(1, 100), (2, 200), (3, 300)]);
@@ -69,8 +59,6 @@ public class BasicOperatorTests
         var results = flow.GetAllResults(outlet);
 
         results.Should().BeEquivalentTo([(1, "Alice", 100), (2, "Bob", 200), (3, "Charlie", 300)]);
-        */
-
     }
 
 }

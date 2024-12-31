@@ -18,4 +18,15 @@ public static class StageExtensions
         return new Outlet<T>(upstream.Output);
     }
 
+
+
+    public static HashJoin<TLeft, TRight, TKey, TOut> Join<TLeft, TRight, TKey, TOut>(this ISingleOutputStage<TLeft> left, ISingleOutputStage<TRight> right, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOut> resultSelector)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
+        where TOut : notnull
+    {
+        return new HashJoin<TLeft, TRight, TKey, TOut>(left.Output, right.Output, leftKeySelector, rightKeySelector, resultSelector);
+    }
+
 }

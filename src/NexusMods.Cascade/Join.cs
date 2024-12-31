@@ -3,7 +3,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public abstract class Join<TLeft, TRight, TOut> : AStage
+public abstract class Join<TLeft, TRight, TOut> : AStage, ISingleOutputStage<TOut>
     where TLeft : notnull
     where TOut : notnull
     where TRight : notnull
@@ -40,4 +40,5 @@ public abstract class Join<TLeft, TRight, TOut> : AStage
     protected abstract void ProcessRight(IOutputSet<TRight> data, IOutputSet<TOut> outputSet);
 
     protected abstract void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOut> outputSet);
+    public IOutput<TOut> Output => (IOutput<TOut>)Outputs[0];
 }
