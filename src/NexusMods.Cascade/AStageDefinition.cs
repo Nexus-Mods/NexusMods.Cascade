@@ -48,7 +48,7 @@ public abstract class AStageDefinition : IStageDefinition
 
             for (var i = 0; i < definition.Outputs.Length; i++)
             {
-                var type = typeof(IOutputSet<>).MakeGenericType(definition.Outputs[i].Type);
+                var type = typeof(DeduppingOutputSet<>).MakeGenericType(definition.Outputs[i].Type);
                 OutputSets[i] = (IOutputSet)Activator.CreateInstance(type)!;
             }
         }
@@ -64,6 +64,12 @@ public abstract class AStageDefinition : IStageDefinition
 
         /// <inheritdoc />
         public abstract void AddData(IOutputSet outputSet, int inputIndex);
+
+        public void ResetAllOutputs()
+        {
+            foreach (var outputSet in OutputSets)
+                outputSet.Reset();
+        }
     }
 }
 

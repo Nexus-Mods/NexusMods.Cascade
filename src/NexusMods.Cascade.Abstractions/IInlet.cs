@@ -10,8 +10,7 @@ public interface IInlet : IStage
 public interface IInlet<T> : IInlet
 where T : notnull
 {
-    public void AddData<TOutput>(ReadOnlySpan<T> input, TOutput output)
-        where TOutput : IOutputSet<T>;
+    public void AddData(ReadOnlySpan<T> input);
 }
 
 public interface IInletDefinition : IStageDefinition

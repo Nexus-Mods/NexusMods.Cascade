@@ -69,56 +69,58 @@ public class Flow : IFlow
     }
 
     public void AddInputData<TStageDefinition, TType>(TStageDefinition definition, ReadOnlySpan<TType> input)
-        where TStageDefinition : IInlet<TType>
+        where TStageDefinition : IInletDefinition<TType>
         where TType : notnull
     {
         var stage = AddStage(definition);
 
-        ((Inlet<TType>)stage).AddInputData(input);
+        var inlet = (Inlet<TType>.Stage)stage;
+        inlet.OutputSets[0].Reset();
+        inlet.AddData(input);
 
-        throw new NotImplementedException();
-        //FlowDataFrom(stage);
+        FlowDataFrom(stage);
     }
 
-    public void RemoveInputData<T>(IInlet<T> stageId, ReadOnlySpan<T> input)
+    public void RemoveInputData<T>(IInletDefinition stageDefinition, ReadOnlySpan<T> input)
         where T : notnull
     {
-        if (!_stages.TryGetValue(stageId, out var stage))
+        if (!_stages.TryGetValue(stageDefinition, out var stage))
         {
-            throw new ArgumentException("Stage not found", nameof(stageId));
+            throw new ArgumentException("Stage not found", nameof(stageDefinition));
         }
 
-        ((Inlet<T>)stage).RemoveInputData(input);
+        var inlet = (Inlet<T>.Stage)stage;
+        inlet.OutputSets[0].Reset();
+        inlet.RemoveInputData(input);
 
-        throw new NotImplementedException();
-        //FlowDataFrom(stage);
+        FlowDataFrom(stage);
     }
 
-    private void FlowDataFrom(IStageDefinition stage)
+    private void FlowDataFrom(IStage stage)
     {
-        /*
-        foreach (var output in stage.Outputs)
+        var idx = 0;
+        foreach (var output in stage.OutputSets)
         {
-            if (!_connections.TryGetValue((stage, output.Index), out var connections))
+            if (!_connections.TryGetValue((stage, idx), out var connections))
                 continue;
 
             foreach (var (inputStage, inputIndex) in connections)
             {
-                var castedInputStage = (AStageDefinition)inputStage;
-                castedInputStage.AddData(output.OutputSet, inputIndex);
+                var castedInputStage = (AStageDefinition.Stage)inputStage;
+                castedInputStage.ResetAllOutputs();
+                castedInputStage.AddData(output, inputIndex);
                 FlowDataFrom(inputStage);
             }
+            idx++;
         }
-        */
-
     }
 
-    public IReadOnlyCollection<T> GetAllResults<T>(IOutlet<T> stage) where T : notnull
+    public IReadOnlyCollection<T> GetAllResults<T>(IOutletDefinition<T> stageDefinition) where T : notnull
     {
-        /*
-        stage = AddStage(stage);
 
-        if (stage is not Outlet<T> outlet)
+        var stage = AddStage(stageDefinition);
+
+        if (stage is not Outlet<T>.Stage outlet)
         {
             throw new ArgumentException("Stage is not an Outlet", nameof(stage));
         }
@@ -126,8 +128,7 @@ public class Flow : IFlow
         BackPropagate(outlet);
 
         return outlet.GetResults();
-        */
-        throw new NotImplementedException();
+
     }
 
     /// <summary>
@@ -156,14 +157,14 @@ public class Flow : IFlow
         }
     }
 
-    public IObservableResultSet<T> ObserveAllResults<T>(IOutlet<T> stage) where T : notnull
+    public IObservableResultSet<T> ObserveAllResults<T>(IOutletDefinition<T> stage) where T : notnull
     {
         if (!_stages.TryGetValue(stage, out var found))
         {
             throw new ArgumentException("Stage not found", nameof(stage));
         }
 
-        if (found is not Outlet<T> outlet)
+        if (found is not Outlet<T>.Stage outlet)
         {
             throw new ArgumentException("Stage is not an Outlet", nameof(stage));
         }

@@ -8,37 +8,38 @@ public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, ISingleOutpu
     where TOut : notnull
     where TRight : notnull
 {
-    private readonly IOutputSet<TOut> _outputSet;
-
     public Join(IOutputDefinition<TLeft> leftUpstream, IOutputDefinition<TRight> rightUpstream) :
         base([(typeof(TLeft), "left"), (typeof(TRight), "right")],
             [(typeof(TOut), "out")],
             [leftUpstream, rightUpstream])
     {
-        _outputSet = ((IOutputDefinition<TOut>)Outputs[0]).OutputSet;
-
     }
 
-    public override void AddData(IOutputSet data, int index)
+    public abstract class Stage : AStageDefinition.Stage
     {
-        _outputSet.Reset();
-        switch (index)
+        public Stage(IFlow flow, IStageDefinition definition) : base(flow, definition)
         {
-            case 0:
-                ProcessLeft((IOutputSet<TLeft>)data, _outputSet);
-                break;
-            case 1:
-                ProcessRight((IOutputSet<TRight>)data, _outputSet);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(index));
-
-
         }
+
+        public override void AddData(IOutputSet outputSet, int inputIndex)
+        {
+            switch (inputIndex)
+            {
+                case 0:
+                    ProcessLeft((IOutputSet<TLeft>)outputSet, (IOutputSet<TOut>)OutputSets[0]);
+                    break;
+                case 1:
+                    ProcessRight((IOutputSet<TRight>)outputSet, (IOutputSet<TOut>)OutputSets[0]);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(inputIndex));
+            }
+        }
+
+        protected abstract void ProcessRight(IOutputSet<TRight> data, IOutputSet<TOut> outputSet);
+
+        protected abstract void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOut> outputSet);
     }
 
-    protected abstract void ProcessRight(IOutputSet<TRight> data, IOutputSet<TOut> outputSet);
-
-    protected abstract void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOut> outputSet);
     public IOutputDefinition<TOut> Output => (IOutputDefinition<TOut>)Outputs[0];
 }

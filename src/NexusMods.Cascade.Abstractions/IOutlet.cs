@@ -2,11 +2,20 @@
 
 namespace NexusMods.Cascade.Abstractions;
 
-public interface IOutlet : IStageDefinition
+public interface IOutletDefinition : IStageDefinition
 {
 }
 
-public interface IOutlet<T> : IStageDefinition
+public interface IOutletDefinition<T> : IOutletDefinition
+where T : notnull
+{
+}
+
+public interface IOutlet : IStage
+{
+}
+
+public interface IOutlet<T> : IOutlet
 where T : notnull
 {
 }

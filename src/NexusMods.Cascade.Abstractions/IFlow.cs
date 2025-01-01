@@ -28,13 +28,13 @@ public interface IFlow
     /// <summary>
     /// Gets all the results of a stage, calculating the results if required
     /// </summary>
-    public IReadOnlyCollection<T> GetAllResults<T>(IOutlet<T> stageId) where T : notnull;
+    public IReadOnlyCollection<T> GetAllResults<T>(IOutletDefinition<T> stageId) where T : notnull;
 
     /// <summary>
     /// Get an observable result set for a stage, the results will be updated as the flow progresses, and observing
     /// the results will not lock the flow
     /// </summary>
-    public IObservableResultSet<T> ObserveAllResults<T>(IOutlet<T> stageId) where T : notnull;
+    public IObservableResultSet<T> ObserveAllResults<T>(IOutletDefinition<T> stageId) where T : notnull;
 
     /// <summary>
     /// Used by the FlowLock to unlock the flow, should not be called directly

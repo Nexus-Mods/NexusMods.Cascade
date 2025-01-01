@@ -1,31 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Outlet<T> : AStageDefinition, IOutlet<T> where T : notnull
+public class Outlet<T> : AStageDefinition, IOutletDefinition<T>
+    where T : notnull
 {
-    private readonly ObservableResultSet<T> _results = new();
+
     public Outlet(IOutputDefinition<T> upstreamInput) : base([(typeof(T), "results")], [], [upstreamInput])
     {
     }
 
-    public override void AddData(IOutputSet data, int index)
+    public class Stage : AStageDefinition.Stage, IOutlet<T>
     {
-        ArgumentOutOfRangeException.ThrowIfNotEqual(index, 0);
+        private readonly ObservableResultSet<T> _results = new();
 
-        _results.Update(((IOutputSet<T>)data).GetResults());
+        public Stage(IFlow flow, IStageDefinition definition) : base(flow, definition)
+        {
+        }
+
+        public override void AddData(IOutputSet outputSet, int inputIndex)
+        {
+            Debug.Assert(inputIndex == 0);
+
+            _results.Update(((IOutputSet<T>)outputSet).GetResults());
+        }
+
+        public IReadOnlyCollection<T> GetResults()
+        {
+            return _results.GetResults();
+        }
+
+        public IObservableResultSet<T> ObserveResults()
+        {
+            return _results;
+        }
     }
 
-    public IReadOnlyCollection<T> GetResults()
+    public override IStage CreateInstance(IFlow flow)
     {
-        return _results.GetResults();
-    }
-
-    public IObservableResultSet<T> ObserveResults()
-    {
-        return _results;
+        return new Stage(flow, this);
     }
 }

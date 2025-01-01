@@ -31,6 +31,7 @@ public class Inlet<T> : AStageDefinition, IInletDefinition<T>, ISingleOutputStag
         {
         }
 
+
         public override void AddData(IOutputSet outputSet, int inputIndex)
         {
             throw new NotSupportedException("This is an inlet, it does not accept input data.");
@@ -43,9 +44,9 @@ public class Inlet<T> : AStageDefinition, IInletDefinition<T>, ISingleOutputStag
                 outputSet.Add(in kvp);
         }
 
-        public void AddData<TOutput>(ReadOnlySpan<T> input, TOutput output) where TOutput : IOutputSet<T>
+        public void AddData(ReadOnlySpan<T> input)
         {
-            var inputSet = (IOutputSet<T>)output;
+            var inputSet = (IOutputSet<T>)OutputSets[0];
             foreach (var item in input)
             {
                 var pair = new KeyValuePair<T, int>(item, 1);
@@ -59,7 +60,6 @@ public class Inlet<T> : AStageDefinition, IInletDefinition<T>, ISingleOutputStag
         public void RemoveInputData(ReadOnlySpan<T> input)
         {
             var outputSet = (IOutputSet<T>)OutputSets[0];
-            outputSet.Reset();
             foreach (var item in input)
             {
                 var pair = new KeyValuePair<T, int>(item, -1);
