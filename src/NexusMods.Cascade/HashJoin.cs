@@ -17,7 +17,7 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
     private readonly Func<TRight,TKey> _rightKeySelector;
     private readonly Func<TLeft,TRight,TOutput> _resultSelector;
 
-    public HashJoin(IOutput<TLeft> leftUpstream, IOutput<TRight> rightUpstream, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOutput> resultSelector) :
+    public HashJoin(IOutputDefinition<TLeft> leftUpstream, IOutputDefinition<TRight> rightUpstream, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOutput> resultSelector) :
         base(leftUpstream, rightUpstream)
     {
         _leftKeySelector = leftKeySelector;

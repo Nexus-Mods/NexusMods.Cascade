@@ -8,5 +8,5 @@ public interface ISingleOutputStage
 public interface ISingleOutputStage<T> : ISingleOutputStage
     where T : notnull
 {
-    public IOutput<T> Output { get; }
+    public IOutputDefinition<T> Output { get; }
 }

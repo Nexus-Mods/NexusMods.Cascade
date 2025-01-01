@@ -1,60 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade.Abstractions;
-
+/// <summary>
+/// A instance of a stage in a flow
+/// </summary>
 public interface IStage
 {
-
-    public IInput[] Inputs { get; }
-
-    public IOutput[] Outputs { get; }
-
-    public IOutput[] UpstreamInputs { get; }
-}
-
-public interface IInput
-{
     /// <summary>
-    /// The name of the input
+    /// The definition stage this stage is based on.
     /// </summary>
-    public string Name { get; }
+    public IStageDefinition Definition { get; }
 
     /// <summary>
-    /// The type of the input
+    /// The flow this stage is part of
     /// </summary>
-    public Type Type { get; }
+    public IFlow Flow { get; }
 
     /// <summary>
-    /// The index of the input
+    /// The output sets of this stage
     /// </summary>
-    public int Index { get; }
-}
-
-public interface IInput<T> : IInput
-    where T : notnull
-{
-
-}
-
-public interface IOutput
-{
-    public string Name { get; }
-
-    public Type Type { get; }
-
-    public int Index { get; }
+    public IOutputSet[] OutputSets { get; }
 
     /// <summary>
-    /// Gets the associated stage
+    /// Flow data into the stage from a previous stage into the given input index
     /// </summary>
-    public IStage Stage { get; }
-
-    public IOutputSet OutputSet { get; set; }
-}
-
-public interface IOutput<T> : IOutput
-    where T : notnull
-{
-    public IOutputSet<T> OutputSet { get; }
+    public void AddData(IOutputSet outputSet, int inputIndex);
 }

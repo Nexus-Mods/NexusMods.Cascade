@@ -18,7 +18,7 @@ public interface IFlow
     /// Adds a stage to the flow, if the stage has been deduplicated, it will return the
     /// memoized stage
     /// </summary>
-    public IStage AddStage<T>(IStage stage) where T : notnull;
+    public IStageDefinition AddStage<T>(IStageDefinition stage) where T : notnull;
 
     /// <summary>
     /// Add input data to an inlet stage, if the stage does not exist in the flow yet, it will be added

@@ -5,10 +5,10 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Outlet<T> : AStage, IOutlet<T> where T : notnull
+public class Outlet<T> : AStageDefinition, IOutlet<T> where T : notnull
 {
     private readonly ObservableResultSet<T> _results = new();
-    public Outlet(IOutput<T> upstreamInput) : base([(typeof(T), "results")], [], [upstreamInput])
+    public Outlet(IOutputDefinition<T> upstreamInput) : base([(typeof(T), "results")], [], [upstreamInput])
     {
     }
 

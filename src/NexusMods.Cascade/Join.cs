@@ -3,19 +3,19 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public abstract class Join<TLeft, TRight, TOut> : AStage, ISingleOutputStage<TOut>
+public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, ISingleOutputStage<TOut>
     where TLeft : notnull
     where TOut : notnull
     where TRight : notnull
 {
     private readonly IOutputSet<TOut> _outputSet;
 
-    public Join(IOutput<TLeft> leftUpstream, IOutput<TRight> rightUpstream) :
+    public Join(IOutputDefinition<TLeft> leftUpstream, IOutputDefinition<TRight> rightUpstream) :
         base([(typeof(TLeft), "left"), (typeof(TRight), "right")],
             [(typeof(TOut), "out")],
             [leftUpstream, rightUpstream])
     {
-        _outputSet = ((IOutput<TOut>)Outputs[0]).OutputSet;
+        _outputSet = ((IOutputDefinition<TOut>)Outputs[0]).OutputSet;
 
     }
 
@@ -40,5 +40,5 @@ public abstract class Join<TLeft, TRight, TOut> : AStage, ISingleOutputStage<TOu
     protected abstract void ProcessRight(IOutputSet<TRight> data, IOutputSet<TOut> outputSet);
 
     protected abstract void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOut> outputSet);
-    public IOutput<TOut> Output => (IOutput<TOut>)Outputs[0];
+    public IOutputDefinition<TOut> Output => (IOutputDefinition<TOut>)Outputs[0];
 }

@@ -11,7 +11,11 @@ namespace NexusMods.Template;
 public class Flow : IFlow
 {
     private SemaphoreSlim _lock = new(1, 1);
-    private HashSet<IStage> _stages = [];
+
+    /// <summary>
+    /// A mapping of stage definitions to their instances
+    /// </summary>
+    private readonly Dictionary<IStageDefinition, IStage> _stages = [];
 
     /// <summary>
     /// Mapping of stage outputs to stages that require that output
@@ -35,7 +39,7 @@ public class Flow : IFlow
         return new FlowLock(this);
     }
 
-    public IStage AddStage<T>(IStage stage) where T : notnull
+    public IStageDefinition AddStage<T>(IStageDefinition stage) where T : notnull
     {
         throw new NotImplementedException();
     }
@@ -45,37 +49,35 @@ public class Flow : IFlow
         throw new NotImplementedException();
     }
 
-    public TStage AddStage<TStage>(TStage stage)
-    where TStage : IStage
+    public IStage AddStage(IStageDefinition definition)
     {
         // Deduplicate the stage
-        if (_stages.TryGetValue(stage, out var found))
+        if (_stages.TryGetValue(definition, out var found))
+            return found;
+
+        // Create the stage if it doesn't exist
+        var instance = definition.CreateInstance(this);
+        _stages.Add(definition, instance);
+        var idx = 0;
+        foreach (var outlet in definition.UpstreamInputs)
         {
-            return (TStage)found;
+            var upstream = AddStage(outlet.Stage);
+            Connect(upstream, outlet.Index, instance, idx);
+            idx++;
         }
-        else
-        {
-            _stages.Add(stage);
-            var idx = 0;
-            foreach (var outlet in stage.UpstreamInputs)
-            {
-                var upstream = AddStage(outlet.Stage);
-                Connect(upstream, outlet.Index, stage, idx);
-                idx++;
-            }
-            return stage;
-        }
+        return instance;
     }
 
-    public void AddInputData<TStage, TType>(TStage stage, ReadOnlySpan<TType> input)
-        where TStage : IInlet<TType>
+    public void AddInputData<TStageDefinition, TType>(TStageDefinition definition, ReadOnlySpan<TType> input)
+        where TStageDefinition : IInlet<TType>
         where TType : notnull
     {
-        stage = AddStage(stage);
+        var stage = AddStage(definition);
 
-        ((Inlet<TType>)(IStage)stage).AddInputData(input);
+        ((Inlet<TType>)stage).AddInputData(input);
 
-        FlowDataFrom(stage);
+        throw new NotImplementedException();
+        //FlowDataFrom(stage);
     }
 
     public void RemoveInputData<T>(IInlet<T> stageId, ReadOnlySpan<T> input)
@@ -88,11 +90,13 @@ public class Flow : IFlow
 
         ((Inlet<T>)stage).RemoveInputData(input);
 
-        FlowDataFrom(stage);
+        throw new NotImplementedException();
+        //FlowDataFrom(stage);
     }
 
-    private void FlowDataFrom(IStage stage)
+    private void FlowDataFrom(IStageDefinition stage)
     {
+        /*
         foreach (var output in stage.Outputs)
         {
             if (!_connections.TryGetValue((stage, output.Index), out var connections))
@@ -100,16 +104,18 @@ public class Flow : IFlow
 
             foreach (var (inputStage, inputIndex) in connections)
             {
-                var castedInputStage = (AStage)inputStage;
+                var castedInputStage = (AStageDefinition)inputStage;
                 castedInputStage.AddData(output.OutputSet, inputIndex);
                 FlowDataFrom(inputStage);
             }
         }
+        */
 
     }
 
     public IReadOnlyCollection<T> GetAllResults<T>(IOutlet<T> stage) where T : notnull
     {
+        /*
         stage = AddStage(stage);
 
         if (stage is not Outlet<T> outlet)
@@ -120,6 +126,8 @@ public class Flow : IFlow
         BackPropagate(outlet);
 
         return outlet.GetResults();
+        */
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -128,9 +136,8 @@ public class Flow : IFlow
     /// </summary>
     private void BackPropagate(IStage stage)
     {
-        var aStage = (AStage)stage;
-        foreach (var output in aStage.Outputs)
-            output.OutputSet.Reset();
+        foreach (var output in stage.OutputSets)
+            output.Reset();
 
         var idx = 0;
         if (stage is IHasSnapshot hasSnapshot)
@@ -139,10 +146,11 @@ public class Flow : IFlow
         }
         else
         {
-            foreach (var upstream in aStage.UpstreamInputs)
+            foreach (var upstream in stage.Definition.UpstreamInputs)
             {
-                BackPropagate(AddStage(upstream.Stage));
-                aStage.AddData(upstream.Stage.Outputs[upstream.Index].OutputSet, idx);
+                var upstreamStage = AddStage(upstream.Stage);
+                BackPropagate(upstreamStage);
+                stage.AddData(upstreamStage.OutputSets[upstream.Index], idx);
                 idx++;
             }
         }
