@@ -4,7 +4,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Outlet<T> : AStageDefinition, IOutletDefinition<T>
+public class Outlet<T> : AStageDefinition, IOutletDefinition<T>, ISingleOutputStageDefinition<T>
     where T : notnull
 {
 
@@ -42,4 +42,6 @@ public class Outlet<T> : AStageDefinition, IOutletDefinition<T>
     {
         return new Stage(flow, this);
     }
+
+    public IOutputDefinition<T> Output => (IOutputDefinition<T>)Outputs[0];
 }

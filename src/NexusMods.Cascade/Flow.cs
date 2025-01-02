@@ -17,6 +17,8 @@ public class Flow : IFlow
     /// </summary>
     private readonly Dictionary<IStageDefinition, IStage> _stages = [];
 
+    private readonly Dictionary<IStageDefinition, IOutletDefinition> _implicitOutlets = [];
+
     /// <summary>
     /// Mapping of stage outputs to stages that require that output
     /// </summary>
@@ -68,13 +70,23 @@ public class Flow : IFlow
         return instance;
     }
 
-    public void AddInputData<TStageDefinition, TType>(TStageDefinition definition, ReadOnlySpan<TType> input)
-        where TStageDefinition : IInletDefinition<TType>
-        where TType : notnull
+    public IOutlet<T> GetOutlet<T>(ISingleOutputStageDefinition<T> stageDefinition)
+        where T : notnull
+    {
+        if (stageDefinition is IOutletDefinition<T> outlet)
+            return (IOutlet<T>)AddStage(outlet);
+
+        var newOutlet = new Outlet<T>(stageDefinition.Output);
+        _implicitOutlets.Add(stageDefinition, newOutlet);
+        return (IOutlet<T>)AddStage(newOutlet);
+    }
+
+    public void AddInputData<T>(IInletDefinition<T> definition, ReadOnlySpan<T> input)
+        where T : notnull
     {
         var stage = AddStage(definition);
 
-        var inlet = (Inlet<TType>.Stage)stage;
+        var inlet = (Inlet<T>.Stage)stage;
         inlet.OutputSets[0].Reset();
         inlet.AddData(input);
 
@@ -115,10 +127,10 @@ public class Flow : IFlow
         }
     }
 
-    public IReadOnlyCollection<T> GetAllResults<T>(IOutletDefinition<T> stageDefinition) where T : notnull
+    public IReadOnlyCollection<T> GetAllResults<T>(ISingleOutputStageDefinition<T> stageDefinition) where T : notnull
     {
 
-        var stage = AddStage(stageDefinition);
+        var stage = GetOutlet(stageDefinition);
 
         if (stage is not Outlet<T>.Stage outlet)
         {

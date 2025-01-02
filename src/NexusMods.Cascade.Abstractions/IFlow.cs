@@ -23,12 +23,12 @@ public interface IFlow
     /// <summary>
     /// Add input data to an inlet stage, if the stage does not exist in the flow yet, it will be added
     /// </summary>
-    public void AddInputData<T>(IInlet<T> stageId, ReadOnlySpan<T> input) where T : notnull;
+    public void AddInputData<T>(IInletDefinition<T> inletDefinition, ReadOnlySpan<T> input) where T : notnull;
 
     /// <summary>
     /// Gets all the results of a stage, calculating the results if required
     /// </summary>
-    public IReadOnlyCollection<T> GetAllResults<T>(IOutletDefinition<T> stageId) where T : notnull;
+    public IReadOnlyCollection<T> GetAllResults<T>(ISingleOutputStageDefinition<T> stageId) where T : notnull;
 
     /// <summary>
     /// Get an observable result set for a stage, the results will be updated as the flow progresses, and observing

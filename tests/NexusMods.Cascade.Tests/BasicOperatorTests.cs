@@ -61,6 +61,28 @@ public class BasicOperatorTests
     }
 
     [Fact]
+    public void CanJoinViaLinq()
+    {
+        var names = new Inlet<(int Id, string Name)>();
+        var scores = new Inlet<(int Id, int Score)>();
+
+        var outlet = from name in names
+            join score in scores on name.Id equals score.Id
+            let s = score.Score / 10
+            where score.Score > 100
+            select (name.Id, name.Name, score.Score);
+
+        var flow = new Flow();
+
+        flow.AddInputData(names, [(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
+        flow.AddInputData(scores, [(1, 100), (2, 200), (3, 300)]);
+
+        var results = flow.GetAllResults(outlet);
+
+        results.Should().BeEquivalentTo([(2, "Bob", 200), (3, "Charlie", 300)]);
+    }
+
+    [Fact]
     public void FlowsAreIndepentant()
     {
         var flowA = new Flow();

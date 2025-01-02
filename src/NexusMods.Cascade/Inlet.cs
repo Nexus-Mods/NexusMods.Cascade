@@ -5,7 +5,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Inlet<T> : AStageDefinition, IInletDefinition<T>, ISingleOutputStage<T>
+public class Inlet<T> : AStageDefinition, IInletDefinition<T>, ISingleOutputStageDefinition<T>
     where T : notnull
 {
 

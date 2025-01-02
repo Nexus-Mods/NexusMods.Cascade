@@ -1,11 +1,13 @@
-﻿namespace NexusMods.Cascade.Abstractions;
+﻿using System.Linq;
 
-public interface ISingleOutputStage
+namespace NexusMods.Cascade.Abstractions;
+
+public interface ISingleOutputStageDefinition : IStageDefinition
 {
 
 }
 
-public interface ISingleOutputStage<T> : ISingleOutputStage
+public interface ISingleOutputStageDefinition<T> : ISingleOutputStageDefinition
     where T : notnull
 {
     public IOutputDefinition<T> Output { get; }
