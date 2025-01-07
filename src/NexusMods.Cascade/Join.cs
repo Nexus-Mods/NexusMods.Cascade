@@ -3,7 +3,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, ISingleOutputStageDefinition<TOut>
+public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, IQuery<TOut>
     where TLeft : notnull
     where TOut : notnull
     where TRight : notnull

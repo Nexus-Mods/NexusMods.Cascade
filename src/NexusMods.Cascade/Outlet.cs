@@ -4,7 +4,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Outlet<T> : AStageDefinition, IOutletDefinition<T>, ISingleOutputStageDefinition<T>
+public class Outlet<T> : AStageDefinition, IOutletDefinition<T>, IQuery<T>
     where T : notnull
 {
 

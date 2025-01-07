@@ -2,12 +2,12 @@
 
 namespace NexusMods.Cascade.Abstractions;
 
-public interface ISingleOutputStageDefinition : IStageDefinition
+public interface IQuery : IStageDefinition
 {
 
 }
 
-public interface ISingleOutputStageDefinition<T> : ISingleOutputStageDefinition
+public interface IQuery<T> : IQuery
     where T : notnull
 {
     public IOutputDefinition<T> Output { get; }

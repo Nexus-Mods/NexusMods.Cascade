@@ -70,7 +70,7 @@ public class BasicOperatorTests
             join score in scores on name.Id equals score.Id
             let s = score.Score / 10
             where score.Score > 100
-            select (name.Id, name.Name, score.Score);
+            select ValueTuple.Create(name.Id, name.Name, score.Score);
 
         var flow = new Flow();
 

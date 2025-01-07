@@ -10,7 +10,7 @@ public class ModlistTests
     [Fact]
     public void CanGetArchiveStats()
     {
-        var results = _flow.GetAllResults(Queries.ArchiveCount);
+        /*var results = _flow.GetAllResults(Queries.ArchiveCount);
         Assert.Equal(284, results.First());
 
         var results2 = _flow.GetAllResults(Queries.TotalArchiveSize);
@@ -18,7 +18,12 @@ public class ModlistTests
 
         var nexusArchives = _flow.GetAllResults(Queries.NexusDownloads);
 
-        Assert.Equal(1, nexusArchives.Count());
+*/
+        var mods = _flow.GetAllResults(Queries.ModSizes);
+
+        //Assert.Equal(1, nexusArchives.Count());
+
+        Assert.Fail("Not implemented");
 
     }
 }

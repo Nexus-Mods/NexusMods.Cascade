@@ -4,7 +4,7 @@ using NexusMods.Cascade.Abstractions;
 namespace NexusMods.Cascade;
 
 public abstract class AUnaryStageDefinition<TIn, TOut>(IOutputDefinition upstream)
-    : AStageDefinition([(typeof(TIn), "input")], [(typeof(TOut), "output")], [upstream]), ISingleOutputStageDefinition<TOut>
+    : AStageDefinition([(typeof(TIn), "input")], [(typeof(TOut), "output")], [upstream]), IQuery<TOut>
     where TIn : notnull
     where TOut : notnull
 {

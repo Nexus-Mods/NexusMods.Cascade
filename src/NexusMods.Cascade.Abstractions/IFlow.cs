@@ -28,7 +28,7 @@ public interface IFlow
     /// <summary>
     /// Gets all the results of a stage, calculating the results if required
     /// </summary>
-    public IReadOnlyCollection<T> GetAllResults<T>(ISingleOutputStageDefinition<T> stageId) where T : notnull;
+    public IReadOnlyCollection<T> GetAllResults<T>(IQuery<T> stageId) where T : notnull;
 
     /// <summary>
     /// Get an observable result set for a stage, the results will be updated as the flow progresses, and observing

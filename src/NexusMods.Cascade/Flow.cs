@@ -70,7 +70,7 @@ public class Flow : IFlow
         return instance;
     }
 
-    public IOutlet<T> GetOutlet<T>(ISingleOutputStageDefinition<T> stageDefinition)
+    public IOutlet<T> GetOutlet<T>(IQuery<T> stageDefinition)
         where T : notnull
     {
         if (stageDefinition is IOutletDefinition<T> outlet)
@@ -127,7 +127,7 @@ public class Flow : IFlow
         }
     }
 
-    public IReadOnlyCollection<T> GetAllResults<T>(ISingleOutputStageDefinition<T> stageDefinition) where T : notnull
+    public IReadOnlyCollection<T> GetAllResults<T>(IQuery<T> stageDefinition) where T : notnull
     {
 
         var stage = GetOutlet(stageDefinition);
