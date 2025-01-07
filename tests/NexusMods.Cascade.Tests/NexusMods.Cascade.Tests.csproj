@@ -7,4 +7,12 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\NexusMods.Cascade\NexusMods.Cascade.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <None Update="Resources\small-modlist.json.gz">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="NexusMods.Paths" />
+    </ItemGroup>
 </Project>
