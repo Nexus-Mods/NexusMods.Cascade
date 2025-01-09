@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Implementation;
 
@@ -40,11 +41,29 @@ public class Flow
     }
 
     /// <summary>
+    /// Update synchronously, with one state value passed in, and a return value
+    /// </summary>
+    public TRet Update<T1, TRet>(Func<FlowOps, T1, TRet> updateFn, T1 state)
+    {
+        using var _ = _lock.Lock();
+        return updateFn(new FlowOps(_impl), state);
+    }
+
+    /// <summary>
     /// Update synchronously, and return a value
     /// </summary>
     public T Update<T>(Func<FlowOps, T> updateFn)
     {
         using var _ = _lock.Lock();
         return updateFn(new FlowOps(_impl));
+    }
+
+    /// <summary>
+    /// Runs a query and returns the results
+    /// </summary>
+    public IReadOnlyCollection<T> Query<T>(IQuery<T> query)
+        where T : notnull
+    {
+        return Update(static (ops, q) => ops.GetAllResults(q), query);
     }
 }
