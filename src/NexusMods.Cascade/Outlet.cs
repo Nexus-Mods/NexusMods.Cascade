@@ -4,22 +4,22 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class Outlet<T> : AStageDefinition, IOutletDefinition<T>, IQuery<T>
+/// <summary>
+/// The implementation of an outlet.
+/// </summary>
+public class Outlet<T>(IOutputDefinition<T> upstreamInput)
+    : AStageDefinition([(typeof(T), "results")], [], [upstreamInput]), IOutletDefinition<T>, IQuery<T>
     where T : notnull
 {
-
-    public Outlet(IOutputDefinition<T> upstreamInput) : base([(typeof(T), "results")], [], [upstreamInput])
-    {
-    }
-
-    public class Stage : AStageDefinition.Stage, IOutlet<T>
+    /// <summary>
+    /// The outlet stage implementation.
+    /// </summary>
+    public new class Stage(IFlowImpl flow, IStageDefinition definition)
+        : AStageDefinition.Stage(flow, definition), IOutlet<T>
     {
         private readonly ObservableResultSet<T> _results = new();
 
-        public Stage(IFlow flow, IStageDefinition definition) : base(flow, definition)
-        {
-        }
-
+        /// <inheritdoc />
         public override void AddData(IOutputSet outputSet, int inputIndex)
         {
             Debug.Assert(inputIndex == 0);
@@ -27,21 +27,19 @@ public class Outlet<T> : AStageDefinition, IOutletDefinition<T>, IQuery<T>
             _results.Update(((IOutputSet<T>)outputSet).GetResults());
         }
 
-        public IReadOnlyCollection<T> GetResults()
-        {
-            return _results.GetResults();
-        }
+        /// <inheritdoc />
+        public IReadOnlyCollection<T> Results => _results.GetResults();
 
-        public IObservableResultSet<T> ObserveResults()
-        {
-            return _results;
-        }
+        /// <inheritdoc />
+        public IObservableResultSet<T> Observe() => _results;
     }
 
-    public override IStage CreateInstance(IFlow flow)
+    /// <inheritdoc />
+    public override IStage CreateInstance(IFlowImpl flow)
     {
         return new Stage(flow, this);
     }
 
+    /// <inheritdoc />
     public IOutputDefinition<T> Output => (IOutputDefinition<T>)Outputs[0];
 }

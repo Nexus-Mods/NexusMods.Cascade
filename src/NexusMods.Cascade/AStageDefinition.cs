@@ -22,24 +22,34 @@ public abstract class AStageDefinition : IStageDefinition
         for (var i = 0; i < outputs.Length; i++)
         {
             Outputs[i] = (IOutputDefinition)typeof(Output<>).MakeGenericType(outputs[i].Type)
-                .GetConstructor([typeof(IStageDefinition), typeof(string), typeof(int)])?
+                .GetConstructor([typeof(IStageDefinition), typeof(string), typeof(int)])!
                 .Invoke([this, outputs[i].Name, i])!;
         }
 
     }
 
-    public IOutputDefinition[] Outputs { get; set; }
+    /// <inheritdoc />
+    public IOutputDefinition[] Outputs { get; }
 
-    public IInputDefinition[] Inputs { get; set; }
+    /// <inheritdoc />
+    public IInputDefinition[] Inputs { get; }
 
+    /// <inheritdoc />
     public IOutputDefinition[] UpstreamInputs { get; set; }
 
-    public abstract IStage CreateInstance(IFlow flow);
+    /// <inheritdoc />
+    public abstract IStage CreateInstance(IFlowImpl flow);
 
 
+    /// <summary>
+    /// The stage implementation
+    /// </summary>
     public abstract class Stage : IStage
     {
-        public Stage(IFlow flow, IStageDefinition definition)
+        /// <summary>
+        /// Main constructor
+        /// </summary>
+        protected Stage(IFlowImpl flow, IStageDefinition definition)
         {
             Flow = flow;
             Definition = definition;
@@ -57,7 +67,7 @@ public abstract class AStageDefinition : IStageDefinition
         public IStageDefinition Definition { get; }
 
         /// <inheritdoc />
-        public IFlow Flow { get; }
+        public IFlowImpl Flow { get; }
 
         /// <inheritdoc />
         public IOutputSet[] OutputSets { get; }
@@ -65,6 +75,9 @@ public abstract class AStageDefinition : IStageDefinition
         /// <inheritdoc />
         public abstract void AddData(IOutputSet outputSet, int inputIndex);
 
+        /// <summary>
+        /// Resets all outputs
+        /// </summary>
         public void ResetAllOutputs()
         {
             foreach (var outputSet in OutputSets)
@@ -74,28 +87,54 @@ public abstract class AStageDefinition : IStageDefinition
 }
 
 
+/// <summary>
+/// A typed input definition
+/// </summary>
 public record Input<T> : IInputDefinition
 {
+    /// <inheritdoc />
     public string Name { get; }
+
+    /// <inheritdoc />
     public Type Type => typeof(T);
+
+    /// <inheritdoc />
     public int Index { get; }
 
-    public Input(string name, int index)
+    /// <summary>
+    /// The primary constructor
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="index"></param>
+    internal Input(string name, int index)
     {
         Name = name;
         Index = index;
     }
 }
 
+/// <summary>
+/// A typed output definition
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public record Output<T> : IOutputDefinition<T>
     where T : notnull
 {
+    /// <inheritdoc />
     public string Name { get; }
+
+    /// <inheritdoc />
     public Type Type => typeof(T);
+
+    /// <inheritdoc />
     public int Index { get; }
 
+    /// <inheritdoc />
     public IStageDefinition Stage { get; }
 
+    /// <summary>
+    /// The primary constructor
+    /// </summary>
     public Output(IStageDefinition stage, string name, int index)
     {
         Stage = stage;

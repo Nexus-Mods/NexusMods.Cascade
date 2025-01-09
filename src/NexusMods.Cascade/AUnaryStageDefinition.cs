@@ -10,7 +10,7 @@ public abstract class AUnaryStageDefinition<TIn, TOut>(IOutputDefinition upstrea
 {
     public IOutputDefinition<TOut> Output => (IOutputDefinition<TOut>)Outputs[0];
 
-    public abstract class Stage(IFlow flow, IStageDefinition definition) : AStageDefinition.Stage(flow, definition)
+    public abstract class Stage(IFlowImpl flow, IStageDefinition definition) : AStageDefinition.Stage(flow, definition)
     {
         protected abstract void Process(IOutputSet<TIn> input, IOutputSet<TOut> output);
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using NexusMods.Cascade.Implementation;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -25,7 +26,7 @@ public interface IStageDefinition
     /// <summary>
     /// Creates a new instance of the stage that will be attached to the flow
     /// </summary>
-    public IStage CreateInstance(IFlow flow);
+    public IStage CreateInstance(IFlowImpl flow);
 }
 
 public interface IInputDefinition

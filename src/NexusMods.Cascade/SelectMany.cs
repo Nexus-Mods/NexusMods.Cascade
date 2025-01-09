@@ -4,6 +4,9 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
+/// <summary>
+/// A select flatten stage
+/// </summary>
 public class SelectMany<TIn, TColl, TOut> : AUnaryStageDefinition<TIn, TOut>
     where TIn : notnull
     where TOut : notnull
@@ -11,6 +14,7 @@ public class SelectMany<TIn, TColl, TOut> : AUnaryStageDefinition<TIn, TOut>
     private readonly Func<TIn,IEnumerable<TColl>> _collectionSelector;
     private readonly Func<TIn,TColl,TOut> _resultSelector;
 
+    /// <inheritdoc />
     public SelectMany(Func<TIn, IEnumerable<TColl>> collectionSelector, Func<TIn, TColl, TOut> resultSelector, IOutputDefinition upstream) : base(upstream)
     {
         _collectionSelector = collectionSelector;
@@ -18,27 +22,22 @@ public class SelectMany<TIn, TColl, TOut> : AUnaryStageDefinition<TIn, TOut>
 
     }
 
-    public override IStage CreateInstance(IFlow flow)
+    /// <inheritdoc />
+    public override IStage CreateInstance(IFlowImpl flow)
     {
         return new Stage(flow, this);
     }
 
-    private class Stage : AUnaryStageDefinition<TIn, TOut>.Stage
+    private new class Stage(IFlowImpl flow, SelectMany<TIn, TColl, TOut> definition)
+        : AUnaryStageDefinition<TIn, TOut>.Stage(flow, definition)
     {
-        private readonly SelectMany<TIn, TColl, TOut> _definition;
-
-        public Stage(IFlow flow, SelectMany<TIn, TColl, TOut> definition) : base(flow, definition)
-        {
-            _definition = definition;
-        }
-
         protected override void Process(IOutputSet<TIn> input, IOutputSet<TOut> output)
         {
             foreach (var (src, srcCount) in input.GetResults())
             {
-                foreach (var coll in _definition._collectionSelector(src))
+                foreach (var coll in definition._collectionSelector(src))
                 {
-                    output.Add(_definition._resultSelector(src, coll), srcCount);
+                    output.Add(definition._resultSelector(src, coll), srcCount);
                 }
             }
         }

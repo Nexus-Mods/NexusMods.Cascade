@@ -13,7 +13,7 @@ public interface IStage
     /// <summary>
     /// The flow this stage is part of
     /// </summary>
-    public IFlow Flow { get; }
+    public IFlowImpl Flow { get; }
 
     /// <summary>
     /// The output sets of this stage
@@ -24,4 +24,9 @@ public interface IStage
     /// Flow data into the stage from a previous stage into the given input index
     /// </summary>
     public void AddData(IOutputSet outputSet, int inputIndex);
+
+    /// <summary>
+    /// Resets the temporary state of the outputs of the stage
+    /// </summary>
+    void ResetAllOutputs();
 }

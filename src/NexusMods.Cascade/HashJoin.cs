@@ -5,6 +5,14 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
+/// <summary>
+/// A hash join stage, this takes two upstreams and joins them based on a key selector, the result is
+/// then passed to a result selector to create the output data.
+/// </summary>
+/// <typeparam name="TLeft"></typeparam>
+/// <typeparam name="TRight"></typeparam>
+/// <typeparam name="TKey"></typeparam>
+/// <typeparam name="TOutput"></typeparam>
 public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutput>
     where TLeft : notnull
     where TRight : notnull
@@ -24,7 +32,7 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
         _resultSelector = resultSelector;
     }
 
-    public override IStage CreateInstance(IFlow flow)
+    public override IStage CreateInstance(IFlowImpl flow)
     {
         return new Stage(flow, this);
     }
@@ -35,7 +43,7 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
         private readonly Dictionary<TKey, Dictionary<TRight, int>> _right = new();
         private readonly HashJoin<TLeft,TRight,TKey,TOutput> _definition;
 
-        public Stage(IFlow flow, HashJoin<TLeft, TRight, TKey, TOutput> definition) : base(flow, definition)
+        public Stage(IFlowImpl flow, HashJoin<TLeft, TRight, TKey, TOutput> definition) : base(flow, definition)
         {
             _definition = definition;
         }

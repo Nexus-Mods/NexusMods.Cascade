@@ -1,40 +1,42 @@
 ﻿using System;
-using System.Linq;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
+/// <summary>
+/// A grouping stage that groups items by a key
+/// </summary>
 public class GroupBy<TKey, TItem> : AUnaryStageDefinition<TItem, Reduction<TKey, TItem>>
     where TItem : notnull
     where TKey : notnull
 {
     private readonly Func<TItem,TKey> _keySelector;
 
+    /// <summary>
+    /// The primary constructor
+    /// </summary>
+    /// <param name="keySelector"></param>
+    /// <param name="upstream"></param>
     public GroupBy(Func<TItem, TKey> keySelector, IOutputDefinition<TItem> upstream) : base(upstream)
     {
         _keySelector = keySelector;
 
     }
 
-    public override IStage CreateInstance(IFlow flow)
+    /// <inheritdoc />
+    public override IStage CreateInstance(IFlowImpl flow)
     {
         return new Stage(flow, this);
     }
 
-    private class Stage : AUnaryStageDefinition<TItem, Reduction<TKey, TItem>>.Stage
+    private new class Stage(IFlowImpl flow, GroupBy<TKey, TItem> definition)
+        : AUnaryStageDefinition<TItem, Reduction<TKey, TItem>>.Stage(flow, definition)
     {
-        private readonly GroupBy<TKey,TItem> _definition;
-
-        public Stage(IFlow flow, GroupBy<TKey, TItem> definition) : base(flow, definition)
-        {
-            _definition = definition;
-        }
-
         protected override void Process(IOutputSet<TItem> input, IOutputSet<Reduction<TKey, TItem>> output)
         {
             foreach (var (item, delta) in input.GetResults())
             {
-                output.Add(new Reduction<TKey, TItem>(_definition._keySelector(item), item), delta);
+                output.Add(new Reduction<TKey, TItem>(definition._keySelector(item), item), delta);
             }
         }
     }

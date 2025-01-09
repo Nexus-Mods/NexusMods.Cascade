@@ -1,6 +1,6 @@
 ﻿namespace NexusMods.Cascade.Abstractions;
 
-public static class Flow
+public interface IFlowImpl
 {
-
+    
 }

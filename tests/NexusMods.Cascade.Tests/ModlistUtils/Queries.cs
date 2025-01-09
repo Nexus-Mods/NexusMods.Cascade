@@ -36,26 +36,4 @@ public class Queries
         from modFile in ModFiles
         select modFile.Mod;
 
-
-    public static IQuery<(string, int)> ModSizes =
-        from modFile in ModFiles
-        group modFile by modFile.Mod into modGroup
-        from grp in modGroup
-        let size = modGroup.CountPerGroup()
-        select ValueTuple.Create(modGroup.Key, size);
-
-    public static IQuery<int> ArchiveCount =
-        from archives in Archives
-        select archives.Count();
-
-    public static IQuery<long> TotalArchiveSize =
-        from archives in Archives
-        select archives.Sum(archive => (long) archive["Size"]!);
-
-    public static IQuery<JToken> NexusDownloads =
-        from token in Archives
-        where ((string)token["State"]!["$type"]!).StartsWith("NexusDownloader,")
-        select token;
-
-
 }
