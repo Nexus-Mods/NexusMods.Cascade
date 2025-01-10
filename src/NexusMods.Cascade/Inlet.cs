@@ -52,7 +52,7 @@ public class Inlet<T>() : AStageDefinition([], [(typeof(T), "output")], []), IIn
             var inputSet = (IOutputSet<T>)OutputSets[0];
             foreach (var item in input)
             {
-                var pair = new KeyValuePair<T, int>(item, 1);
+                var pair = new KeyValuePair<T, int>(item, delta);
                 inputSet.Add(in pair);
 
                 ref var existingDelta = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, item, out _);

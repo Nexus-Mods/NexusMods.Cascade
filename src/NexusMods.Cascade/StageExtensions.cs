@@ -38,11 +38,11 @@ public static class StageExtensions
         return new HashJoin<TLeft, TRight, TKey, TOut>(left.Output, right.Output, leftKeySelector, rightKeySelector, resultSelector);
     }
 
-    public static Select<TIn, TOut> Select<TIn, TOut>(this IQuery<TIn> upstream, Expression<Func<TIn, TOut>> selector)
+    public static Select<TIn, TOut> Select<TIn, TOut>(this IQuery<TIn> upstream, Func<TIn, TOut> selector)
         where TIn : notnull
         where TOut : notnull
     {
-        return new Select<TIn, TOut>(upstream.Output, selector.Compile());
+        return new Select<TIn, TOut>(upstream.Output, selector);
     }
 
     public static IQuery<TResult> SelectMany<TSource, TCollection, TResult>(this IQuery<TSource> input, Func<TSource, IEnumerable<TCollection>> collectionSelector,

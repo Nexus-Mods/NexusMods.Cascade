@@ -12,7 +12,7 @@ internal class FlowImpl : IFlowImpl
     /// </summary>
     private readonly Dictionary<IStageDefinition, IStage> _stages = [];
 
-    private readonly Dictionary<IStageDefinition, IOutletDefinition> _implicitOutlets = [];
+    private readonly Dictionary<IStageDefinition, IOutlet> _implicitOutlets = [];
 
     /// <summary>
     /// Mapping of stage outputs to stages that require that output
@@ -24,11 +24,16 @@ internal class FlowImpl : IFlowImpl
     /// </summary>
     private readonly Dictionary<(IStage InputStage, int InputIndex), List<(IStage OutputStage, int OutputIndex)>> _backConnections = new();
 
-    private IStage AddStage(IStageDefinition definition)
+    private IStage AddStage(IStageDefinition definition, out bool wasCreated)
     {
         // Deduplicate the stage
         if (_stages.TryGetValue(definition, out var found))
+        {
+            wasCreated = false;
             return found;
+        }
+
+        wasCreated = true;
 
         // Create the stage if it doesn't exist
         var instance = definition.CreateInstance(this);
@@ -36,28 +41,38 @@ internal class FlowImpl : IFlowImpl
         var idx = 0;
         foreach (var outlet in definition.UpstreamInputs)
         {
-            var upstream = AddStage(outlet.Stage);
+            var upstream = AddStage(outlet.Stage, out _);
             Connect(upstream, outlet.Index, instance, idx);
             idx++;
         }
         return instance;
     }
 
-    private IOutlet<T> GetOutlet<T>(IQuery<T> stageDefinition)
+    private IOutlet<T> GetOutlet<T>(IQuery<T> stageDefinition, out bool wasCreated)
         where T : notnull
     {
-        if (stageDefinition is IOutletDefinition<T> outlet)
-            return (IOutlet<T>)AddStage(outlet);
+        if (stageDefinition is IOutletDefinition<T> castedOutletDefinition)
+        {
+            return (IOutlet<T>)AddStage(castedOutletDefinition, out wasCreated);
+        }
 
-        var newOutlet = new Outlet<T>(stageDefinition.Output);
-        _implicitOutlets.Add(stageDefinition, newOutlet);
-        return (IOutlet<T>)AddStage(newOutlet);
+        if (_implicitOutlets.TryGetValue(stageDefinition, out var found))
+        {
+            wasCreated = false;
+            return (IOutlet<T>)found;
+        }
+
+        wasCreated = true;
+        var newOutletDefinition = new Outlet<T>(stageDefinition.Output);
+        var outlet = (IOutlet)AddStage(newOutletDefinition, out _);
+        _implicitOutlets.Add(stageDefinition, outlet);
+        return (IOutlet<T>)outlet;
     }
 
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<T> input, int delta = 1)
         where T : notnull
     {
-        var stage = AddStage(definition);
+        var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
         inlet.OutputSets[0].Reset();
@@ -69,7 +84,7 @@ internal class FlowImpl : IFlowImpl
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<(T Item, int delta)> input)
         where T : notnull
     {
-        var stage = AddStage(definition);
+        var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
         inlet.OutputSets[0].Reset();
@@ -99,14 +114,15 @@ internal class FlowImpl : IFlowImpl
     internal IReadOnlyCollection<T> GetAllResults<T>(IQuery<T> stageDefinition) where T : notnull
     {
 
-        var stage = GetOutlet(stageDefinition);
+        var stage = GetOutlet(stageDefinition, out var wasCreated);
 
         if (stage is not Outlet<T>.Stage outlet)
         {
             throw new ArgumentException("Stage is not an Outlet", nameof(stage));
         }
 
-        BackPropagate(outlet);
+        if (wasCreated)
+            BackPropagate(outlet);
 
         return outlet.Results;
 
@@ -130,7 +146,7 @@ internal class FlowImpl : IFlowImpl
         {
             foreach (var upstream in stage.Definition.UpstreamInputs)
             {
-                var upstreamStage = AddStage(upstream.Stage);
+                var upstreamStage = AddStage(upstream.Stage, out _);
                 BackPropagate(upstreamStage);
                 stage.AddData(upstreamStage.OutputSets[upstream.Index], idx);
                 idx++;
