@@ -32,6 +32,7 @@ public class GroupBy<TKey, TItem> : AUnaryStageDefinition<TItem, Reduction<TKey,
     private new class Stage(IFlowImpl flow, GroupBy<TKey, TItem> definition)
         : AUnaryStageDefinition<TItem, Reduction<TKey, TItem>>.Stage(flow, definition)
     {
+
         protected override void Process(IOutputSet<TItem> input, IOutputSet<Reduction<TKey, TItem>> output)
         {
             foreach (var (item, delta) in input.GetResults())
