@@ -19,9 +19,9 @@ where T : notnull
     public void Add(ReadOnlySpan<T> input, int delta = 1);
 
     /// <summary>
-    /// Add new data to the inlet
+    /// Add new set of changes to the inlet.
     /// </summary>
-    public void Add(ReadOnlySpan<(T Item, int delta)> input);
+    public void Add(ReadOnlySpan<Change<T>> input);
 }
 
 /// <summary>

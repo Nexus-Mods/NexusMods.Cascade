@@ -22,7 +22,7 @@ public class GroupBy<TKey, TItem> : AUnaryStageDefinition<TItem, IGrouping<TKey,
     /// </summary>
     /// <param name="keySelector"></param>
     /// <param name="upstream"></param>
-    public GroupBy(Func<TItem, TKey> keySelector, IOutputDefinition<TItem> upstream) : base(upstream)
+    public GroupBy(Func<TItem, TKey> keySelector, UpstreamConnection upstream) : base(upstream)
     {
         _keySelector = keySelector;
 
@@ -37,14 +37,14 @@ public class GroupBy<TKey, TItem> : AUnaryStageDefinition<TItem, IGrouping<TKey,
     private new class Stage(IFlowImpl flow, GroupBy<TKey, TItem> definition)
         : AUnaryStageDefinition<TItem, IGrouping<TKey, KeyValuePair<TItem, int>>>.Stage(flow, definition)
     {
-        private Dictionary<TKey, ImmutableSortedDictionary<TItem, int>> _results = new();
-        private Dictionary<TKey, ImmutableSortedDictionary<TItem, int>?> _modified = new();
+        private readonly Dictionary<TKey, ImmutableSortedDictionary<TItem, int>> _results = new();
+        private readonly Dictionary<TKey, ImmutableSortedDictionary<TItem, int>?> _modified = new();
 
-        protected override void Process(IOutputSet<TItem> input, IOutputSet<IGrouping<TKey, KeyValuePair<TItem, int>>> output)
+        protected override void Process(ChangeSet<TItem> input, ChangeSet<IGrouping<TKey, KeyValuePair<TItem, int>>> output)
         {
             _modified.Clear();
 
-            foreach (var (item, delta) in input.GetResults())
+            foreach (var (item, delta) in input)
             {
                 var key = definition._keySelector(item);
                 ref var existing = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, key, out var exists);

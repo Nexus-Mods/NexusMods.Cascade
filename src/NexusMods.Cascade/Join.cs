@@ -11,12 +11,13 @@ public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, IQuery<TOut>
     where TOut : notnull
     where TRight : notnull
 {
-    protected Join(IOutputDefinition<TLeft> leftUpstream, IOutputDefinition<TRight> rightUpstream) :
-        base([(typeof(TLeft), "left"), (typeof(TRight), "right")],
-            [(typeof(TOut), "out")],
-            [leftUpstream, rightUpstream])
+    protected Join(UpstreamConnection leftUpstream, UpstreamConnection rightUpstream) :
+        base(Inputs, Outputs, [leftUpstream, rightUpstream])
     {
     }
+
+    private static readonly IInputDefinition[] Inputs = [new InputDefinition<TLeft>("left", 0), new InputDefinition<TRight>("right", 1)];
+    private static readonly IOutputDefinition[] Outputs = [new OutputDefinition<TOut>("out", 0)];
 
 
     /// <summary>
@@ -24,16 +25,15 @@ public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, IQuery<TOut>
     /// </summary>
     public new abstract class Stage(IFlowImpl flow, IStageDefinition definition) : AStageDefinition.Stage(flow, definition)
     {
-        /// <inheritdoc/>
-        public override void AddData(IOutputSet outputSet, int inputIndex)
+        public override void AcceptChanges<T>(ChangeSet<T> inputSet, int inputIndex)
         {
             switch (inputIndex)
             {
                 case 0:
-                    ProcessLeft((IOutputSet<TLeft>)outputSet, (IOutputSet<TOut>)OutputSets[0]);
+                    ProcessLeft((ChangeSet<TLeft>)(IChangeSet)inputSet, (ChangeSet<TOut>)ChangeSets[0]);
                     break;
                 case 1:
-                    ProcessRight((IOutputSet<TRight>)outputSet, (IOutputSet<TOut>)OutputSets[0]);
+                    ProcessRight((ChangeSet<TRight>)(IChangeSet)inputSet, (ChangeSet<TOut>)ChangeSets[0]);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(inputIndex));
@@ -43,14 +43,14 @@ public abstract class Join<TLeft, TRight, TOut> : AStageDefinition, IQuery<TOut>
         /// <summary>
         /// Called when there is new data from the right input
         /// </summary>
-        protected abstract void ProcessRight(IOutputSet<TRight> data, IOutputSet<TOut> outputSet);
+        protected abstract void ProcessRight(ChangeSet<TRight> data, ChangeSet<TOut> changeSet);
 
         /// <summary>
         /// Called when there is new data from the left input
         /// </summary>
         /// <param name="data"></param>
-        /// <param name="outputSet"></param>
-        protected abstract void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOut> outputSet);
+        /// <param name="changeSet"></param>
+        protected abstract void ProcessLeft(ChangeSet<TLeft> data, ChangeSet<TOut> changeSet);
     }
 
     /// <inheritdoc/>

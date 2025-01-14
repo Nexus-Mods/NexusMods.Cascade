@@ -12,13 +12,13 @@ public static class StageExtensions
     public static Filter<T> Filter<T>(this IQuery<T> upstream, Func<T, bool> predicate)
         where T : notnull
     {
-        return new Filter<T>(predicate, upstream.Output);
+        return new Filter<T>(predicate, upstream.ToUpstreamConnection());
     }
 
     public static Filter<T> Where<T>(this IQuery<T> upstream, Func<T, bool> predicate)
         where T : notnull
     {
-        return new Filter<T>(predicate, upstream.Output);
+        return new Filter<T>(predicate, upstream.ToUpstreamConnection());
     }
 
     public static Outlet<T> Outlet<T>(this IQuery<T> upstream)

@@ -24,7 +24,7 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
     private readonly Func<TRight,TKey> _rightKeySelector;
     private readonly Func<TLeft,TRight,TOutput> _resultSelector;
 
-    public HashJoin(IOutputDefinition<TLeft> leftUpstream, IOutputDefinition<TRight> rightUpstream, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOutput> resultSelector) :
+    public HashJoin(UpstreamConnection leftUpstream, UpstreamConnection rightUpstream, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOutput> resultSelector) :
         base(leftUpstream, rightUpstream)
     {
         _leftKeySelector = leftKeySelector;
@@ -48,59 +48,59 @@ public class HashJoin<TLeft, TRight, TKey, TOutput> : Join<TLeft, TRight, TOutpu
             _definition = definition;
         }
 
-        protected override void ProcessLeft(IOutputSet<TLeft> data, IOutputSet<TOutput> outputSet)
+        protected override void ProcessLeft(ChangeSet<TLeft> leftData, ChangeSet<TOutput> outputSet)
         {
-            foreach (var itm in data.GetResults())
+            foreach (var itm in leftData)
             {
-                var joinKey = _definition._leftKeySelector(itm.Key);
+                var joinKey = _definition._leftKeySelector(itm.Value);
                 ref var found = ref CollectionsMarshal.GetValueRefOrAddDefault(_left, joinKey, out var exists);
                 found ??= new Dictionary<TLeft, int>();
 
-                ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(found!, itm.Key, out _);
-                delta += itm.Value;
+                ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(found!, itm.Value, out _);
+                delta += itm.Delta;
 
                 // Now emit the matches in the right
                 if (_right.TryGetValue(joinKey, out var rightMatches))
                 {
                     foreach (var rightMatch in rightMatches)
                     {
-                        var output = _definition._resultSelector(itm.Key, rightMatch.Key);
-                        outputSet.Add(in output, itm.Value * rightMatch.Value);
+                        var output = _definition._resultSelector(itm.Value, rightMatch.Key);
+                        outputSet.Add(output, itm.Delta * rightMatch.Value);
                     }
                 }
 
                 if (delta == 0)
-                    found.Remove(itm.Key);
+                    found.Remove(itm.Value);
 
                 if (found.Count == 0)
                     _left.Remove(joinKey);
             }
         }
 
-        protected override void ProcessRight(IOutputSet<TRight> data, IOutputSet<TOutput> outputSet)
+        protected override void ProcessRight(ChangeSet<TRight> rightData, ChangeSet<TOutput> outputSet)
         {
 
-            foreach (var itm in data.GetResults())
+            foreach (var itm in rightData)
             {
-                var joinKey = _definition._rightKeySelector(itm.Key);
+                var joinKey = _definition._rightKeySelector(itm.Value);
                 ref var found = ref CollectionsMarshal.GetValueRefOrAddDefault(_right, joinKey, out var exists);
                 found ??= new Dictionary<TRight, int>();
 
-                ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(found!, itm.Key, out _);
-                delta += itm.Value;
+                ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(found!, itm.Value, out _);
+                delta += itm.Delta;
 
                 // Now emit the matches in the left
                 if (_left.TryGetValue(joinKey, out var leftMatches))
                 {
                     foreach (var leftMatch in leftMatches)
                     {
-                        var output = _definition._resultSelector(leftMatch.Key, itm.Key);
-                        outputSet.Add(in output, leftMatch.Value * itm.Value);
+                        var output = _definition._resultSelector(leftMatch.Key, itm.Value);
+                        outputSet.Add(output, leftMatch.Value * itm.Delta);
                     }
                 }
 
                 if (delta == 0)
-                    found.Remove(itm.Key);
+                    found.Remove(itm.Value);
 
                 if (found.Count == 0)
                     _right.Remove(joinKey);

@@ -31,13 +31,13 @@ public class SelectMany<TIn, TColl, TOut> : AUnaryStageDefinition<TIn, TOut>
     private new class Stage(IFlowImpl flow, SelectMany<TIn, TColl, TOut> definition)
         : AUnaryStageDefinition<TIn, TOut>.Stage(flow, definition)
     {
-        protected override void Process(IOutputSet<TIn> input, IOutputSet<TOut> output)
+        protected override void Process(IChangeSet<TIn> input, IChangeSet<TOut> change)
         {
             foreach (var (src, srcCount) in input.GetResults())
             {
                 foreach (var coll in definition._collectionSelector(src))
                 {
-                    output.Add(definition._resultSelector(src, coll), srcCount);
+                    change.Add(definition._resultSelector(src, coll), srcCount);
                 }
             }
         }

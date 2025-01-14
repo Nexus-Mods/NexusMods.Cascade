@@ -15,7 +15,7 @@ public class Select<TIn, TOut> : AUnaryStageDefinition<TIn, TOut>
     /// <summary>
     /// The primary constructor for the Select stage
     /// </summary>
-    public Select(IOutputDefinition upstream, Func<TIn, TOut> selector) : base(upstream)
+    public Select(Func<TIn, TOut> selector, UpstreamConnection upstreamConnection) : base(upstreamConnection)
     {
         _selector = selector;
     }
@@ -37,11 +37,11 @@ public class Select<TIn, TOut> : AUnaryStageDefinition<TIn, TOut>
             _definition = definition;
         }
 
-        protected override void Process(IOutputSet<TIn> input, IOutputSet<TOut> output)
+        protected override void Process(ChangeSet<TIn> input, ChangeSet<TOut> output)
         {
-            foreach (var item in input.GetResults())
+            foreach (var change in input)
             {
-                output.Add(_definition._selector(item.Key), item.Value);
+                output.Add(_definition._selector(change.Value), change.Delta);
             }
         }
     }

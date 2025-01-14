@@ -20,11 +20,11 @@ public class Outlet<T>(IOutputDefinition<T> upstreamInput)
         private readonly ObservableResultSet<T> _results = new();
 
         /// <inheritdoc />
-        public override void AddData(IOutputSet outputSet, int inputIndex)
+        public override void AddData(IChangeSet changeSet, int inputIndex)
         {
             Debug.Assert(inputIndex == 0);
 
-            _results.Update(((IOutputSet<T>)outputSet).GetResults());
+            _results.Update(((IChangeSet<T>)changeSet).GetResults());
         }
 
         /// <inheritdoc />
