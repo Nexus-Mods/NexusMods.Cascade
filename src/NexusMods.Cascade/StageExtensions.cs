@@ -62,7 +62,7 @@ public static class StageExtensions
         //return new SelectMany<TSource, TCollection, TResult>(collectionSelector, resultSelector, input.Output);
     }
 
-    public static IQuery<Reduction<TKey, TItem>> GroupBy<TKey, TItem>(this IQuery<TItem> item, Func<TItem, TKey> keySelector)
+    public static IQuery<IGrouping<TKey, KeyValuePair<TItem, int>>> GroupBy<TKey, TItem>(this IQuery<TItem> item, Func<TItem, TKey> keySelector)
         where TItem : notnull
         where TKey : notnull
     {
