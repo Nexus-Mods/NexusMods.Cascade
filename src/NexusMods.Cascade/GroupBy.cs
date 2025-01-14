@@ -103,7 +103,8 @@ public class GroupBy<TKey, TItem> : AUnaryStageDefinition<TItem, IGrouping<TKey,
                     output.Add(new Grouping<TKey, TItem>(group.Key, group.Value), -1);
                 }
 
-                output.Add(new Grouping<TKey, TItem>(group.Key, _results[group.Key]), 1);
+                if (_results.TryGetValue(group.Key, out var groupValue))
+                    output.Add(new Grouping<TKey, TItem>(group.Key, groupValue), 1);
             }
         }
     }

@@ -15,6 +15,7 @@ public class GroupByTests
         group i by i.First() into g
         select (g.Key, g.Count());
 
+
     [Before(Test)]
     public void SetupInlet()
     {
@@ -29,5 +30,26 @@ public class GroupByTests
 
         await Assert.That(_flow.Query(Names)).IsEquivalentTo(new[] { ('F', 3), ('B', 2), ('C', 1) }, CollectionOrdering.Any);
 
+    }
+
+    [Test]
+    public async Task GroupByUpdatesWithNewValues()
+    {
+        _ = _flow.Query(Names);
+
+        _flow.Update(ops => ops.AddData(Inlet, 1, "Finn", "Finn", "Finn"));
+
+        await Assert.That(_flow.Query(Names)).IsEquivalentTo(new[] { ('F', 6), ('B', 2), ('C', 1) }, CollectionOrdering.Any);
+    }
+
+    [Test]
+    public async Task GroupByHandlesRemovedData()
+    {
+
+        _ = _flow.Query(Names);
+
+        _flow.Update(ops => ops.AddData(Inlet, -1, "Frank", "Faith", "Bob"));
+
+        await Assert.That(_flow.Query(Names)).IsEquivalentTo(new[] { ('F', 1), ('B', 1), ('C', 1) }, CollectionOrdering.Any);
     }
 }

@@ -57,6 +57,9 @@ public class Inlet<T>() : AStageDefinition([], [(typeof(T), "output")], []), IIn
 
                 ref var existingDelta = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, item, out _);
                 existingDelta += delta;
+
+                if (existingDelta == 0)
+                    _results.Remove(item);
             }
         }
 
@@ -71,6 +74,9 @@ public class Inlet<T>() : AStageDefinition([], [(typeof(T), "output")], []), IIn
 
                 ref var existingDelta = ref CollectionsMarshal.GetValueRefOrAddDefault(_results, item, out _);
                 existingDelta += delta;
+
+                if (existingDelta == 0)
+                    _results.Remove(item);
             }
         }
     }
