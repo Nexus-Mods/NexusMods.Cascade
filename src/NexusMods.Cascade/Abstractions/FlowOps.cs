@@ -33,7 +33,7 @@ public ref struct FlowOps
     /// are assumed to all be equal to the specified delta.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddData<T>(IInletDefinition<T> inletDefinition, ReadOnlySpan<T> input, int delta = 1) where T : notnull
+    public void AddData<T>(IInletDefinition<T> inletDefinition, int delta, params ReadOnlySpan<T> input) where T : notnull
         => _impl.AddData(inletDefinition, input, delta);
 
     /// <summary>

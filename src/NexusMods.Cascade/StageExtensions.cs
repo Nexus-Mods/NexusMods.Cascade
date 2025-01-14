@@ -24,7 +24,7 @@ public static class StageExtensions
     public static Outlet<T> Outlet<T>(this IQuery<T> upstream)
         where T : notnull
     {
-        return new Outlet<T>(upstream.Output);
+        return new Outlet<T>(upstream.ToUpstreamConnection());
     }
 
 
@@ -35,14 +35,14 @@ public static class StageExtensions
         where TKey : notnull
         where TOut : notnull
     {
-        return new HashJoin<TLeft, TRight, TKey, TOut>(left.Output, right.Output, leftKeySelector, rightKeySelector, resultSelector);
+        return new HashJoin<TLeft, TRight, TKey, TOut>(left.ToUpstreamConnection(), right.ToUpstreamConnection(), leftKeySelector, rightKeySelector, resultSelector);
     }
 
     public static Select<TIn, TOut> Select<TIn, TOut>(this IQuery<TIn> upstream, Func<TIn, TOut> selector)
         where TIn : notnull
         where TOut : notnull
     {
-        return new Select<TIn, TOut>(upstream.Output, selector);
+        return new Select<TIn, TOut>(selector, upstream.ToUpstreamConnection());
     }
 
     public static IQuery<TResult> SelectMany<TSource, TCollection, TResult>(this IQuery<TSource> input, Func<TSource, IEnumerable<TCollection>> collectionSelector,
@@ -50,7 +50,7 @@ public static class StageExtensions
         where TSource : notnull
         where TResult : notnull
     {
-        return new SelectMany<TSource, TCollection, TResult>(collectionSelector, resultSelector, input.Output);
+        return new SelectMany<TSource, TCollection, TResult>(collectionSelector, resultSelector, input.ToUpstreamConnection());
     }
 
     public static IQuery<TResult> SelectMany<TSource, TCollection, TKey, TResult>(this IQuery<TSource> input, Func<TSource, Reduction<TKey, TSource>> collectionSelector,
@@ -66,7 +66,7 @@ public static class StageExtensions
         where TItem : notnull
         where TKey : notnull
     {
-        return new GroupBy<TKey, TItem>(keySelector, item.Output);
+        return new GroupBy<TKey, TItem>(keySelector, item.ToUpstreamConnection());
     }
 
 }

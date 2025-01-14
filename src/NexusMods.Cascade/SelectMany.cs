@@ -15,7 +15,7 @@ public class SelectMany<TIn, TColl, TOut> : AUnaryStageDefinition<TIn, TOut>
     private readonly Func<TIn,TColl,TOut> _resultSelector;
 
     /// <inheritdoc />
-    public SelectMany(Func<TIn, IEnumerable<TColl>> collectionSelector, Func<TIn, TColl, TOut> resultSelector, IOutputDefinition upstream) : base(upstream)
+    public SelectMany(Func<TIn, IEnumerable<TColl>> collectionSelector, Func<TIn, TColl, TOut> resultSelector, UpstreamConnection upstream) : base(upstream)
     {
         _collectionSelector = collectionSelector;
         _resultSelector = resultSelector;
@@ -31,9 +31,9 @@ public class SelectMany<TIn, TColl, TOut> : AUnaryStageDefinition<TIn, TOut>
     private new class Stage(IFlowImpl flow, SelectMany<TIn, TColl, TOut> definition)
         : AUnaryStageDefinition<TIn, TOut>.Stage(flow, definition)
     {
-        protected override void Process(IChangeSet<TIn> input, IChangeSet<TOut> change)
+        protected override void Process(ChangeSet<TIn> input, ChangeSet<TOut> change)
         {
-            foreach (var (src, srcCount) in input.GetResults())
+            foreach (var (src, srcCount) in input)
             {
                 foreach (var coll in definition._collectionSelector(src))
                 {

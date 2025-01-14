@@ -63,7 +63,7 @@ internal class FlowImpl : IFlowImpl
         }
 
         wasCreated = true;
-        var newOutletDefinition = new Outlet<T>(stageDefinition.Output);
+        var newOutletDefinition = new Outlet<T>(stageDefinition.ToUpstreamConnection());
         var outlet = (IOutlet)AddStage(newOutletDefinition, out _);
         _implicitOutlets.Add(stageDefinition, outlet);
         return (IOutlet<T>)outlet;
@@ -149,7 +149,7 @@ internal class FlowImpl : IFlowImpl
                 var upstreamStage = AddStage(upstream.StageDefinition, out _);
                 BackPropagate(upstreamStage);
                 var newChangeset = upstreamStage.ChangeSets[upstream.OutputDefinition.Index];
-                stage.Definition.Inputs[idx].AcceptChanges(upstreamStage, newChangeset);
+                stage.Definition.Inputs[idx].AcceptChanges(stage, newChangeset);
                 idx++;
             }
         }

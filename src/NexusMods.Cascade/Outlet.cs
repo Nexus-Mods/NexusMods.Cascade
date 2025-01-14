@@ -7,10 +7,12 @@ namespace NexusMods.Cascade;
 /// <summary>
 /// The implementation of an outlet.
 /// </summary>
-public class Outlet<T>(IOutputDefinition<T> upstreamInput)
-    : AStageDefinition([(typeof(T), "results")], [], [upstreamInput]), IOutletDefinition<T>, IQuery<T>
+public class Outlet<T>(UpstreamConnection upstreamInput)
+    : AStageDefinition(Inputs, [], [upstreamInput]), IOutletDefinition<T>
     where T : notnull
 {
+    private static readonly IInputDefinition[] Inputs = [new InputDefinition<T>("results", 0)];
+
     /// <summary>
     /// The outlet stage implementation.
     /// </summary>
@@ -20,11 +22,11 @@ public class Outlet<T>(IOutputDefinition<T> upstreamInput)
         private readonly ObservableResultSet<T> _results = new();
 
         /// <inheritdoc />
-        public override void AddData(IChangeSet changeSet, int inputIndex)
+        public override void AcceptChanges<TIn>(ChangeSet<TIn> changeSet, int inputIndex)
         {
             Debug.Assert(inputIndex == 0);
 
-            _results.Update(((IChangeSet<T>)changeSet).GetResults());
+            _results.Update((ChangeSet<T>)(IChangeSet)changeSet);
         }
 
         /// <inheritdoc />

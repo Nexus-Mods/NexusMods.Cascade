@@ -2,6 +2,7 @@
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
@@ -11,27 +12,28 @@ public class ObservableResultSet<T> : IObservableResultSet<T>
 {
     private ImmutableDictionary<T, int> _results = ImmutableDictionary<T, int>.Empty;
 
-    public void Update(in KeyValuePair<T, int> valueAndDelta)
+    public void Update(Change<T> change)
     {
-        if (_results.TryGetValue(valueAndDelta.Key, out var current))
+        if (_results.TryGetValue(change.Value, out var current))
         {
-            var newDelta = current + valueAndDelta.Value;
+            var newDelta = current + change.Delta;
 
             if (newDelta == 0)
             {
-                _results = _results.Remove(valueAndDelta.Key);
+                _results = _results.Remove(change.Value);
             }
             else
             {
-                _results = _results.SetItem(valueAndDelta.Key, newDelta);
+                _results = _results.SetItem(change.Value, newDelta);
             }
         }
         else
         {
-            _results = _results.Add(valueAndDelta.Key, valueAndDelta.Value);
+            _results = _results.Add(change.Value, change.Delta);
         }
     }
 
+    /// <inheritdoc />
     public IEnumerator<T> GetEnumerator()
     {
         return _results.Keys.GetEnumerator();
@@ -45,10 +47,10 @@ public class ObservableResultSet<T> : IObservableResultSet<T>
     public IReadOnlyCollection<T> GetResults()
     {
         // This allocates, we should fix that at some point.
-        return _results.Keys.ToFrozenSet();
+        return _results.Keys.ToArray();
     }
 
-    public void Update(IEnumerable<KeyValuePair<T, int>> valueAndDelta)
+    public void Update(ChangeSet<T> valueAndDelta)
     {
         var newResults = _results.ToBuilder();
 
