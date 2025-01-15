@@ -42,13 +42,13 @@ public class HashJoinTests
     public async Task HashJoinWaitsForMatchesBeforeEmittingData()
     {
         // Add a new score before the name is added
-        _flow.Update(ops => ops.AddData(Scores, 4, (4, 100)));
+        _flow.Update(ops => ops.AddData(Scores, 1, (4, 100)));
 
         await Assert.That(_flow.Query(Joined))
             .IsEquivalentTo(new[] { (1, "Bill", 70), (2, "Jim", 50), (3, "Sally", 90) }, CollectionOrdering.Any);
 
         // Add the name
-        _flow.Update(ops => ops.AddData(Names, 4, (4, "Alice")));
+        _flow.Update(ops => ops.AddData(Names, 1, (4, "Alice")));
 
         // Now the join should emit the new data
         await Assert.That(_flow.Query(Joined))

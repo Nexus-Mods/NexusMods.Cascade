@@ -33,21 +33,10 @@ public class ObservableResultSet<T> : IObservableResultSet<T>
         }
     }
 
-    /// <inheritdoc />
-    public IEnumerator<T> GetEnumerator()
-    {
-        return _results.Keys.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    public IReadOnlyCollection<T> GetResults()
+    public ResultSet<T> GetResults()
     {
         // This allocates, we should fix that at some point.
-        return _results.Keys.ToArray();
+        return new ResultSet<T>(_results);
     }
 
     public void Update(ChangeSet<T> valueAndDelta)
