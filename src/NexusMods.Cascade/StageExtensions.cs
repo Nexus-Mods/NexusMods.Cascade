@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Operators;
 
 namespace NexusMods.Cascade;
 
@@ -62,11 +63,20 @@ public static class StageExtensions
         //return new SelectMany<TSource, TCollection, TResult>(collectionSelector, resultSelector, input.Output);
     }
 
-    public static IQuery<IGrouping<TKey, KeyValuePair<TItem, int>>> GroupBy<TKey, TItem>(this IQuery<TItem> item, Func<TItem, TKey> keySelector)
+    public static IQuery<KeyedResultSet<TKey, TItem>> GroupBy<TKey, TItem>(this IQuery<TItem> item, Func<TItem, TKey> keySelector)
         where TItem : notnull
         where TKey : notnull
     {
         return new GroupBy<TKey, TItem>(keySelector, item.ToUpstreamConnection());
+    }
+
+    public static IQuery<TResult> GroupJoin<TOuter, TInner, TKey, TResult>(this IQuery<TOuter> outer, IQuery<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Func<TOuter, IEnumerable<TInner>, TResult> resultSelector)
+        where TOuter : notnull
+        where TInner : notnull
+        where TKey : notnull
+        where TResult : notnull
+    {
+        return new GroupJoin<TOuter, TInner, TKey, TResult>(outer.ToUpstreamConnection(), inner.ToUpstreamConnection(), outerKeySelector, innerKeySelector, resultSelector);
     }
 
 }

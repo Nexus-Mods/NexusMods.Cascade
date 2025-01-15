@@ -1,7 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Operators;
 
 /// <summary>
 /// A filter stage definition, this applies a predicate to each value filtering out those that do not match.

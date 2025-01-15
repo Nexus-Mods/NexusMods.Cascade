@@ -13,7 +13,7 @@ public class GroupByTests
     /// </summary>
     private static readonly IQuery<(char, int)> Names = from i in Inlet
         group i by i.First() into g
-        select (g.Key, g.Count());
+        select (g.Key, g.Count);
 
 
     [Before(Test)]
@@ -39,7 +39,7 @@ public class GroupByTests
 
         _flow.Update(ops => ops.AddData(Inlet, 1, "Finn", "Finn", "Finn"));
 
-        await Assert.That(_flow.Query(Names)).IsEquivalentTo(new[] { ('F', 4), ('B', 2), ('C', 1) }, CollectionOrdering.Any);
+        await Assert.That(_flow.Query(Names)).IsEquivalentTo(new[] { ('F', 6), ('B', 2), ('C', 1) }, CollectionOrdering.Any);
     }
 
     [Test]

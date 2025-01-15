@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Operators;
 
 /// <summary>
 /// A select flatten stage

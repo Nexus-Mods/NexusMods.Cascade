@@ -1,7 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Operators;
 
 /// <summary>
 /// An abstract class representing a Join stage definition, this takes two inputs (left and right) and produces a single output

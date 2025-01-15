@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Operators;
 
 /// <summary>
 /// A hash join stage, this takes two upstreams and joins them based on a key selector, the result is

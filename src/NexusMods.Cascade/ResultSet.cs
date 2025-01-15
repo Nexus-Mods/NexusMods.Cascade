@@ -8,7 +8,7 @@ namespace NexusMods.Cascade;
 /// <summary>
 /// Readonly result set from an outlet stage.
 /// </summary>
-public sealed class ResultSet<T> : IReadOnlyCollection<T>
+public class ResultSet<T> : IReadOnlyCollection<T>
     where T : notnull
 {
     private readonly ImmutableDictionary<T,int> _results;

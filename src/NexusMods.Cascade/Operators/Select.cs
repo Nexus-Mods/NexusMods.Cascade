@@ -1,7 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Operators;
 
 /// <summary>
 /// A transformation stage that selects a new type from the input type
