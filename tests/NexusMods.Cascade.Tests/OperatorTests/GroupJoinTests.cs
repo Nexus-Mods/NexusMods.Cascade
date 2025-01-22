@@ -37,4 +37,43 @@ public class GroupJoinTests
         await Assert.That(_flow.Query(Joined))
             .IsEquivalentTo(new[] { (1, "Bill", 30), (2, "Jim", 50), (3, "Sally", 100) }, CollectionOrdering.Any);
     }
+
+    [Test]
+    public async Task GroupJoinWaitsForMatchesBeforeEmittingData()
+    {
+        // Add a new score before the name is added
+        _flow.Update(ops => ops.AddData(Scores, 1, (4, 100)));
+
+        await Assert.That(_flow.Query(Joined))
+            .IsEquivalentTo(new[] { (1, "Bill", 30), (2, "Jim", 50), (3, "Sally", 100) }, CollectionOrdering.Any);
+
+        // Add the name
+        _flow.Update(ops => ops.AddData(Names, 1, (4, "Alice")));
+
+        // Now the join should emit the new data
+        await Assert.That(_flow.Query(Joined))
+            .IsEquivalentTo(new[] { (1, "Bill", 30), (2, "Jim", 50), (3, "Sally", 100), (4, "Alice", 100) }, CollectionOrdering.Any);
+    }
+
+    [Test]
+    public async Task GroupJoinRemovesResultsWhenDataIsRemoved()
+    {
+        _ = _flow.Query(Joined);
+
+        _flow.Update(ops => ops.AddData(Scores, -1, (1, 30), (3, 100), (3, 90), (1, 30)));
+
+        await Assert.That(_flow.Query(Joined))
+            .IsEquivalentTo(new[] { (2, "Jim", 50) }, CollectionOrdering.Any);
+    }
+
+    [Test]
+    public async Task GroupJoinUpdatesGroupsWhenOneGroupedItemChanges()
+    {
+        _ = _flow.Query(Joined);
+
+        _flow.Update(ops => ops.AddData(Scores, 1, (1, 100)));
+
+        await Assert.That(_flow.Query(Joined))
+            .IsEquivalentTo(new[] { (1, "Bill", 100), (2, "Jim", 50), (3, "Sally", 100) }, CollectionOrdering.Any);
+    }
 }
