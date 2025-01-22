@@ -23,7 +23,7 @@ public class FilterTests
 
         _flow.Update(ops =>
         {
-            ops.AddData(Inlet, Enumerable.Range(0, 10).ToArray());
+            ops.AddData(Inlet, 1, Enumerable.Range(0, 10).ToArray());
         });
     }
 
@@ -38,7 +38,7 @@ public class FilterTests
     {
         _ = _flow.Query(EvenNumbers);
 
-        _flow.Update(ops => ops.AddData(Inlet, 1, 19, 20));
+        _flow.Update(ops => ops.AddData(Inlet, 1, [1, 19, 20]));
 
         await Assert.That(_flow.Query(EvenNumbers)).IsEquivalentTo(new[] { 0, 2, 4, 6, 8, 20 });
     }
@@ -49,7 +49,7 @@ public class FilterTests
 
         _ = _flow.Query(EvenNumbers);
 
-        _flow.Update(ops => ops.AddData(Inlet, -1, 1, 2));
+        _flow.Update(ops => ops.AddData(Inlet, -1, [1, 2]));
 
         await Assert.That(_flow.Query(EvenNumbers)).IsEquivalentTo(new[] { 0, 4, 6, 8 });
     }

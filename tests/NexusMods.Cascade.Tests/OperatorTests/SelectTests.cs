@@ -23,7 +23,7 @@ public class SelectTests
 
         _flow.Update(ops =>
         {
-            ops.AddData(Inlet, Enumerable.Range(0, 10).ToArray());
+            ops.AddData(Inlet, 1, Enumerable.Range(0, 10).ToArray());
         });
     }
 

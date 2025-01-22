@@ -25,23 +25,16 @@ public ref struct FlowOps
     /// are assumed to all be equal to the specified delta.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddData<T>(IInletDefinition<T> inletDefinition, int delta, params ReadOnlySpan<T> input) where T : notnull
-        => _impl.AddData(inletDefinition, input, delta);
+    public void AddData<T>(IInletDefinition<T> inletDefinition, ReadOnlySpan<Change<T>> changes) where T : notnull
+        => _impl.AddData(inletDefinition, changes);
 
     /// <summary>
     /// Add input data to an inlet stage, if the stage does not exist in the flow yet, it will be added. The deltas
     /// are assumed to all be equal to the specified delta.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddData<T>(IInletDefinition<T> inletDefinition, ReadOnlySpan<T> input, int delta = 1) where T : notnull
+    public void AddData<T>(IInletDefinition<T> inletDefinition, int delta, params ReadOnlySpan<T> input) where T : notnull
         => _impl.AddData(inletDefinition, input, delta);
-
-    /// <summary>
-    /// Add pairs of data and deltas to the inlet stages, if the stage does not exist in the flow yet, it will be added.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddData<T>(IInletDefinition<T> inletDefinition, ReadOnlySpan<(T Value, int delta)> input) where T : notnull
-        => _impl.AddData(inletDefinition, input);
 
     /// <summary>
     /// Gets all the results of a query, running the query if it has not been added to the stage, otherwise it

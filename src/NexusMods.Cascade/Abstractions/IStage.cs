@@ -18,12 +18,12 @@ public interface IStage
     /// <summary>
     /// The output sets of this stage
     /// </summary>
-    public IOutputSet[] OutputSets { get; }
+    public IChangeSet[] ChangeSets { get; }
 
     /// <summary>
     /// Flow data into the stage from a previous stage into the given input index
     /// </summary>
-    public void AddData(IOutputSet outputSet, int inputIndex);
+    public void AcceptChanges<T>(ChangeSet<T> outputSet, int inputIndex) where T : notnull;
 
     /// <summary>
     /// Resets the temporary state of the outputs of the stage

@@ -21,7 +21,7 @@ public interface IStageDefinition
     /// <summary>
     /// The upstream inputs that this stage requires
     /// </summary>
-    public IOutputDefinition[] UpstreamInputs { get; }
+    public UpstreamConnection[] UpstreamInputs { get; }
 
     /// <summary>
     /// Creates a new instance of the stage that will be attached to the flow
@@ -45,6 +45,11 @@ public interface IInputDefinition
     /// The index of the input
     /// </summary>
     public int Index { get; }
+
+    /// <summary>
+    /// Accept untyped changes into this input
+    /// </summary>
+    public void AcceptChanges(IStage stage, IChangeSet changes);
 }
 
 public interface IInputDefinition<T> : IInputDefinition
@@ -62,9 +67,16 @@ public interface IOutputDefinition
     public int Index { get; }
 
     /// <summary>
-    /// Gets the associated stage
+    /// Create a new ChangeSet for this output definition
     /// </summary>
-    public IStageDefinition Stage { get; }
+    /// <returns></returns>
+    public IChangeSet CreateChangeSet();
+
+    public void AcceptChanges<T>(IStage stage, int inputIndex, ChangeSet<T> changes) where T : notnull
+    {
+        stage.Definition.Inputs[inputIndex].AcceptChanges(stage, changes);
+
+    }
 }
 
 public interface IOutputDefinition<T> : IOutputDefinition

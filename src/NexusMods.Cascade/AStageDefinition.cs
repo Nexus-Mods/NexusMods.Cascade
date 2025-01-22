@@ -5,27 +5,11 @@ namespace NexusMods.Cascade;
 
 public abstract class AStageDefinition : IStageDefinition
 {
-    public AStageDefinition(ReadOnlySpan<(Type Type, string Name)> inputs, ReadOnlySpan<(Type Type, string Name)> outputs, ReadOnlySpan<IOutputDefinition> upstreamInputs)
+    protected AStageDefinition(IInputDefinition[] inputs, IOutputDefinition[] outputs, ReadOnlySpan<UpstreamConnection> upstreamInputs)
     {
-        Inputs = GC.AllocateUninitializedArray<IInputDefinition>(inputs.Length);
+        Inputs = inputs;
+        Outputs = outputs;
         UpstreamInputs = upstreamInputs.ToArray();
-
-        for (var i = 0; i < inputs.Length; i++)
-        {
-            Inputs[i] = (IInputDefinition)typeof(Input<>).MakeGenericType(inputs[i].Type)
-                .GetConstructor([typeof(IStageDefinition), typeof(string), typeof(int)])?
-                .Invoke([this, inputs[i].Name, i])!;
-        }
-
-        Outputs = GC.AllocateUninitializedArray<IOutputDefinition>(outputs.Length);
-
-        for (var i = 0; i < outputs.Length; i++)
-        {
-            Outputs[i] = (IOutputDefinition)typeof(Output<>).MakeGenericType(outputs[i].Type)
-                .GetConstructor([typeof(IStageDefinition), typeof(string), typeof(int)])!
-                .Invoke([this, outputs[i].Name, i])!;
-        }
-
     }
 
     /// <inheritdoc />
@@ -35,7 +19,7 @@ public abstract class AStageDefinition : IStageDefinition
     public IInputDefinition[] Inputs { get; }
 
     /// <inheritdoc />
-    public IOutputDefinition[] UpstreamInputs { get; set; }
+    public UpstreamConnection[] UpstreamInputs { get; set; }
 
     /// <inheritdoc />
     public abstract IStage CreateInstance(IFlowImpl flow);
@@ -54,12 +38,11 @@ public abstract class AStageDefinition : IStageDefinition
             Flow = flow;
             Definition = definition;
 
-            OutputSets = GC.AllocateUninitializedArray<IOutputSet>(definition.Outputs.Length);
+            ChangeSets = GC.AllocateUninitializedArray<IChangeSet>(definition.Outputs.Length);
 
             for (var i = 0; i < definition.Outputs.Length; i++)
             {
-                var type = typeof(DeduppingOutputSet<>).MakeGenericType(definition.Outputs[i].Type);
-                OutputSets[i] = (IOutputSet)Activator.CreateInstance(type)!;
+                ChangeSets[i] = definition.Outputs[i].CreateChangeSet();
             }
         }
 
@@ -70,17 +53,17 @@ public abstract class AStageDefinition : IStageDefinition
         public IFlowImpl Flow { get; }
 
         /// <inheritdoc />
-        public IOutputSet[] OutputSets { get; }
+        public IChangeSet[] ChangeSets { get; }
 
         /// <inheritdoc />
-        public abstract void AddData(IOutputSet outputSet, int inputIndex);
+        public abstract void AcceptChanges<T>(ChangeSet<T> outputSet, int inputIndex) where T : notnull;
 
         /// <summary>
         /// Resets all outputs
         /// </summary>
         public void ResetAllOutputs()
         {
-            foreach (var outputSet in OutputSets)
+            foreach (var outputSet in ChangeSets)
                 outputSet.Reset();
         }
     }
@@ -90,7 +73,7 @@ public abstract class AStageDefinition : IStageDefinition
 /// <summary>
 /// A typed input definition
 /// </summary>
-public record Input<T> : IInputDefinition
+public record InputDefinition<T> : IInputDefinition where T : notnull
 {
     /// <inheritdoc />
     public string Name { get; }
@@ -102,11 +85,22 @@ public record Input<T> : IInputDefinition
     public int Index { get; }
 
     /// <summary>
+    /// Flow data into the stage from a previous stage via this input
+    /// </summary>
+    public void AcceptChanges(IStage stage, IChangeSet changes)
+    {
+        if (changes is not ChangeSet<T> typedChanges)
+            throw new ArgumentException("Invalid change set type", nameof(changes));
+
+        stage.AcceptChanges(typedChanges, Index);
+    }
+
+    /// <summary>
     /// The primary constructor
     /// </summary>
     /// <param name="name"></param>
     /// <param name="index"></param>
-    internal Input(string name, int index)
+    internal InputDefinition(string name, int index)
     {
         Name = name;
         Index = index;
@@ -117,7 +111,7 @@ public record Input<T> : IInputDefinition
 /// A typed output definition
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public record Output<T> : IOutputDefinition<T>
+public record OutputDefinition<T> : IOutputDefinition<T>
     where T : notnull
 {
     /// <inheritdoc />
@@ -130,14 +124,13 @@ public record Output<T> : IOutputDefinition<T>
     public int Index { get; }
 
     /// <inheritdoc />
-    public IStageDefinition Stage { get; }
+    public IChangeSet CreateChangeSet() => new ChangeSet<T>();
 
     /// <summary>
     /// The primary constructor
     /// </summary>
-    public Output(IStageDefinition stage, string name, int index)
+    public OutputDefinition(string name, int index)
     {
-        Stage = stage;
         Name = name;
         Index = index;
     }

@@ -39,10 +39,10 @@ internal class FlowImpl : IFlowImpl
         var instance = definition.CreateInstance(this);
         _stages.Add(definition, instance);
         var idx = 0;
-        foreach (var outlet in definition.UpstreamInputs)
+        foreach (var upstreamConnection in definition.UpstreamInputs)
         {
-            var upstream = AddStage(outlet.Stage, out _);
-            Connect(upstream, outlet.Index, instance, idx);
+            var upstream = AddStage(upstreamConnection.StageDefinition, out _);
+            Connect(upstream, upstreamConnection.OutputDefinition.Index, instance, idx);
             idx++;
         }
         return instance;
@@ -63,7 +63,7 @@ internal class FlowImpl : IFlowImpl
         }
 
         wasCreated = true;
-        var newOutletDefinition = new Outlet<T>(stageDefinition.Output);
+        var newOutletDefinition = new Outlet<T>(stageDefinition.ToUpstreamConnection());
         var outlet = (IOutlet)AddStage(newOutletDefinition, out _);
         _implicitOutlets.Add(stageDefinition, outlet);
         return (IOutlet<T>)outlet;
@@ -75,19 +75,19 @@ internal class FlowImpl : IFlowImpl
         var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
-        inlet.OutputSets[0].Reset();
+        inlet.ChangeSets[0].Reset();
         inlet.Add(input, delta);
 
         FlowDataFrom(stage);
     }
 
-    internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<(T Item, int delta)> input)
+    internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<Change<T>> input)
         where T : notnull
     {
         var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
-        inlet.OutputSets[0].Reset();
+        inlet.ChangeSets[0].Reset();
         inlet.Add(input);
 
         FlowDataFrom(stage);
@@ -96,7 +96,7 @@ internal class FlowImpl : IFlowImpl
     private void FlowDataFrom(IStage stage)
     {
         var idx = 0;
-        foreach (var output in stage.OutputSets)
+        foreach (var output in stage.ChangeSets)
         {
             if (!_connections.TryGetValue((stage, idx), out var connections))
                 continue;
@@ -104,7 +104,7 @@ internal class FlowImpl : IFlowImpl
             foreach (var (inputStage, inputIndex) in connections)
             {
                 inputStage.ResetAllOutputs();
-                inputStage.AddData(output, inputIndex);
+                inputStage.Definition.Inputs[inputIndex].AcceptChanges(inputStage, output);
                 FlowDataFrom(inputStage);
             }
             idx++;
@@ -134,7 +134,7 @@ internal class FlowImpl : IFlowImpl
     /// </summary>
     private void BackPropagate(IStage stage)
     {
-        foreach (var output in stage.OutputSets)
+        foreach (var output in stage.ChangeSets)
             output.Reset();
 
         var idx = 0;
@@ -146,9 +146,10 @@ internal class FlowImpl : IFlowImpl
         {
             foreach (var upstream in stage.Definition.UpstreamInputs)
             {
-                var upstreamStage = AddStage(upstream.Stage, out _);
+                var upstreamStage = AddStage(upstream.StageDefinition, out _);
                 BackPropagate(upstreamStage);
-                stage.AddData(upstreamStage.OutputSets[upstream.Index], idx);
+                var newChangeset = upstreamStage.ChangeSets[upstream.OutputDefinition.Index];
+                stage.Definition.Inputs[idx].AcceptChanges(stage, newChangeset);
                 idx++;
             }
         }
