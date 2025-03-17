@@ -29,6 +29,7 @@ public class Flow
     {
         using var _ = _lock.Lock();
         updateFn(new FlowOps(_impl));
+        _impl.RunFlows();
     }
 
     /// <summary>
@@ -38,6 +39,8 @@ public class Flow
     {
         using var _ = _lock.Lock();
         updateFn(new FlowOps(_impl), state);
+        _impl.RunFlows();
+
     }
 
     /// <summary>
@@ -46,7 +49,9 @@ public class Flow
     public TRet Update<T1, TRet>(Func<FlowOps, T1, TRet> updateFn, T1 state)
     {
         using var _ = _lock.Lock();
-        return updateFn(new FlowOps(_impl), state);
+        var retVal = updateFn(new FlowOps(_impl), state);
+        _impl.RunFlows();
+        return retVal;
     }
 
     /// <summary>
@@ -55,7 +60,9 @@ public class Flow
     public T Update<T>(Func<FlowOps, T> updateFn)
     {
         using var _ = _lock.Lock();
-        return updateFn(new FlowOps(_impl));
+        var retVal = updateFn(new FlowOps(_impl));
+        _impl.RunFlows();
+        return retVal;
     }
 
     /// <summary>

@@ -10,7 +10,7 @@ namespace NexusMods.Cascade.Abstractions;
 /// as a foot-gun prevention mechanism, to ensure that all operations are performed within the flow lock,
 /// and that the operations cannot be leaked into classes that are not lock-aware.
 /// </summary>
-public ref struct FlowOps
+public readonly ref struct FlowOps
 {
     private readonly FlowImpl _impl;
 

@@ -15,6 +15,11 @@ internal class FlowImpl : IFlowImpl
     private readonly Dictionary<IStageDefinition, IOutlet> _implicitOutlets = [];
 
     /// <summary>
+    /// Stages that are yet to be flowed from, and won't until the end of the update call
+    /// </summary>
+    private readonly HashSet<IStage> _dirtyStages = [];
+
+    /// <summary>
     /// Mapping of stage outputs to stages that require that output
     /// </summary>
     private readonly Dictionary<(IStage OutputStage, int OutputIndex), List<(IStage InputStage, int InputIndex)>> _connections = new();
@@ -78,7 +83,7 @@ internal class FlowImpl : IFlowImpl
         inlet.ChangeSets[0].Reset();
         inlet.Add(input, delta);
 
-        FlowDataFrom(stage);
+        _dirtyStages.Add(stage);
     }
 
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<Change<T>> input)
@@ -90,7 +95,17 @@ internal class FlowImpl : IFlowImpl
         inlet.ChangeSets[0].Reset();
         inlet.Add(input);
 
-        FlowDataFrom(stage);
+        _dirtyStages.Add(stage);
+    }
+
+    public void RunFlows()
+    {
+        if (_dirtyStages.Count == 0)
+            return;
+
+        foreach (var stage in _dirtyStages)
+            FlowDataFrom(stage);
+        _dirtyStages.Clear();
     }
 
     private void FlowDataFrom(IStage stage)
