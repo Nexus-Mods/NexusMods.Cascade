@@ -19,7 +19,7 @@ public class Outlet<T>(UpstreamConnection upstreamInput)
     public new class Stage(IFlowImpl flow, IStageDefinition definition)
         : AStageDefinition.Stage(flow, definition), IOutlet<T>
     {
-        private readonly ObservableResultSet<T> _results = new();
+        private readonly ResultSetFactory<T> _results = new();
 
         /// <inheritdoc />
         public override void AcceptChanges<TIn>(ChangeSet<TIn> changeSet, int inputIndex)
@@ -32,8 +32,11 @@ public class Outlet<T>(UpstreamConnection upstreamInput)
         /// <inheritdoc />
         public IReadOnlyCollection<T> Results => _results.GetResults();
 
-        /// <inheritdoc />
-        public IObservableResultSet<T> Observe() => _results;
+
+        /// <summary>
+        /// Get the current state as a set of changes.
+        /// </summary>
+        public IEnumerable<Change<T>> CurrentChanges => _results.GetResultsAsChanges();
     }
 
     /// <inheritdoc />

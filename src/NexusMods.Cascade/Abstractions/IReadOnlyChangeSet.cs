@@ -1,5 +1,6 @@
 ﻿namespace NexusMods.Cascade.Abstractions;
 
-public interface IImmutableResultSet<T>
+public interface IReadOnlyChangeSet
 {
+    
 }

@@ -4,6 +4,7 @@
     
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" />
+      <PackageReference Include="R3" />
     </ItemGroup>
 
 </Project>

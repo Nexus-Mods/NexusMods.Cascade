@@ -12,7 +12,12 @@ internal class FlowImpl : IFlowImpl
     /// </summary>
     private readonly Dictionary<IStageDefinition, IStage> _stages = [];
 
+    /// <summary>
+    /// Implicitly created o
+    /// </summary>
     private readonly Dictionary<IStageDefinition, IOutlet> _implicitOutlets = [];
+
+    private readonly Dictionary<IOutlet, Dictionary<Type, IQueryObserver>> _observers = [];
 
     /// <summary>
     /// Stages that are yet to be flowed from, and won't until the end of the update call
@@ -83,7 +88,7 @@ internal class FlowImpl : IFlowImpl
         inlet.ChangeSets[0].Reset();
         inlet.Add(input, delta);
 
-        _dirtyStages.Add(stage);
+        FlowDataFrom(stage);
     }
 
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<Change<T>> input)
@@ -95,7 +100,7 @@ internal class FlowImpl : IFlowImpl
         inlet.ChangeSets[0].Reset();
         inlet.Add(input);
 
-        _dirtyStages.Add(stage);
+        FlowDataFrom(stage);
     }
 
     public void RunFlows()
@@ -170,7 +175,8 @@ internal class FlowImpl : IFlowImpl
         }
     }
 
-    public IObservableResultSet<T> ObserveAllResults<T>(IQuery<T> stage) where T : notnull
+    public TObserver Observe<T, TObserver>(IQuery<T> stage) where T : notnull
+        where TObserver : IQueryObserver<T>
     {
         if (!_stages.TryGetValue(stage, out var found))
         {
@@ -182,7 +188,19 @@ internal class FlowImpl : IFlowImpl
             throw new ArgumentException("Stage is not an Outlet", nameof(stage));
         }
 
-        return outlet.Observe();
+        if (!_observers.TryGetValue(outlet, out var observers))
+        {
+            observers = new Dictionary<Type, IQueryObserver>();
+            _observers.Add(outlet, observers);
+        }
+
+        if (!observers.TryGetValue(typeof(T), out var observer))
+        {
+            observer = TObserver.Create(outlet, outlet.CurrentChanges);
+            observers.Add(typeof(T), observer);
+        }
+
+        return (TObserver)observer;
     }
 
     private void Connect(IStage inlet, int outputId, IStage filter, int inputId)

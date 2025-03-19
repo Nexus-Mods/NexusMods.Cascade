@@ -7,7 +7,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class ObservableResultSet<T> : IObservableResultSet<T>
+public class ResultSetFactory<T>
     where T : notnull
 {
     private ImmutableDictionary<T, int> _results = ImmutableDictionary<T, int>.Empty;
@@ -37,6 +37,11 @@ public class ObservableResultSet<T> : IObservableResultSet<T>
     {
         // This allocates, we should fix that at some point.
         return new ResultSet<T>(_results);
+    }
+
+    public IEnumerable<Change<T>> GetResultsAsChanges()
+    {
+        return _results.Select(kvp => new Change<T>(kvp.Key, kvp.Value));
     }
 
     public void Update(ChangeSet<T> valueAndDelta)

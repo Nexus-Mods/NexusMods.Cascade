@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\NexusMods.Cascade.SourceGenerator\NexusMods.Cascade.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\NexusMods.Cascade\NexusMods.Cascade.csproj" />
   </ItemGroup>
 

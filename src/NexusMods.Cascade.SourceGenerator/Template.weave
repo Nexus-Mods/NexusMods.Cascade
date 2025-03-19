@@ -1,0 +1,74 @@
+@namespace NexusMods.Cascade.SourceGenerator
+@methodname RenderModel
+@model RowDefinitionAnalyzer
+@using System.Linq
+
+#nullable enable
+
+namespace {{= model.Namespace}};
+
+using global::System;
+using global::System.Linq;
+using global::System.Collections;
+using global::System.Collections.Generic;
+using global::R3;
+using global::NexusMods.Cascade.Abstractions;
+
+
+public partial record struct {{= model.Name}}
+{
+    /// <summary>
+    /// Implicitly converts a tuple to a {{= model.Name}}
+    /// </summary>
+    public static implicit operator {{= model.Name}}(({{= model.PrimaryKey.Type}}, {{= string.Join(", ", model.Members.Select(m => m.Type))}}) tuple)
+    {
+        return new {{= model.Name}}(
+        tuple.Item1
+        {{each member in model.Members}}
+        ,tuple.Item{{= member.Index + 2}}
+        {{/each}}
+        );
+    }
+
+
+    public sealed class Active : global::NexusMods.Cascade.Abstractions.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
+    {
+       public Active({{= model.Name}} seedData)
+       {
+          RowId = seedData.{{= model.PrimaryKey.Name}};
+          {{each member in model.Members}}
+            {{= member.Name}} = new global::R3.BindableReactiveProperty<{{= member.Type}}>(seedData.{{= member.Name}});
+          {{/each}}
+       }
+
+       public {{= model.PrimaryKey.Type}} RowId { get; }
+
+       public void MergeIn(in {{= model.Name}} newData)
+       {
+         {{each member in model.Members}}
+           if (newData.{{= member.Name}} != {{= member.Name}}.Value) {
+             {{= member.Name}}.Value = newData.{{= member.Name}};
+           }
+         {{/each}}
+       }
+
+       public void Dispose()
+       {
+         {{each member in model.Members}}
+           {{= member.Name}}.Dispose();
+         {{/each}}
+       }
+
+       {{each member in model.Members}}
+        public readonly global::R3.BindableReactiveProperty<{{= member.Type}}> {{= member.Name}};
+       {{/each}}
+    }
+}
+
+public static class {{= model.Name}}QueryExtensions
+{
+    public static IObservableQuery<{{= model.Name}}.Active, {{= model.Name}}, {{= model.PrimaryKey.Type}}> Observe(this Flow flow, IQuery<{{= model.Name}}> query)
+    {
+        throw new NotImplementedException();
+    }
+}

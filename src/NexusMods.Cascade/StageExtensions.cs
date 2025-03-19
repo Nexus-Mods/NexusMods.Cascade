@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Operators;
 
@@ -54,13 +55,26 @@ public static class StageExtensions
         return new SelectMany<TSource, TCollection, TResult>(collectionSelector, resultSelector, input.ToUpstreamConnection());
     }
 
-    public static IQuery<TResult> SelectMany<TSource, TCollection, TKey, TResult>(this IQuery<TSource> input, Func<TSource, Reduction<TKey, TSource>> collectionSelector,
-        Func<TSource, Reduction<TCollection, TSource>, TResult> resultSelector)
+    public static IQuery<TResult> SelectMany<TSource, TCollection, TResult>(this IQuery<TSource> input, Expression<Func<TSource, IQuery<TCollection>>> collectionSelector,
+        Func<TSource, TCollection, TResult> resultSelector)
         where TSource : notnull
         where TResult : notnull
+        where TCollection : notnull
     {
-        throw new NotImplementedException();
-        //return new SelectMany<TSource, TCollection, TResult>(collectionSelector, resultSelector, input.Output);
+        if (collectionSelector.Body.NodeType != ExpressionType.MemberAccess)
+            throw new ArgumentException($"{nameof(collectionSelector)} must be a member access expression (for now)");
+
+        if (collectionSelector.Body is not MemberExpression memberExpression)
+            throw new ArgumentException($"{nameof(collectionSelector)} must be a member access expression (for now)");
+
+        if (memberExpression.Member is not FieldInfo fieldInfo)
+            throw new ArgumentException($"{nameof(collectionSelector)} must be a field access expression (for now)");
+
+        if (!fieldInfo.IsStatic)
+            throw new ArgumentException($"{nameof(collectionSelector)} must be a static field access expression (for now)");
+
+        var data = (IQuery<TCollection>)fieldInfo.GetValue(null)!;
+        return new CartesianJoin<TSource, TCollection, TResult>(input.ToUpstreamConnection(), data.ToUpstreamConnection(), resultSelector);
     }
 
     public static IQuery<KeyedResultSet<TKey, TItem>> GroupBy<TKey, TItem>(this IQuery<TItem> item, Func<TItem, TKey> keySelector)
@@ -78,5 +92,4 @@ public static class StageExtensions
     {
         return new GroupJoin<TOuter, TInner, TKey, TResult>(outer.ToUpstreamConnection(), inner.ToUpstreamConnection(), outerKeySelector, innerKeySelector, resultSelector);
     }
-
 }

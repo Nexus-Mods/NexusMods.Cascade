@@ -30,9 +30,4 @@ public interface IOutlet<T> : IOutlet
     /// Gets the cached results of the outlet
     /// </summary>
     IReadOnlyCollection<T> Results { get; }
-
-    /// <summary>
-    /// Gets an observable result set for the outlet
-    /// </summary>
-    IObservableResultSet<T> Observe();
 }

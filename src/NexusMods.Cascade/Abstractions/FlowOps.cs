@@ -45,11 +45,12 @@ public readonly ref struct FlowOps
         => _impl.GetAllResults(queryDefinition);
 
     /// <summary>
-    /// Get an observable result set for a query, the results will be updated as the flow progresses, and observing
-    /// the changes to the result collection will not block the flow
+    /// Get an observable observe the query results with the specified observer type.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IObservableResultSet<T> ObserveAllResults<T>(IQuery<T> queryDefinition) where T : notnull
-        => _impl.ObserveAllResults<T>(queryDefinition);
+    public TObserver Observe<T, TObserver>(IQuery<T> queryDefinition)
+        where T : notnull
+        where TObserver : IQueryObserver<T>
+        => _impl.Observe<T, TObserver>(queryDefinition);
 
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
@@ -16,6 +17,11 @@ public class ResultSet<T> : IReadOnlyCollection<T>
     public ResultSet(ImmutableDictionary<T, int> results)
     {
         _results = results;
+    }
+
+    public ResultSet()
+    {
+        _results = ImmutableDictionary<T, int>.Empty;
     }
 
     /// <summary>
