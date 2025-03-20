@@ -6,6 +6,7 @@ public interface IQueryObserver
 {
     public IOutlet AttachedOutlet { get; }
 
+    void Update(IOutlet observer);
 }
 
 public interface IQueryObserver<T> : IQueryObserver
@@ -16,6 +17,6 @@ public interface IQueryObserver<T> : IQueryObserver
     /// <summary>
     /// Process the changes in the change set, updating the collection
     /// </summary>
-    public void Update(ChangeSet<T> changeSet);
+    public void Update(IEnumerable<Change<T>> changeSet);
 }
 

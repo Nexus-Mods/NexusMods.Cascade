@@ -20,6 +20,9 @@ public class Outlet<T>(UpstreamConnection upstreamInput)
         : AStageDefinition.Stage(flow, definition), IOutlet<T>
     {
         private readonly ResultSetFactory<T> _results = new();
+        private readonly List<Change<T>> _recentChanges = new();
+
+        public ResultSetFactory<T> ResultSetFactory => _results;
 
         /// <inheritdoc />
         public override void AcceptChanges<TIn>(ChangeSet<TIn> changeSet, int inputIndex)
@@ -27,6 +30,12 @@ public class Outlet<T>(UpstreamConnection upstreamInput)
             Debug.Assert(inputIndex == 0);
 
             _results.Update((ChangeSet<T>)(IChangeSet)changeSet);
+            _recentChanges.AddRange((ChangeSet<T>)(IChangeSet)changeSet);
+        }
+
+        public void ResetCurrentChanges()
+        {
+            _recentChanges.Clear();
         }
 
         /// <inheritdoc />

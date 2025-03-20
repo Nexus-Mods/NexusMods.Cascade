@@ -7,7 +7,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
 
-public class ResultSetFactory<T>
+public class ResultSetFactory<T> : IReadOnlyCollection<T>
     where T : notnull
 {
     private ImmutableDictionary<T, int> _results = ImmutableDictionary<T, int>.Empty;
@@ -71,4 +71,48 @@ public class ResultSetFactory<T>
 
         _results = newResults.ToImmutable();
     }
+
+    public void Update(IEnumerable<Change<T>> valueAndDelta)
+    {
+        var newResults = _results.ToBuilder();
+
+        foreach (var (key, delta) in valueAndDelta)
+        {
+            if (newResults.TryGetValue(key, out var current))
+            {
+                var newDelta = current + delta;
+
+                if (newDelta == 0)
+                {
+                    newResults.Remove(key);
+                }
+                else
+                {
+                    newResults[key] = newDelta;
+                }
+            }
+            else
+            {
+                newResults.Add(key, delta);
+            }
+        }
+
+        _results = newResults.ToImmutable();
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        foreach (var (value, count) in _results)
+        {
+            for (var i = 0; i < count; i++)
+                yield return value;
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public int Count => _results.Values.Sum();
 }

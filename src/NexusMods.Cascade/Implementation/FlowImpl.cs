@@ -19,6 +19,8 @@ internal class FlowImpl : IFlowImpl
 
     private readonly Dictionary<IOutlet, Dictionary<Type, IQueryObserver>> _observers = [];
 
+    private readonly HashSet<IOutlet> _dirtyOutlets = [];
+
     /// <summary>
     /// Stages that are yet to be flowed from, and won't until the end of the update call
     /// </summary>
@@ -79,9 +81,31 @@ internal class FlowImpl : IFlowImpl
         return (IOutlet<T>)outlet;
     }
 
+    private void StartFlow()
+    {
+        _dirtyOutlets.Clear();
+    }
+
+    private void EndFlow()
+    {
+        foreach (var dirty in _dirtyOutlets)
+        {
+            if (!_observers.TryGetValue(dirty, out var observersForOutlet))
+                continue;
+            foreach (var observer in observersForOutlet.Values)
+                observer.Update(dirty);
+
+            dirty.ResetCurrentChanges();
+        }
+
+        _dirtyOutlets.Clear();
+
+    }
+
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<T> input, int delta = 1)
         where T : notnull
     {
+        StartFlow();
         var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
@@ -89,11 +113,14 @@ internal class FlowImpl : IFlowImpl
         inlet.Add(input, delta);
 
         FlowDataFrom(stage);
+        EndFlow();
     }
 
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<Change<T>> input)
         where T : notnull
     {
+        StartFlow();
+
         var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
@@ -101,6 +128,7 @@ internal class FlowImpl : IFlowImpl
         inlet.Add(input);
 
         FlowDataFrom(stage);
+        EndFlow();
     }
 
     public void RunFlows()
@@ -116,6 +144,9 @@ internal class FlowImpl : IFlowImpl
     private void FlowDataFrom(IStage stage)
     {
         var idx = 0;
+        if (stage is IOutlet outlet)
+            _dirtyOutlets.Add(outlet);
+
         foreach (var output in stage.ChangeSets)
         {
             if (!_connections.TryGetValue((stage, idx), out var connections))
@@ -175,31 +206,39 @@ internal class FlowImpl : IFlowImpl
         }
     }
 
-    public TObserver Observe<T, TObserver>(IQuery<T> stage) where T : notnull
+    public TObserver Observe<T, TObserver>(IQuery<T> stageDefinition) where T : notnull
         where TObserver : IQueryObserver<T>
     {
-        if (!_stages.TryGetValue(stage, out var found))
-        {
-            throw new ArgumentException("Stage not found", nameof(stage));
-        }
+        StartFlow();
+        var stage = GetOutlet(stageDefinition, out var wasCreated);
 
-        if (found is not Outlet<T>.Stage outlet)
+        if (stage is not Outlet<T>.Stage outlet)
         {
             throw new ArgumentException("Stage is not an Outlet", nameof(stage));
         }
 
-        if (!_observers.TryGetValue(outlet, out var observers))
+        if (wasCreated)
+            BackPropagate(outlet);
+
+        if (!_observers.TryGetValue(outlet, out var observersForOutlet))
         {
-            observers = new Dictionary<Type, IQueryObserver>();
-            _observers.Add(outlet, observers);
+            observersForOutlet = new Dictionary<Type, IQueryObserver>();
+            _observers.Add(outlet, observersForOutlet);
         }
 
-        if (!observers.TryGetValue(typeof(T), out var observer))
+        if (!observersForOutlet.TryGetValue(typeof(TObserver), out var observer))
         {
             observer = TObserver.Create(outlet, outlet.CurrentChanges);
-            observers.Add(typeof(T), observer);
+            observersForOutlet.Add(typeof(T), observer);
+
+            var observerAsT = (TObserver)observer;
+            observerAsT.Update(outlet.ResultSetFactory.GetResultsAsChanges());
         }
 
+        if (wasCreated)
+            outlet.ResetCurrentChanges();
+
+        EndFlow();
         return (TObserver)observer;
     }
 

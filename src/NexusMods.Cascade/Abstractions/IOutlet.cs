@@ -18,7 +18,10 @@ where T : notnull;
 /// <summary>
 /// An outlet instance
 /// </summary>
-public interface IOutlet : IStage;
+public interface IOutlet : IStage
+{
+    void ResetCurrentChanges();
+}
 
 /// <summary>
 /// A typed outlet instance

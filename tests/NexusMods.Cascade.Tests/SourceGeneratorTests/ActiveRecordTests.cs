@@ -76,9 +76,13 @@ public class ActiveRecordTests
     [Test]
     public async Task CanQueryWithActiveQuery()
     {
-        MovePoint(0);
-        var results = _flow.Observe(Distances);
+        var results = _flow.Update(opts => opts.Observe<Distance, ResultsObserver<Distance>>(Distances));
+        await Assert.That(results.Count).IsEquivalentTo(20);
 
+        MovePoint(0);
+        await Assert.That(results.Count).IsEquivalentTo(30);
+
+        await Task.CompletedTask;
         /*
         var row = results[(TopLeft, Movable)];
         await Assert.That(row.H.Value).IsEqualTo(14.142136f);
