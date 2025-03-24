@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Implementation;
+using ObservableCollections;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -45,12 +46,20 @@ public readonly ref struct FlowOps
         => _impl.GetAllResults(queryDefinition);
 
     /// <summary>
-    /// Get an observable observe the query results with the specified observer type.
+    /// Get an observable dictionary of the results of a query, keys will be the values returned by the query, and the
+    /// values of the dictionary will be the number of times the key was returned by the query.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TObserver Observe<T, TObserver>(IQuery<T> queryDefinition)
-        where T : notnull
-        where TObserver : IQueryObserver<T>
-        => _impl.Observe<T, TObserver>(queryDefinition);
+    public ObservableDictionary<T, int> Observe<T>(IQuery<T> queryDefinition) where T : notnull
+        => _impl.Observe(queryDefinition);
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ObservableDictionary<TKey, TActive> ObserveActive<TKey, TActive, TBase>(IQuery<TBase> queryDefinition)
+        where TActive : IActiveRow<TBase, TKey>
+        where TBase : IRowDefinition<TKey>
+        where TKey : notnull
+    {
+        return _impl.ObserveActive<TKey, TActive, TBase>(queryDefinition);
+    }
 }

@@ -13,24 +13,25 @@ public interface IOutletDefinition : IStageDefinition, IQuery;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public interface IOutletDefinition<T> : IOutletDefinition, IQuery<T>
-where T : notnull;
+    where T : notnull
+{
+    public static abstract IOutletDefinition<T> Create(UpstreamConnection conn);
+}
 
 /// <summary>
 /// An outlet instance
 /// </summary>
 public interface IOutlet : IStage
 {
-    void ResetCurrentChanges();
+    /// <summary>
+    /// Triggers the outlet to dispatch any pending changes to the output set, any side-effecting updates should
+    /// be done on a separate thread, this call should never block.
+    /// </summary>
+    void ReleasePendingSends();
 }
 
-/// <summary>
-/// A typed outlet instance
-/// </summary>
+
 public interface IOutlet<T> : IOutlet
-    where T : notnull
 {
-    /// <summary>
-    /// Gets the cached results of the outlet
-    /// </summary>
-    IReadOnlyCollection<T> Results { get; }
+
 }

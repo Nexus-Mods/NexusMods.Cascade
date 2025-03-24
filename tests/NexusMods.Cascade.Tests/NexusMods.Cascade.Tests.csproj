@@ -15,7 +15,6 @@
     <PackageReference Include="NexusMods.MnemonicDB.Abstractions" />
     <PackageReference Include="NexusMods.Paths" />
     <PackageReference Include="TUnit" />
-    <PackageReference Include="NexusMods.MnemonicDB.SourceGenerator" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,9 +27,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageVersion Update="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
-  </ItemGroup>
-
 </Project>

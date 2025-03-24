@@ -1,9 +1,16 @@
-﻿namespace NexusMods.Cascade.Abstractions;
+﻿using System;
 
-public interface IActiveRow<TBase, out TKey>
+namespace NexusMods.Cascade.Abstractions;
+
+public interface IActiveRow<TBase, out TKey> : IDisposable
     where TBase : IRowDefinition
     where TKey : notnull
 {
+    /// <summary>
+    /// Create a new instance of the active row from the base row
+    /// </summary>
+    public static abstract IActiveRow<TBase, TKey> Create(TBase row);
+
     /// <summary>
     /// The unique identifier for the row, the "primary key" as it were.
     /// </summary>

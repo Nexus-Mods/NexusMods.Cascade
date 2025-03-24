@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Implementation;
+using ObservableCollections;
 
 namespace NexusMods.Cascade;
 
@@ -72,5 +73,15 @@ public class Flow
         where T : notnull
     {
         return Update(static (ops, q) => ops.GetAllResults(q), query);
+    }
+
+    /// <summary>
+    /// Runs a query and returns an observable dictionary of the results. The keys will be the values returned by the query,
+    /// the values of the dictionary will be the number of times the key was returned by the query.
+    /// </summary>
+    public ObservableDictionary<T, int> Observe<T>(IQuery<T> query)
+        where T : notnull
+    {
+        return Update(static (ops, q) => ops.Observe(q), query);
     }
 }

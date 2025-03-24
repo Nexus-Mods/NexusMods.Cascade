@@ -15,8 +15,11 @@ using global::R3;
 using global::NexusMods.Cascade.Abstractions;
 
 
-public partial record struct {{= model.Name}}
+public partial record struct {{= model.Name}} : IRowDefinition<{{= model.PrimaryKey.Type}}>
 {
+    public {{= model.PrimaryKey.Type}} RowId => {{= model.PrimaryKey.Name}};
+
+
     /// <summary>
     /// Implicitly converts a tuple to a {{= model.Name}}
     /// </summary>
@@ -33,6 +36,12 @@ public partial record struct {{= model.Name}}
 
     public sealed class Active : global::NexusMods.Cascade.Abstractions.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
     {
+       public static IActiveRow<{{= model.Name}}, {{= model.PrimaryKey.Type}}> Create({{= model.Name}} seedData)
+       {
+          return new Active(seedData);
+       }
+
+
        public Active({{= model.Name}} seedData)
        {
           RowId = seedData.{{= model.PrimaryKey.Name}};

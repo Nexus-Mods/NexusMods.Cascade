@@ -23,13 +23,6 @@ public static class StageExtensions
         return new Filter<T>(predicate, upstream.ToUpstreamConnection());
     }
 
-    public static Outlet<T> Outlet<T>(this IQuery<T> upstream)
-        where T : notnull
-    {
-        return new Outlet<T>(upstream.ToUpstreamConnection());
-    }
-
-
 
     public static HashJoin<TLeft, TRight, TKey, TOut> Join<TLeft, TRight, TKey, TOut>(this IQuery<TLeft> left, IQuery<TRight> right, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector, Func<TLeft, TRight, TOut> resultSelector)
         where TLeft : notnull

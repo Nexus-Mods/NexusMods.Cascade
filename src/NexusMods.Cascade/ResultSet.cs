@@ -25,6 +25,37 @@ public class ResultSet<T> : IReadOnlyCollection<T>
     }
 
     /// <summary>
+    /// Return a new result set with the changes applied.
+    /// </summary>
+    public ResultSet<T> With(ChangeSet<T> changeSet)
+    {
+        var newResults = _results.ToBuilder();
+
+        foreach (var (key, delta) in changeSet)
+        {
+            if (newResults.TryGetValue(key, out var current))
+            {
+                var newDelta = current + delta;
+
+                if (newDelta == 0)
+                {
+                    newResults.Remove(key);
+                }
+                else
+                {
+                    newResults[key] = newDelta;
+                }
+            }
+            else
+            {
+                newResults[key] = delta;
+            }
+        }
+
+        return new ResultSet<T>(newResults.ToImmutable());
+    }
+
+    /// <summary>
     /// Returns true if the result set contains the specified item.
     /// </summary>
     public bool Contains(T item) => _results.ContainsKey(item);

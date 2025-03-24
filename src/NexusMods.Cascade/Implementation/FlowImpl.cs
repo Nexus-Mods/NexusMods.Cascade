@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Outlets;
+using ObservableCollections;
 
 namespace NexusMods.Cascade.Implementation;
 
@@ -15,9 +17,7 @@ internal class FlowImpl : IFlowImpl
     /// <summary>
     /// Implicitly created o
     /// </summary>
-    private readonly Dictionary<IStageDefinition, IOutlet> _implicitOutlets = [];
-
-    private readonly Dictionary<IOutlet, Dictionary<Type, IQueryObserver>> _observers = [];
+    private readonly Dictionary<(IStage, Type), IOutlet> _outlets = [];
 
     private readonly HashSet<IOutlet> _dirtyOutlets = [];
 
@@ -60,52 +60,43 @@ internal class FlowImpl : IFlowImpl
         return instance;
     }
 
-    private IOutlet<T> GetOutlet<T>(IQuery<T> stageDefinition, out bool wasCreated)
-        where T : notnull
+    private IOutlet GetOutlet<TValue, TOutletType>(IQuery<TValue> stageDefinition, out bool wasCreated)
+        where TOutletType : IOutletDefinition<TValue>
+        where TValue : notnull
     {
-        if (stageDefinition is IOutletDefinition<T> castedOutletDefinition)
-        {
-            return (IOutlet<T>)AddStage(castedOutletDefinition, out wasCreated);
-        }
+        // Resolve the upstream stage
+        var stage = AddStage(stageDefinition, out wasCreated);
 
-        if (_implicitOutlets.TryGetValue(stageDefinition, out var found))
+        // Look for an existing outlet
+        var key = (stage, typeof(TOutletType));
+        if (_outlets.TryGetValue(key, out var existingOutlet))
         {
             wasCreated = false;
-            return (IOutlet<T>)found;
+            return existingOutlet;
         }
 
+        // Otherwise create a new outlet
         wasCreated = true;
-        var newOutletDefinition = new Outlet<T>(stageDefinition.ToUpstreamConnection());
+        var newOutletDefinition = TOutletType.Create(stageDefinition.ToUpstreamConnection());
         var outlet = (IOutlet)AddStage(newOutletDefinition, out _);
-        _implicitOutlets.Add(stageDefinition, outlet);
-        return (IOutlet<T>)outlet;
-    }
-
-    private void StartFlow()
-    {
+        _outlets.Add(key, outlet);
+        BackPropagate(outlet);
+        outlet.ReleasePendingSends();
         _dirtyOutlets.Clear();
+        return outlet;
     }
 
-    private void EndFlow()
+
+    public ObservableDictionary<T,int> Observe<T>(IQuery<T> queryDefinition) where T : notnull
     {
-        foreach (var dirty in _dirtyOutlets)
-        {
-            if (!_observers.TryGetValue(dirty, out var observersForOutlet))
-                continue;
-            foreach (var observer in observersForOutlet.Values)
-                observer.Update(dirty);
-
-            dirty.ResetCurrentChanges();
-        }
-
-        _dirtyOutlets.Clear();
-
+        var outlet = (ObservableCollectionResult<T>.Stage)GetOutlet<T, ObservableCollectionResult<T>>(queryDefinition, out var wasCreated);
+        return outlet.Results;
     }
+
 
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<T> input, int delta = 1)
         where T : notnull
     {
-        StartFlow();
         var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
@@ -113,32 +104,31 @@ internal class FlowImpl : IFlowImpl
         inlet.Add(input, delta);
 
         FlowDataFrom(stage);
-        EndFlow();
+    }
+
+    private void ReleasePendingSends()
+    {
+        foreach (var outlet in _dirtyOutlets)
+        {
+            outlet.ReleasePendingSends();
+        }
+        _dirtyOutlets.Clear();
     }
 
     internal void AddData<T>(IInletDefinition<T> definition, ReadOnlySpan<Change<T>> input)
         where T : notnull
     {
-        StartFlow();
-
         var stage = AddStage(definition, out _);
 
         var inlet = (Inlet<T>.Stage)stage;
-        inlet.ChangeSets[0].Reset();
-        inlet.Add(input);
+        inlet.ChangeSets[0].Reset(); inlet.Add(input);
 
         FlowDataFrom(stage);
-        EndFlow();
     }
 
     public void RunFlows()
     {
-        if (_dirtyStages.Count == 0)
-            return;
-
-        foreach (var stage in _dirtyStages)
-            FlowDataFrom(stage);
-        _dirtyStages.Clear();
+        ReleasePendingSends();
     }
 
     private void FlowDataFrom(IStage stage)
@@ -165,18 +155,18 @@ internal class FlowImpl : IFlowImpl
     internal IReadOnlyCollection<T> GetAllResults<T>(IQuery<T> stageDefinition) where T : notnull
     {
 
-        var stage = GetOutlet(stageDefinition, out var wasCreated);
+        var stage = (CollectionResult<T>.Stage)GetOutlet<T, CollectionResult<T>>(stageDefinition, out var wasCreated);
+        return stage.Results;
 
-        if (stage is not Outlet<T>.Stage outlet)
-        {
-            throw new ArgumentException("Stage is not an Outlet", nameof(stage));
-        }
+    }
 
-        if (wasCreated)
-            BackPropagate(outlet);
-
-        return outlet.Results;
-
+    public ObservableDictionary<TKey,TActive> ObserveActive<TKey, TActive, TBase>(IQuery<TBase> queryDefinition)
+        where TKey : notnull
+        where TActive : IActiveRow<TBase, TKey>
+        where TBase : IRowDefinition<TKey>
+    {
+        var stage = (ActiveRecordObservableCollectionResult<TKey, TActive, TBase>.Stage)GetOutlet<TBase, ActiveRecordObservableCollectionResult<TKey, TActive, TBase>>(queryDefinition, out _);
+        return stage.Results;
     }
 
     /// <summary>
@@ -206,6 +196,7 @@ internal class FlowImpl : IFlowImpl
         }
     }
 
+/*
     public TObserver Observe<T, TObserver>(IQuery<T> stageDefinition) where T : notnull
         where TObserver : IQueryObserver<T>
     {
@@ -241,6 +232,7 @@ internal class FlowImpl : IFlowImpl
         EndFlow();
         return (TObserver)observer;
     }
+    */
 
     private void Connect(IStage inlet, int outputId, IStage filter, int inputId)
     {
@@ -252,4 +244,6 @@ internal class FlowImpl : IFlowImpl
         backFound ??= new List<(IStage, int)>();
         backFound.Add((inlet, outputId));
     }
+
+
 }

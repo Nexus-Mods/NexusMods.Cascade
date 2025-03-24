@@ -7,8 +7,8 @@ namespace NexusMods.Cascade;
 /// <summary>
 /// The implementation of an outlet.
 /// </summary>
-public class Outlet<T>(UpstreamConnection upstreamInput)
-    : AStageDefinition(Inputs, [], [upstreamInput]), IOutletDefinition<T>
+public abstract class Outlet<T>(UpstreamConnection upstreamInput)
+    : AStageDefinition(Inputs, [], [upstreamInput])
     where T : notnull
 {
     private static readonly IInputDefinition[] Inputs = [new InputDefinition<T>("results", 0)];
@@ -16,42 +16,35 @@ public class Outlet<T>(UpstreamConnection upstreamInput)
     /// <summary>
     /// The outlet stage implementation.
     /// </summary>
-    public new class Stage(IFlowImpl flow, IStageDefinition definition)
+    public abstract class Stage(IFlowImpl flow, IStageDefinition definition)
         : AStageDefinition.Stage(flow, definition), IOutlet<T>
     {
-        private readonly ResultSetFactory<T> _results = new();
-        private readonly List<Change<T>> _recentChanges = new();
-
-        public ResultSetFactory<T> ResultSetFactory => _results;
+        private readonly ChangeSet<T> _pendingChanges = [];
 
         /// <inheritdoc />
         public override void AcceptChanges<TIn>(ChangeSet<TIn> changeSet, int inputIndex)
         {
             Debug.Assert(inputIndex == 0);
 
-            _results.Update((ChangeSet<T>)(IChangeSet)changeSet);
-            _recentChanges.AddRange((ChangeSet<T>)(IChangeSet)changeSet);
-        }
-
-        public void ResetCurrentChanges()
-        {
-            _recentChanges.Clear();
+            // Merge in the changes
+            _pendingChanges.Add((ChangeSet<T>)(IChangeSet)changeSet);
         }
 
         /// <inheritdoc />
-        public IReadOnlyCollection<T> Results => _results.GetResults();
+        public void ReleasePendingSends()
+        {
+            if (_pendingChanges.Count == 0)
+                return;
 
+            ReleaseChanges(_pendingChanges);
+            _pendingChanges.Reset();
+        }
 
         /// <summary>
-        /// Get the current state as a set of changes.
+        /// Override this method to release the changes outside the flow
         /// </summary>
-        public IEnumerable<Change<T>> CurrentChanges => _results.GetResultsAsChanges();
-    }
+        protected abstract void ReleaseChanges(ChangeSet<T> changeSet);
 
-    /// <inheritdoc />
-    public override IStage CreateInstance(IFlowImpl flow)
-    {
-        return new Stage(flow, this);
     }
 
     /// <inheritdoc />
