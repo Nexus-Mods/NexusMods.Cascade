@@ -1,6 +1,4 @@
-﻿using DynamicData;
-using NexusMods.Cascade.Abstractions;
-using R3;
+﻿using NexusMods.Cascade.Abstractions;
 using static NexusMods.Cascade.Tests.SourceGeneratorTests.PointName;
 
 namespace NexusMods.Cascade.Tests.SourceGeneratorTests;
