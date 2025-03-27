@@ -5,7 +5,7 @@ using NexusMods.Cascade.ValueTypes;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class ValueInlet<T> : IQuery<Value<T>>
+public class ValueInlet<T> : IValueQuery<T>
 {
     public IStage CreateInstance(IFlow flow)
     {

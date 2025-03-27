@@ -4,7 +4,7 @@ using NexusMods.Cascade.ValueTypes;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class OmegaSelect<TIn, TOut> : AUnaryStageDefinition<Value<TIn>, Value<TOut>>
+public class OmegaSelect<TIn, TOut> : AUnaryStageDefinition<Value<TIn>, Value<TOut>>, IValueQuery<TOut>
 {
     private readonly Func<TIn,TOut> _fn;
 
