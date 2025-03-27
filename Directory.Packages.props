@@ -1,12 +1,13 @@
 ﻿<Project>
   <ItemGroup>
+    <PackageVersion Include="Clarp" Version="0.1.0" />
     <PackageVersion Include="JetBrains.Annotations" Version="2024.3.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="NexusMods.Hashing.xxHash3" Version="3.0.3" />
     <PackageVersion Include="NexusMods.MnemonicDB" Version="0.9.98" />
     <PackageVersion Include="NexusMods.MnemonicDB.Abstractions" Version="0.9.98" />
-    <PackageVersion Include="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />  
+    <PackageVersion Include="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
     <PackageVersion Include="NexusMods.Paths" Version="0.15.0" />
     <PackageVersion Include="TransparentValueObjects" Version="1.0.2" />
     <PackageVersion Include="TUnit" Version="0.6.59" />

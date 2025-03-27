@@ -1,4 +1,6 @@
-﻿namespace NexusMods.Cascade.Abstractions;
+﻿using System;
+
+namespace NexusMods.Cascade.Abstractions;
 
 /// <summary>
 /// A instance of a stage in a flow
@@ -13,20 +15,16 @@ public interface IStage
     /// <summary>
     /// The flow this stage is part of
     /// </summary>
-    public IFlowImpl Flow { get; }
+    public IFlow Flow { get; }
 
     /// <summary>
-    /// The output sets of this stage
+    /// Accept a change from the input index
     /// </summary>
-    public IChangeSet[] ChangeSets { get; }
+    public void AcceptChange<TDelta>(int inputIndex, TDelta delta);
+}
 
-    /// <summary>
-    /// Flow data into the stage from a previous stage into the given input index
-    /// </summary>
-    public void AcceptChanges<T>(ChangeSet<T> outputSet, int inputIndex) where T : notnull;
 
-    /// <summary>
-    /// Resets the temporary state of the outputs of the stage
-    /// </summary>
-    void ResetAllOutputs();
+public interface IStage<out T> : IStage
+{
+    public T CurrentValue { get; }
 }
