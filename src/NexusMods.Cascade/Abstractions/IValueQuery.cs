@@ -1,4 +1,4 @@
-﻿using NexusMods.Cascade.ValueTypes;
+﻿using NexusMods.Cascade.Implementation.Omega;
 
 namespace NexusMods.Cascade.Abstractions;
 

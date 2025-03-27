@@ -1,5 +1,9 @@
-﻿using NexusMods.Cascade.Implementation;
-using NexusMods.Cascade.ValueTypes;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using NexusMods.Cascade.Implementation;
+using NexusMods.Cascade.Implementation.Delta;
+using NexusMods.Cascade.Implementation.Omega;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -25,4 +29,8 @@ public interface IFlow
     /// Set the value of an inlet to a new value
     /// </summary>
     void Set<T>(ValueInlet<T> inlet, T newValue);
+
+    void Update<T>(SetInlet<T> setInlet, params T[] valueTuple);
+
+    ImmutableHashSet<T> Query<T>(IDeltaQuery<T> query);
 }

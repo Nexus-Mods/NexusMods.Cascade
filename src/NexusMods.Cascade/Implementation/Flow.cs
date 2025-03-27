@@ -1,7 +1,9 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.ValueTypes;
+using NexusMods.Cascade.Implementation.Delta;
+using NexusMods.Cascade.Implementation.Omega;
 
 namespace NexusMods.Cascade.Implementation;
 
@@ -31,10 +33,30 @@ internal sealed class Flow : IFlow
         var instance = (IValueOutlet<T>)definition.CreateInstance(this);
         _outlets.Value = _outlets.Value.Add(stage, instance);
         return instance;
+    }
 
+    private ISetOutlet<T> GetOutlet<T>(IQuery<ChangeSet<T>> query)
+    {
+        var stage = AddStage(query);
+        if (_outlets.Value.TryGetValue(stage, out var outlet))
+            return (ISetOutlet<T>)outlet;
+
+        var definition = new SetOutlet<T>(query);
+        var instance = (ISetOutlet<T>)definition.CreateInstance(this);
+        _outlets.Value = _outlets.Value.Add(stage, instance);
+        return instance;
     }
 
     public T Query<T>(IQuery<Value<T>> query)
+    {
+        return LockingTransaction.RunInTransaction(() =>
+        {
+            var outlet = GetOutlet(query);
+            return outlet.Value;
+        });
+    }
+
+    public ImmutableHashSet<T> Query<T>(IDeltaQuery<T> query)
     {
         return LockingTransaction.RunInTransaction(() =>
         {
@@ -52,6 +74,18 @@ internal sealed class Flow : IFlow
             return 0;
         });
     }
+
+    public void Update<T>(SetInlet<T> setInlet, params T[] valueTuple)
+    {
+        LockingTransaction.RunInTransaction(() =>
+        {
+            var inlet = (ISetInlet<T>)AddStage(setInlet);
+            inlet.Push(ChangeSet<T>.AddAll(valueTuple.AsSpan()));
+            return 0;
+        });
+    }
+
+
 
     internal void AddStageInstance(IStageDefinition definition, IStage stage)
     {

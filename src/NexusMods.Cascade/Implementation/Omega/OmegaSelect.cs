@@ -1,8 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.ValueTypes;
 
-namespace NexusMods.Cascade.Implementation;
+namespace NexusMods.Cascade.Implementation.Omega;
 
 public sealed class OmegaSelect<TIn, TOut> : AUnaryStageDefinition<Value<TIn>, Value<TOut>>, IValueQuery<TOut>
 {

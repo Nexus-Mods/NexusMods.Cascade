@@ -2,9 +2,8 @@
 using System.Collections.Immutable;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.ValueTypes;
 
-namespace NexusMods.Cascade.Implementation;
+namespace NexusMods.Cascade.Implementation.Omega;
 
 public class ValueInlet<T> : IValueQuery<T>
 {

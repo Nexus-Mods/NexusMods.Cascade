@@ -1,4 +1,4 @@
-﻿namespace NexusMods.Cascade.ValueTypes;
+﻿namespace NexusMods.Cascade.Implementation.Omega;
 
 public readonly struct Value<T>
 {

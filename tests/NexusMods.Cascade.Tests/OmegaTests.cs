@@ -1,10 +1,10 @@
 ﻿using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Implementation;
-using NexusMods.Cascade.ValueTypes;
+using NexusMods.Cascade.Implementation.Omega;
 
 namespace NexusMods.Cascade.Tests;
 
-public class BasicTests
+public class OmegaTests
 {
     private static ValueInlet<int> IntsA = new();
 
@@ -73,13 +73,11 @@ public class BasicTests
         flow.Set(IntsA, 21);
 
         await Assert.That(flow.Query(Squared)).IsEqualTo(21 * 21);
-
         await Assert.That(flow.Query(GreaterThan10)).IsEqualTo(21);
 
         flow.Set(IntsA, 2);
 
         await Assert.That(flow.Query(Squared)).IsEqualTo(2 * 2);
-
         await Assert.That(flow.Query(GreaterThan10)).IsEqualTo(21);
     }
 }

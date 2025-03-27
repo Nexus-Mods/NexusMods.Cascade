@@ -1,11 +1,10 @@
 ﻿using System;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.ValueTypes;
 
-namespace NexusMods.Cascade.Implementation;
+namespace NexusMods.Cascade.Implementation.Omega;
 
-public class ValueOutlet<T>(IStageDefinition<Value<T>> upstream) : IStageDefinition<T>
+public sealed class ValueOutlet<T>(IStageDefinition<Value<T>> upstream) : IStageDefinition<T>
 {
     public IStage CreateInstance(IFlow flow)
     {

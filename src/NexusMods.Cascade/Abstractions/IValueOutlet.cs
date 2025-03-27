@@ -1,6 +1,4 @@
-﻿using NexusMods.Cascade.ValueTypes;
-
-namespace NexusMods.Cascade.Abstractions;
+﻿namespace NexusMods.Cascade.Abstractions;
 
 public interface IValueOutlet<T> : IOutlet
 {
