@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -7,6 +8,21 @@ namespace NexusMods.Cascade.Abstractions;
 /// </summary>
 public interface IStage
 {
+    /// <summary>
+    /// The stages connected to the inputs of this stage
+    /// </summary>
+    public ReadOnlySpan<IStage> Inputs { get; }
+
+    /// <summary>
+    /// The stages connected to the outputs of this stage
+    /// </summary>
+    public ReadOnlySpan<(IStage Stage, int Index)> Outputs { get; }
+
+    /// <summary>
+    /// Connect a stage to the output of this stage and tag it with the given index
+    /// </summary>
+    void ConnectOutput(IStage stage, int index);
+
     /// <summary>
     /// The definition stage this stage is based on.
     /// </summary>

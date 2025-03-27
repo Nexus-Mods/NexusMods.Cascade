@@ -13,11 +13,11 @@ public class OmegaWhere<TIn> : AUnaryStageDefinition<Value<TIn>, Value<TIn>>, IV
         _predicate = predicate;
     }
 
-    protected override IStage CreateInstanceCore(IFlow flow)
-        => new Stage(this, flow);
+    protected override IStage CreateInstanceCore(IStage<Value<TIn>> upstream, IFlow flow)
+        => new Stage(this, upstream, flow);
 
-    protected sealed class Stage(OmegaWhere<TIn> parent, IFlow flow)
-        : Stage<OmegaWhere<TIn>>(parent, flow)
+    protected sealed class Stage(OmegaWhere<TIn> parent, IStage<Value<TIn>> upstream, IFlow flow)
+        : Stage<OmegaWhere<TIn>>(parent, upstream, flow)
     {
         protected override void AcceptChange(Value<TIn> delta)
         {
@@ -25,7 +25,6 @@ public class OmegaWhere<TIn> : AUnaryStageDefinition<Value<TIn>, Value<TIn>>, IV
                 ForwardChange(delta);
         }
 
-        protected override Value<TIn> Initial(Value<TIn> delta)
-            => _definition._predicate(delta.V) ? delta : default;
+        public override Value<TIn> CurrentValue { get; }
     }
 }

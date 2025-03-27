@@ -81,7 +81,5 @@ public class BasicTests
         await Assert.That(flow.Query(Squared)).IsEqualTo(2 * 2);
 
         await Assert.That(flow.Query(GreaterThan10)).IsEqualTo(21);
-
-
     }
 }

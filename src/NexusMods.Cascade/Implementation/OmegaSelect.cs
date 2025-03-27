@@ -4,7 +4,7 @@ using NexusMods.Cascade.ValueTypes;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class OmegaSelect<TIn, TOut> : AUnaryStageDefinition<Value<TIn>, Value<TOut>>, IValueQuery<TOut>
+public sealed class OmegaSelect<TIn, TOut> : AUnaryStageDefinition<Value<TIn>, Value<TOut>>, IValueQuery<TOut>
 {
     private readonly Func<TIn,TOut> _fn;
 
@@ -13,16 +13,15 @@ public class OmegaSelect<TIn, TOut> : AUnaryStageDefinition<Value<TIn>, Value<TO
         _fn = fn;
     }
 
-    protected override IStage CreateInstanceCore(IFlow flow)
-        => new Stage(this, flow);
+    protected override IStage CreateInstanceCore(IStage<Value<TIn>> upstream, IFlow flow)
+        => new Stage(this, upstream, flow);
 
-    protected sealed class Stage(OmegaSelect<TIn, TOut> parent, IFlow flow)
-        : Stage<OmegaSelect<TIn, TOut>>(parent, flow)
+    protected sealed class Stage(OmegaSelect<TIn, TOut> parent, IStage<Value<TIn>> upstream, IFlow flow)
+        : Stage<OmegaSelect<TIn, TOut>>(parent, upstream, flow)
     {
         protected override void AcceptChange(Value<TIn> delta)
             => ForwardChange(new Value<TOut>(_definition._fn(delta.V)));
 
-        protected override Value<TOut> Initial(Value<TIn> delta)
-            => new(_definition._fn(delta.V));
+        public override Value<TOut> CurrentValue => new(_definition._fn(Upstream.CurrentValue.V));
     }
 }

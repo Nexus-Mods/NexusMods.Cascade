@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Implementation;
@@ -8,27 +10,35 @@ public abstract class AUnaryStageDefinition<TIn, TOut>(IStageDefinition<TIn> ups
 {
     public IStage CreateInstance(IFlow flow)
     {
-        var flowCasted = (Flow)flow;
         var upstreamInstance = flow.AddStage(upstream);
-        var instance = CreateInstanceCore(flow);
-        flowCasted.AddStageInstance(this, instance);
-        // Connect the output of the upstream stage to this stage's input
-        flowCasted.Connect(upstreamInstance, instance, 0);
-        return instance;
+        return CreateInstanceCore((IStage<TIn>)upstreamInstance, flow);
     }
 
-    protected abstract IStage CreateInstanceCore(IFlow flow);
-    protected abstract class Stage<TParent> : IStage
-    where TParent : IStageDefinition
+    protected abstract IStage CreateInstanceCore(IStage<TIn> upstream, IFlow flow);
+    protected abstract class Stage<TDefinition> : IStage<TOut>
+    where TDefinition : IStageDefinition
     {
-        protected Stage(TParent parent, IFlow flow)
+        protected readonly IStage<TIn> Upstream;
+        private readonly Ref<ImmutableArray<(IStage Stage, int Index)>> _outputs = new(ImmutableArray<(IStage Stage, int Index)>.Empty);
+
+
+        protected Stage(TDefinition parent, IStage<TIn> upstream, IFlow flow)
         {
+            Upstream = upstream;
             _definition = parent;
             _flow = (Flow)flow;
+            Upstream.ConnectOutput(this, 0);
+            ((Flow)flow).AddStageInstance(parent, this);
         }
 
-        protected readonly TParent _definition;
+        protected readonly TDefinition _definition;
         private Flow _flow;
+
+        public ReadOnlySpan<IStage> Inputs => new([Upstream]);
+        public ReadOnlySpan<(IStage Stage, int Index)> Outputs => _outputs.Value.AsSpan();
+
+        public void ConnectOutput(IStage stage, int index)
+            => _outputs.Value = _outputs.Value.Add((stage, index));
 
         public IStageDefinition Definition => _definition;
 
@@ -44,11 +54,12 @@ public abstract class AUnaryStageDefinition<TIn, TOut>(IStageDefinition<TIn> ups
 
         protected abstract void AcceptChange(TIn delta);
 
-        protected abstract TOut Initial(TIn delta);
-
         protected void ForwardChange(TOut delta)
         {
-            _flow.ForwardChange(this, delta);
+            foreach (var (stage, idx) in _outputs.Value.AsSpan())
+                stage.AcceptChange(idx, delta);
         }
+
+        public abstract TOut CurrentValue { get; }
     }
 }
