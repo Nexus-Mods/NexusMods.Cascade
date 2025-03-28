@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using NexusMods.Cascade.Implementation;
-using NexusMods.Cascade.Implementation.Delta;
 using NexusMods.Cascade.Implementation.Omega;
 
 namespace NexusMods.Cascade.Abstractions;
@@ -23,14 +20,14 @@ public interface IFlow
     /// <summary>
     /// Get the result of a query
     /// </summary>
-    T Query<T>(IQuery<Value<T>> squared);
+    ImmutableDictionary<T, int> QueryAll<T>(IQuery<T> query) where T : notnull;
 
     /// <summary>
     /// Set the value of an inlet to a new value
     /// </summary>
-    void Set<T>(ValueInlet<T> inlet, T newValue);
+    void Set<T>(CollectionInlet<T> collectionInlet, T newValue) where T : notnull;
 
-    void Update<T>(SetInlet<T> setInlet, params T[] valueTuple);
+    void Update<T>(IInlet<T> setInlet, params T[] valueTuple) where T : notnull;
 
-    ImmutableHashSet<T> Query<T>(IDeltaQuery<T> query);
+    IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : notnull;
 }

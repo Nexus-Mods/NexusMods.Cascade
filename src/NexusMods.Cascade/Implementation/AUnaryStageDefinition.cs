@@ -1,40 +1,55 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Implementation;
 
-public abstract class AUnaryStageDefinition<TIn, TOut>(IStageDefinition<TIn> upstream) : IQuery<TOut>
+public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<TIn> upstream) : IQuery<TOut>
+    where TOut : notnull
+    where TState : new()
+    where TIn : notnull
 {
     public IStage CreateInstance(IFlow flow)
     {
         var upstreamInstance = flow.AddStage(upstream);
-        return CreateInstanceCore((IStage<TIn>)upstreamInstance, flow);
+        return new Stage(this, (IStage<TIn>)upstreamInstance, flow, new TState());
     }
 
-    protected abstract IStage CreateInstanceCore(IStage<TIn> upstream, IFlow flow);
-    protected abstract class Stage<TDefinition> : IStage<TOut>
-    where TDefinition : IStageDefinition
+    protected abstract void AcceptChange(TIn input, int delta, ref ChangeSetWriter<TOut> writer, TState state);
+
+    protected class Stage : IStage<TOut>
     {
-        protected readonly IStage<TIn> Upstream;
+        private readonly TState _state;
+        private readonly IStage<TIn> _upstream;
         private readonly Ref<ImmutableArray<(IStage Stage, int Index)>> _outputs = new(ImmutableArray<(IStage Stage, int Index)>.Empty);
 
 
-        protected Stage(TDefinition parent, IStage<TIn> upstream, IFlow flow)
+        internal Stage(AUnaryStageDefinition<TIn, TOut, TState> definition, IStage<TIn> upstream, IFlow flow, TState state)
         {
-            Upstream = upstream;
-            _definition = parent;
+            _state = state;
+            _upstream = upstream;
             _flow = (Flow)flow;
-            Upstream.ConnectOutput(this, 0);
-            ((Flow)flow).AddStageInstance(parent, this);
+            _upstream.ConnectOutput(this, 0);
+            _definition = definition;
+            ((Flow)flow).AddStageInstance(definition, this);
         }
 
-        protected readonly TDefinition _definition;
         private Flow _flow;
+        private readonly AUnaryStageDefinition<TIn, TOut, TState> _definition;
 
-        public ReadOnlySpan<IStage> Inputs => new([Upstream]);
+        public void WriteCurrentValues(ref ChangeSetWriter<TOut> writer)
+        {
+            var upstream = ChangeSetWriter<TIn>.Create();
+            _upstream.WriteCurrentValues(ref upstream);
+            foreach (var (value, delta) in upstream.AsSpan())
+                _definition.AcceptChange(value, delta, ref writer, _state);
+            upstream.Dispose();
+        }
+
+        public ReadOnlySpan<IStage> Inputs => new([_upstream]);
         public ReadOnlySpan<(IStage Stage, int Index)> Outputs => _outputs.Value.AsSpan();
 
         public void ConnectOutput(IStage stage, int index)
@@ -45,21 +60,24 @@ public abstract class AUnaryStageDefinition<TIn, TOut>(IStageDefinition<TIn> ups
         public IFlow Flow => _flow;
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public void AcceptChange<TDelta>(int inputIndex, TDelta delta)
+        public void AcceptChange<TDelta>(int inputIndex, in ChangeSet<TDelta> delta) where TDelta : notnull
         {
-            if (inputIndex != 0)
-                throw new InvalidOperationException("Unary stage can only have one input.");
-            AcceptChange((TIn)(object)delta!);
+            Debug.Assert(inputIndex == 0);
+            var writer = new ChangeSetWriter<TOut>();
+            foreach (var (change, deltaValue) in delta.Changes)
+            {
+                var casted = (TIn)(object)change;
+                _definition.AcceptChange(casted, deltaValue, ref writer, _state);
+            }
+
+            var outputChangeSet = writer.ToChangeSet();
+            foreach (var (stage, port) in _outputs.Value.AsSpan())
+            {
+                stage.AcceptChange(port, outputChangeSet);
+            }
+            writer.Dispose();
         }
 
-        protected abstract void AcceptChange(TIn delta);
-
-        protected void ForwardChange(TOut delta)
-        {
-            foreach (var (stage, idx) in _outputs.Value.AsSpan())
-                stage.AcceptChange(idx, delta);
-        }
-
-        public abstract TOut CurrentValue { get; }
+        public TOut CurrentValue => throw new NotImplementedException();
     }
 }

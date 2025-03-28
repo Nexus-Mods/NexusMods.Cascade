@@ -1,9 +1,11 @@
-﻿namespace NexusMods.Cascade.Abstractions;
+﻿using System.Collections.Immutable;
 
-public interface IValueOutlet<T> : IOutlet
+namespace NexusMods.Cascade.Abstractions;
+
+public interface ICollectionOutlet<T> : IOutlet where T : notnull
 {
     /// <summary>
     /// The value of the outlet.
     /// </summary>
-    public T Value { get; }
+    public ImmutableDictionary<T, int> Values { get; }
 }

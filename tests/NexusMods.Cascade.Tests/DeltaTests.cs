@@ -1,14 +1,15 @@
 ﻿using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.Implementation.Delta;
+using NexusMods.Cascade.Implementation.Omega;
+using TUnit.Assertions.Enums;
 
 namespace NexusMods.Cascade.Tests;
 
 public class DeltaTests
 {
-    private static readonly SetInlet<(string Name, int Age)> SetInlet = new();
+    private static readonly CollectionInlet<(string Name, int Age)> NamesAndAges = new();
 
-    private static readonly IDeltaQuery<(string Name, bool IsAdult)> Query =
-        from person in SetInlet
+    private static readonly IQuery<(string Name, bool IsAdult)> IsAdult =
+        from person in NamesAndAges
         select (person.Name, person.Age >= 18);
 
     [Test]
@@ -16,12 +17,21 @@ public class DeltaTests
     {
         var flow = IFlow.Create();
 
-        flow.AddStage(SetInlet);
-        flow.Update(SetInlet, ("Alice", 17), ("Bob", 18), ("Rebecca", 19));
+        var instance = flow.Get(NamesAndAges);
 
-        var results = flow.Query(Query);
-        await Assert.That(results.Count).IsEqualTo(1);
-        await Assert.That(results).IsEquivalentTo([("Alice", false)]);
+        instance.Add(("Alice", 17));
+
+        var isAdult = flow.QueryAll(IsAdult);
+
+        await Assert.That(isAdult.Keys.ToArray()).IsEquivalentTo([("Alice", false)]);
+
+        instance.Add(("Bob", 18));
+
+        isAdult = flow.QueryAll(IsAdult);
+
+        await Assert.That(isAdult.Keys.ToArray()).IsEquivalentTo([("Alice", false), ("Bob", true)], CollectionOrdering.Any);
     }
 
+
 }
+

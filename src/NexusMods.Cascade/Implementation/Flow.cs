@@ -2,7 +2,6 @@
 using System.Collections.Immutable;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.Implementation.Delta;
 using NexusMods.Cascade.Implementation.Omega;
 
 namespace NexusMods.Cascade.Implementation;
@@ -23,59 +22,45 @@ internal sealed class Flow : IFlow
         });
     }
 
-    private IValueOutlet<T> GetOutlet<T>(IQuery<Value<T>> query)
-    {
-        var stage = AddStage(query);
-        if (_outlets.Value.TryGetValue(stage, out var outlet))
-            return (IValueOutlet<T>)outlet;
-
-        var definition = new ValueOutlet<T>(query);
-        var instance = (IValueOutlet<T>)definition.CreateInstance(this);
-        _outlets.Value = _outlets.Value.Add(stage, instance);
-        return instance;
-    }
-
-    private ISetOutlet<T> GetOutlet<T>(IQuery<ChangeSet<T>> query)
-    {
-        var stage = AddStage(query);
-        if (_outlets.Value.TryGetValue(stage, out var outlet))
-            return (ISetOutlet<T>)outlet;
-
-        var definition = new SetOutlet<T>(query);
-        var instance = (ISetOutlet<T>)definition.CreateInstance(this);
-        _outlets.Value = _outlets.Value.Add(stage, instance);
-        return instance;
-    }
-
-    public T Query<T>(IQuery<Value<T>> query)
+    public ImmutableDictionary<T, int> QueryAll<T>(IQuery<T> query) where T : notnull
     {
         return LockingTransaction.RunInTransaction(() =>
         {
             var outlet = GetOutlet(query);
-            return outlet.Value;
+            return outlet.Values;
         });
     }
 
-    public ImmutableHashSet<T> Query<T>(IDeltaQuery<T> query)
+    public void Set<T>(CollectionInlet<T> collectionInlet, T newValue) where T : notnull
     {
-        return LockingTransaction.RunInTransaction(() =>
-        {
-            var outlet = GetOutlet(query);
-            return outlet.Value;
-        });
+        throw new NotImplementedException();
     }
 
-    public void Set<T>(ValueInlet<T> inlet, T newValue)
+    public void Update<T>(IInlet<T> setInlet, params T[] valueTuple) where T : notnull
     {
-        LockingTransaction.RunInTransaction(() =>
-        {
-            var stage = AddStage(inlet);
-            ((IInlet<Value<T>>)stage).Push(new Value<T>(newValue));
-            return 0;
-        });
+        throw new NotImplementedException();
     }
 
-    public void Update<T>(SetInlet<T> setInlet, params T[] valueTuple)
+    public IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : notnull
+    {
+        var inletStage = AddStage(inlet);
+        return (IInlet<T>)inletStage;
+    }
+
+    private ICollectionOutlet<T> GetOutlet<T>(IQuery<T> query) where T : notnull
+    {
+        var stage = AddStage(query);
+        if (_outlets.Value.TryGetValue(stage, out var outlet))
+            return (ICollectionOutlet<T>)outlet;
+
+        var definition = new CollectionOutlet<T>(query);
+        var instance = (ICollectionOutlet<T>)definition.CreateInstance(this);
+        _outlets.Value = _outlets.Value.Add(stage, instance);
+        return instance;
+    }
+
+/*
+    public void Update<T>(Inlet<T> setInlet, params T[] valueTuple)
     {
         LockingTransaction.RunInTransaction(() =>
         {
@@ -84,7 +69,7 @@ internal sealed class Flow : IFlow
             return 0;
         });
     }
-
+*/
 
 
     internal void AddStageInstance(IStageDefinition definition, IStage stage)

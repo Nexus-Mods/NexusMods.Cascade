@@ -1,8 +1,6 @@
-﻿using NexusMods.Cascade.Implementation.Omega;
+﻿namespace NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade.Abstractions;
-
-public interface IValueQuery<T> : IQuery<Value<T>>
+public interface IValueQuery<T> : IQuery<T>
 {
 
 }

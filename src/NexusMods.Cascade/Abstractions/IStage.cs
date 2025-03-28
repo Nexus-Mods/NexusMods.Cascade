@@ -36,11 +36,11 @@ public interface IStage
     /// <summary>
     /// Accept a change from the input index
     /// </summary>
-    public void AcceptChange<TDelta>(int inputIndex, TDelta delta);
+    public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
 }
 
 
-public interface IStage<out T> : IStage
+public interface IStage<T> : IStage where T : notnull
 {
-    public T CurrentValue { get; }
+    public void WriteCurrentValues(ref ChangeSetWriter<T> writer);
 }

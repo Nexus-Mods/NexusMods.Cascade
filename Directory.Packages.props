@@ -9,6 +9,7 @@
     <PackageVersion Include="NexusMods.MnemonicDB.Abstractions" Version="0.9.98" />
     <PackageVersion Include="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
     <PackageVersion Include="NexusMods.Paths" Version="0.15.0" />
+    <PackageVersion Include="Reloaded.Memory" Version="9.4.2" />
     <PackageVersion Include="TransparentValueObjects" Version="1.0.2" />
     <PackageVersion Include="TUnit" Version="0.6.59" />
   </ItemGroup>
