@@ -1,5 +1,6 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Implementation;
 
 namespace NexusMods.Cascade;
 
@@ -26,5 +27,16 @@ public static class QueryExtensions
         {
             if (predicate(value)) writer.Write(value, delta);
         }
+    }
+
+    public static IQuery<TResult> Join<TLeft, TRight, TKey, TResult>(this IQuery<TLeft> left, IQuery<TRight> right,
+        Func<TLeft, TKey> leftSelector, Func<TRight, TKey> rightSelector, Func<TLeft, TRight, TResult> resultSelector)
+        where TLeft : notnull
+        where TRight : notnull
+        where TResult : notnull
+        where TKey : notnull
+    {
+        return new InnerJoin<TLeft,TRight,TKey, TResult>(left, right, leftSelector, rightSelector, resultSelector);
+
     }
 }

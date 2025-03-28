@@ -13,4 +13,9 @@ public interface IInlet<T> where T : notnull
     /// Add the values to the inlet.
     /// </summary>
     void Add(params T[] values);
+
+    /// <summary>
+    /// Remove the values from the inlet.
+    /// </summary>
+    void Remove(params T[] values);
 }

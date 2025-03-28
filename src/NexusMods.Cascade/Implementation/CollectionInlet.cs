@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade.Implementation.Omega;
+namespace NexusMods.Cascade.Implementation;
 
 public class CollectionInlet<T> : IValueQuery<T> where T : notnull
 {
@@ -56,6 +56,33 @@ public class CollectionInlet<T> : IValueQuery<T> where T : notnull
             {
                 var writer = new ChangeSetWriter<T>();
                 writer.Add(1, values.AsSpan());
+
+                var builder = _state.Value.ToBuilder();
+                foreach (var change in writer.AsSpan())
+                {
+                    if (builder.TryGetValue(change.Value, out var count))
+                    {
+                        var newDelta = count + change.Delta;
+                        if (newDelta == 0)
+                            builder.Remove(change.Value);
+                        else
+                            builder[change.Value] = newDelta;
+                    }
+                    else
+                        builder[change.Value] = change.Delta;
+                }
+                _state.Value = builder.ToImmutable();
+                writer.ForwardAll(_outputs.Value.AsSpan());
+                return 0;
+            });
+        }
+
+        public void Remove(params T[] values)
+        {
+            LockingTransaction.RunInTransaction(() =>
+            {
+                var writer = new ChangeSetWriter<T>();
+                writer.Add(-1, values.AsSpan());
 
                 var builder = _state.Value.ToBuilder();
                 foreach (var change in writer.AsSpan())

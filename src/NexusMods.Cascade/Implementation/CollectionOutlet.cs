@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
-namespace NexusMods.Cascade.Implementation.Omega;
+namespace NexusMods.Cascade.Implementation;
 
 public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull
 {

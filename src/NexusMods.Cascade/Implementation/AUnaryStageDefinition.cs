@@ -20,27 +20,19 @@ public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<
 
     protected abstract void AcceptChange(TIn input, int delta, ref ChangeSetWriter<TOut> writer, TState state);
 
-    protected class Stage : IStage<TOut>
+    protected class Stage : AStage<TOut, AUnaryStageDefinition<TIn, TOut, TState>>
     {
         private readonly TState _state;
         private readonly IStage<TIn> _upstream;
-        private readonly Ref<ImmutableArray<(IStage Stage, int Index)>> _outputs = new(ImmutableArray<(IStage Stage, int Index)>.Empty);
 
-
-        internal Stage(AUnaryStageDefinition<TIn, TOut, TState> definition, IStage<TIn> upstream, IFlow flow, TState state)
+        internal Stage(AUnaryStageDefinition<TIn, TOut, TState> definition, IStage<TIn> upstream, IFlow flow, TState state) : base(definition, flow)
         {
             _state = state;
             _upstream = upstream;
-            _flow = (Flow)flow;
             _upstream.ConnectOutput(this, 0);
-            _definition = definition;
-            ((Flow)flow).AddStageInstance(definition, this);
         }
 
-        private Flow _flow;
-        private readonly AUnaryStageDefinition<TIn, TOut, TState> _definition;
-
-        public void WriteCurrentValues(ref ChangeSetWriter<TOut> writer)
+        public override void WriteCurrentValues(ref ChangeSetWriter<TOut> writer)
         {
             var upstream = ChangeSetWriter<TIn>.Create();
             _upstream.WriteCurrentValues(ref upstream);
@@ -49,18 +41,10 @@ public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<
             upstream.Dispose();
         }
 
-        public ReadOnlySpan<IStage> Inputs => new([_upstream]);
-        public ReadOnlySpan<(IStage Stage, int Index)> Outputs => _outputs.Value.AsSpan();
-
-        public void ConnectOutput(IStage stage, int index)
-            => _outputs.Value = _outputs.Value.Add((stage, index));
-
-        public IStageDefinition Definition => _definition;
-
-        public IFlow Flow => _flow;
+        public override ReadOnlySpan<IStage> Inputs => new([_upstream]);
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public void AcceptChange<TDelta>(int inputIndex, in ChangeSet<TDelta> delta) where TDelta : notnull
+        public override void AcceptChange<TDelta>(int inputIndex, in ChangeSet<TDelta> delta)
         {
             Debug.Assert(inputIndex == 0);
             var writer = new ChangeSetWriter<TOut>();
@@ -77,7 +61,5 @@ public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<
             }
             writer.Dispose();
         }
-
-        public TOut CurrentValue => throw new NotImplementedException();
     }
 }
