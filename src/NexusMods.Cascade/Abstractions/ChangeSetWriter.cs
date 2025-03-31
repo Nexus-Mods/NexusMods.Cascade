@@ -1,62 +1,31 @@
 ﻿using System;
-using System.Buffers;
+using System.Collections.Generic;
 using System.Collections.Immutable;
-using JetBrains.Annotations;
-using Reloaded.Memory.Extensions;
+using System.Runtime.InteropServices;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public ref struct ChangeSetWriter<T> : IDisposable where T : notnull
+public ref struct ChangeSetWriter<T> where T : notnull
 {
-    private const int InitialSize = 16;
+    private readonly List<Change<T>> _list;
 
-    [MustDisposeResource]
     public static ChangeSetWriter<T> Create() => new();
 
     public ChangeSetWriter()
     {
-        _overflowBuffer = MemoryPool<Change<T>>.Shared.Rent(InitialSize);
-        _bufferSpan = _overflowBuffer.Memory.Span;
-        _count = 0;
+        _list = [];
     }
 
-    private Span<Change<T>> _bufferSpan;
-    private IMemoryOwner<Change<T>>? _overflowBuffer = null;
-
-    private int _count;
-
-    public void Write(in T Value, int delta)
+    public void Write(in T value, int delta)
     {
-        if (_count >= _bufferSpan.Length)
-        {
-            if (_overflowBuffer == null)
-            {
-                _overflowBuffer = MemoryPool<Change<T>>.Shared.Rent(_bufferSpan.Length * 2);
-                _bufferSpan.CopyTo(_overflowBuffer.Memory.Span);
-                _bufferSpan = _overflowBuffer.Memory.Span;
-            }
-            else
-            {
-                var oldBuffer = _overflowBuffer;
-                _overflowBuffer = MemoryPool<Change<T>>.Shared.Rent(oldBuffer.Memory.Length * 2);
-                _bufferSpan.CopyTo(_overflowBuffer.Memory.Span);
-                _bufferSpan = _overflowBuffer.Memory.Span;
-                oldBuffer.Dispose();
-            }
-        }
-        _bufferSpan[_count++] = new Change<T>(Value, delta);
+        _list.Add(new Change<T>(value, delta));
     }
 
-    public void ForwardAll(ReadOnlySpan<(IStage Stage, int Port)> receivers)
+    public void ForwardAll(IStage<T> receivers)
     {
-        var changeSet = new ChangeSet<T>(_bufferSpan.SliceFast(0, _count));
-        foreach (var (stage, port) in receivers)
+        var changeSet = new ChangeSet<T>(CollectionsMarshal.AsSpan(_list));
+        foreach (var (stage, port) in receivers.Outputs)
             stage.AcceptChange(port, changeSet);
-    }
-
-    public void Dispose()
-    {
-        _overflowBuffer?.Dispose();
     }
 
     public void Add(int delta, ReadOnlySpan<T> values)
@@ -67,7 +36,7 @@ public ref struct ChangeSetWriter<T> : IDisposable where T : notnull
 
     public ReadOnlySpan<Change<T>> AsSpan()
     {
-        return _bufferSpan.SliceFast(0, _count);
+        return CollectionsMarshal.AsSpan(_list);
     }
 
     public void Add(ImmutableDictionary<T,int> stateValue)
@@ -76,9 +45,14 @@ public ref struct ChangeSetWriter<T> : IDisposable where T : notnull
             Write(key, value);
     }
 
+    public void Add(T value, int delta)
+    {
+        Write(value, delta);
+    }
+
     public ImmutableDictionary<T,int> ToImmutableDictionary()
     {
-        if (_count == 0)
+        if (_list.Count == 0)
             return ImmutableDictionary<T, int>.Empty;
 
         var builder = ImmutableDictionary.CreateBuilder<T, int>();

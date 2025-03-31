@@ -23,6 +23,11 @@ public interface IFlow
     ImmutableDictionary<T, int> QueryAll<T>(IQuery<T> query) where T : notnull;
 
     /// <summary>
+    /// Get the result of a query
+    /// </summary>
+    T QueryOne<T>(IQuery<T> query) where T : notnull;
+
+    /// <summary>
     /// Set the value of an inlet to a new value
     /// </summary>
     void Set<T>(CollectionInlet<T> collectionInlet, T newValue) where T : notnull;
@@ -30,4 +35,7 @@ public interface IFlow
     void Update<T>(IInlet<T> setInlet, params T[] valueTuple) where T : notnull;
 
     IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : notnull;
+
+
+    IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : notnull;
 }

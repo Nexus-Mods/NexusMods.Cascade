@@ -5,22 +5,22 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Implementation;
 
-public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull
+public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull
 {
     public IStage CreateInstance(IFlow flow)
     {
         var upstreamInstance = flow.AddStage(upstream);
-        return new Stage(this, (IStage<T>)upstreamInstance, (Flow)flow);
+        return new ValueOutletStage(this, (IStage<T>)upstreamInstance, (Flow)flow);
     }
 
-    private sealed class Stage : ICollectionOutlet<T>
+    private sealed class ValueOutletStage : IValueOutlet<T>
     {
-        private readonly Ref<ImmutableDictionary<T, int>> _values;
-        private readonly CollectionOutlet<T> _definition;
+        private readonly Ref<T> _value;
+        private readonly ValueOutlet<T> _definition;
         private readonly IStage<T> _upstream;
         private readonly Flow _flow;
 
-        public Stage(CollectionOutlet<T> definition, IStage<T> upstream, Flow flow)
+        public ValueOutletStage(ValueOutlet<T> definition, IStage<T> upstream, Flow flow)
         {
             flow.AddStageInstance(definition, this);
             _definition = definition;
@@ -29,10 +29,12 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
             upstream.ConnectOutput(this, 0);
             var writer = ChangeSetWriter<T>.Create();
             upstream.WriteCurrentValues(ref writer);
-            _values = new Ref<ImmutableDictionary<T, int>>(writer.ToImmutableDictionary());
+            var changes = writer.ToChangeSet().Changes;
+            _value = changes.Length > 0 ? new Ref<T>(changes[0].Value) : new Ref<T>();
         }
 
-        public ImmutableDictionary<T, int> Values => _values.Value;
+        public void WriteCurrentValues(ref ChangeSetWriter<T> writer)
+            => writer.Add(_value.Value, 1);
 
         public ReadOnlySpan<IStage> Inputs => new([_upstream]);
         public ReadOnlySpan<(IStage Stage, int Index)> Outputs => ReadOnlySpan<(IStage Stage, int Index)>.Empty;
@@ -47,34 +49,21 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
         public IFlow Flow => _flow;
         public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : notnull
         {
-            var builder = _values.Value.ToBuilder();
-
-            foreach (var (change, delta) in changes.Changes)
+            foreach (var (value, delta) in changes.Changes)
             {
-                var casted = (T)(object)change;
-                if (builder.TryGetValue(casted, out var value))
-                {
-                    if (value + delta == 0)
-                    {
-                        builder.Remove(casted);
-                    }
-                    else
-                    {
-                        builder[casted] = value + delta;
-                    }
-                }
-                else
-                {
-                    builder[casted] = delta;
-                }
-            }
+                if (delta < 0)
+                    continue;
 
-            _values.Value = builder.ToImmutable();
+                var casted = (T)(object)value;
+                _value.Value = casted;
+            }
         }
 
         public void Complete(int inputIndex)
         {
             // This is a no-op for CollectionOutlet
         }
+
+        public T Value => _value.Value;
     }
 }

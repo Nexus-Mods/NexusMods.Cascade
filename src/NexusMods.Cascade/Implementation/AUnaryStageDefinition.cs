@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Implementation;
@@ -38,7 +36,6 @@ public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<
             _upstream.WriteCurrentValues(ref upstream);
             foreach (var (value, delta) in upstream.AsSpan())
                 _definition.AcceptChange(value, delta, ref writer, _state);
-            upstream.Dispose();
         }
 
         public override ReadOnlySpan<IStage> Inputs => new([_upstream]);
@@ -59,7 +56,6 @@ public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<
             {
                 stage.AcceptChange(port, outputChangeSet);
             }
-            writer.Dispose();
         }
     }
 }

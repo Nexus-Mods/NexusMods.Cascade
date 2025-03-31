@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
@@ -42,4 +43,12 @@ public abstract class AStage<TResult, TDefinition> : IStage<TResult>
 
     public ReadOnlySpan<(IStage Stage, int Index)> Outputs => _outputs.Value.AsSpan();
     public abstract void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
+    public void Complete(int inputIndex)
+    {
+        Debug.Assert(inputIndex == 0);
+        foreach (var (stage, index) in _outputs.Value.AsSpan())
+        {
+            stage.Complete(index);
+        }
+    }
 }

@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class CollectionInlet<T> : IValueQuery<T> where T : notnull
+public class CollectionInlet<T> : IQuery<T> where T : notnull
 {
     public IStage CreateInstance(IFlow flow)
     {
@@ -37,6 +38,15 @@ public class CollectionInlet<T> : IValueQuery<T> where T : notnull
         public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> delta) where T1 : notnull
         {
             throw new NotImplementedException();
+        }
+
+        public void Complete(int inputIndex)
+        {
+            Debug.Assert(inputIndex == 0);
+            foreach (var (stage, index) in _outputs.Value.AsSpan())
+            {
+                stage.Complete(index);
+            }
         }
 
         public void AcceptChange<TDelta>(int inputIndex, TDelta delta)
@@ -72,7 +82,7 @@ public class CollectionInlet<T> : IValueQuery<T> where T : notnull
                         builder[change.Value] = change.Delta;
                 }
                 _state.Value = builder.ToImmutable();
-                writer.ForwardAll(_outputs.Value.AsSpan());
+                writer.ForwardAll(this);
                 return 0;
             });
         }
@@ -99,7 +109,7 @@ public class CollectionInlet<T> : IValueQuery<T> where T : notnull
                         builder[change.Value] = change.Delta;
                 }
                 _state.Value = builder.ToImmutable();
-                writer.ForwardAll(_outputs.Value.AsSpan());
+                writer.ForwardAll(this);
                 return 0;
             });
         }

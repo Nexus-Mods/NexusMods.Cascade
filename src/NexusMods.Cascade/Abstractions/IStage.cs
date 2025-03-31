@@ -34,9 +34,16 @@ public interface IStage
     public IFlow Flow { get; }
 
     /// <summary>
-    /// Accept a change from the input index
+    /// Accept a change from the input stage at the given index.
     /// </summary>
     public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
+
+    /// <summary>
+    /// Mark the given input index as complete. This will cause the stage to stop accepting changes from this input. Depending
+    /// on the logic of the stage, this may also cause the stage to stop accepting changes from all inputs and to shutdown.
+    /// </summary>
+    /// <param name="inputIndex"></param>
+    public void Complete(int inputIndex);
 }
 
 

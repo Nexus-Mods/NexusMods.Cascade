@@ -1,5 +1,4 @@
 ﻿using System;
-using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Implementation;
@@ -80,8 +79,7 @@ public abstract class AJoinStageDefinition<TLeft, TRight, TResult, TState>(IStag
                 }
             }
 
-            writer.ForwardAll(_outputs.Value.AsSpan());
-            writer.Dispose();
+            writer.ForwardAll(this);
         }
     }
 }

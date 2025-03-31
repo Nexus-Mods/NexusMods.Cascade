@@ -1,6 +1,16 @@
-﻿namespace NexusMods.Cascade.Collections;
+﻿using System;
+using NexusMods.Cascade.Abstractions;
 
-public class ChangeSet
+namespace NexusMods.Cascade.Collections;
+
+public readonly ref struct ChangeSet<T> where T : IComparable<T>
 {
-    
+    private readonly ReadOnlySpan<Change<T>> _changes;
+
+    public ChangeSet(ReadOnlySpan<Change<T>> changes)
+    {
+        _changes = changes;
+    }
+
+    public ReadOnlySpan<Change<T>> Changes => _changes;
 }

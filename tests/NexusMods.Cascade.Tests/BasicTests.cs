@@ -75,11 +75,35 @@ public class BasicTests
         result = flow.QueryAll(NamesAgesScores);
 
         await Assert.That(result.Keys).IsEquivalentTo([("Bob", 18, 100)], CollectionOrdering.Any);
-
-
     }
 
+    private static readonly ValueInlet<int> Counter = new();
+
+    private static readonly IQuery<int> CounterSquared =
+        from count in Counter
+        select count * count;
 
 
+    [Test]
+    public async Task CanSelectValueFromValueInlet()
+    {
+        var flow = IFlow.Create();
+
+        var counter = flow.Get(Counter);
+
+        counter.Value = 2;
+
+        var result = flow.QueryOne(CounterSquared);
+
+        await Assert.That(result).IsEqualTo(4);
+
+        counter.Value = 3;
+        result = flow.QueryOne(CounterSquared);
+        await Assert.That(result).IsEqualTo(9);
+
+        counter.Value = 0;
+        result = flow.QueryOne(CounterSquared);
+        await Assert.That(result).IsEqualTo(0);
+    }
 }
 
