@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using Clarp;
 using Clarp.Concurrency;
+using Clarp.Utils;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Collections;
 
@@ -34,12 +36,12 @@ public class CollectionInlet<T> : IQuery<T> where T : IComparable<T>
             => _outputs.Value = _outputs.Value.Add((stage, index));
 
         public IStageDefinition Definition => definition;
-        private readonly Ref<ImmutableDictionary<T, int>> _state = new(ImmutableDictionary<T, int>.Empty);
+        private readonly Ref<ResultSet<T>> _state = new(new ResultSet<T>());
 
         public IFlow Flow => flow;
         public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> delta) where T1 : IComparable<T1>
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public void Complete(int inputIndex)
@@ -51,69 +53,19 @@ public class CollectionInlet<T> : IQuery<T> where T : IComparable<T>
             }
         }
 
-        public void AcceptChange<TDelta>(int inputIndex, TDelta delta)
+        public void AddChanges(ReadOnlySpan<T> values, int delta)
         {
-            throw new InvalidOperationException("ValueInlet does not accept changes.");
-        }
-
-        public T CurrentValue => throw new NotImplementedException();
-        public void Push(in ChangeSet<T> value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Add(params T[] values)
-        {
-            Runtime.DoSync(() =>
+            Runtime.DoSync(static state =>
             {
+                var (selfAndDelta, values) = state;
+                var (self, delta) = selfAndDelta;
+
                 var writer = new ChangeSetWriter<T>();
-                writer.Add(1, values.AsSpan());
-
-                var builder = _state.Value.ToBuilder();
-                foreach (var change in writer.AsSpan())
-                {
-                    if (builder.TryGetValue(change.Value, out var count))
-                    {
-                        var newDelta = count + change.Delta;
-                        if (newDelta == 0)
-                            builder.Remove(change.Value);
-                        else
-                            builder[change.Value] = newDelta;
-                    }
-                    else
-                        builder[change.Value] = change.Delta;
-                }
-                _state.Value = builder.ToImmutable();
-                writer.ForwardAll(this);
+                writer.Add(delta, values);
+                self._state.Value = self._state.Value.Merge(writer.ToChangeSet());
+                writer.ForwardAll(self);
                 return 0;
-            });
-        }
-
-        public void Remove(params T[] values)
-        {
-            Runtime.DoSync(() =>
-            {
-                var writer = new ChangeSetWriter<T>();
-                writer.Add(-1, values.AsSpan());
-
-                var builder = _state.Value.ToBuilder();
-                foreach (var change in writer.AsSpan())
-                {
-                    if (builder.TryGetValue(change.Value, out var count))
-                    {
-                        var newDelta = count + change.Delta;
-                        if (newDelta == 0)
-                            builder.Remove(change.Value);
-                        else
-                            builder[change.Value] = newDelta;
-                    }
-                    else
-                        builder[change.Value] = change.Delta;
-                }
-                _state.Value = builder.ToImmutable();
-                writer.ForwardAll(this);
-                return 0;
-            });
+            }, RefTuple.Create((this, delta), values));
         }
     }
 }

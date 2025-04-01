@@ -20,6 +20,11 @@ public readonly struct ResultSet<T> : IReadOnlyCollection<T>
         _values = values;
     }
 
+    public ResultSet()
+    {
+        _values = ImmutableDictionary<T, int>.Empty;
+    }
+
     public ResultSet(ReadOnlySpan<Change<T>> initialSet)
     {
         var builder = ImmutableDictionary.CreateBuilder<T, int>();
@@ -83,6 +88,25 @@ public readonly struct ResultSet<T> : IReadOnlyCollection<T>
         return new ResultSet<T>(builder.ToImmutable());
     }
 
+    public ResultSet<T> Merge<TIn>(ReadOnlySpan<TIn> values, int delta)
+    {
+        var builder = _values.ToBuilder();
+        foreach (var value in values)
+        {
+            if (builder.TryGetValue((T)(object)value!, out var existingDelta))
+            {
+                if (existingDelta + delta == 0)
+                    builder.Remove((T)(object)value!);
+                else
+                    builder[(T)(object)value!] = existingDelta + delta;
+            }
+            else
+                builder[(T)(object)value!] = delta;
+        }
+
+        return new ResultSet<T>(builder.ToImmutable());
+    }
+
     /// <summary>
     /// Merges the given <see cref="ChangeSet{T}"/> into the current <see cref="ResultSet{T}"/>.
     /// </summary>
@@ -136,4 +160,10 @@ public readonly struct ResultSet<T> : IReadOnlyCollection<T>
     /// The count of distinct values in the set.
     /// </summary>
     public int CountDistinct => _values.Count;
+
+    /// <summary>
+    /// Get the result set as a list of changes.
+    /// </summary>
+    public IEnumerable<Change<T>> Changes => _values
+        .Select(kvp => new Change<T>(kvp.Key, kvp.Value));
 }
