@@ -132,5 +132,32 @@ public class BasicTests
         await flow.FlushAsync();
         await Assert.That(resultList).IsEquivalentTo([0, 4, 9, 0]);
     }
+
+    [Test]
+    public async Task CanObserveCollectionResults()
+    {
+        var flow = IFlow.Create();
+
+        var agesInlet = flow.Get(NamesAndAges);
+
+        var result = flow.ObserveAll(IsAdult);
+
+        await Assert.That(result).IsEmpty();
+
+        agesInlet.Add(("Alice", 17));
+
+        await flow.FlushAsync();
+        await Assert.That(result).IsEquivalentTo([("Alice", false)]);
+
+        agesInlet.Add(("Bob", 18));
+
+        await flow.FlushAsync();
+        await Assert.That(result).IsEquivalentTo([("Alice", false), ("Bob", true)], CollectionOrdering.Any);
+
+        agesInlet.Remove(("Alice", 17));
+
+        await flow.FlushAsync();
+        await Assert.That(result).IsEquivalentTo([("Bob", true)], CollectionOrdering.Any);
+    }
 }
 

@@ -7,6 +7,7 @@ using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Implementation.Omega;
+using ObservableCollections;
 using R3;
 
 namespace NexusMods.Cascade.Implementation;
@@ -64,6 +65,16 @@ internal sealed class Flow : IFlow
         {
             var (query, flow) = input;
             var outlet = flow.GetValueOutlet(query);
+            return outlet.Observable;
+        }, (query, this));
+    }
+
+    public ObservableList<T> ObserveAll<T>(IQuery<T> query) where T : IComparable<T>
+    {
+        return Runtime.DoSync(static input =>
+        {
+            var (query, flow) = input;
+            var outlet = flow.GetCollectionOutlet(query);
             return outlet.Observable;
         }, (query, this));
     }

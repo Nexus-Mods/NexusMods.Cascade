@@ -45,6 +45,7 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
         #region Cascade Code
 
         public ResultSet<T> Values => _values.Value;
+        public ObservableList<T> Observable => _observableList;
 
         public ReadOnlySpan<IStage> Inputs => new([_upstream]);
         public ReadOnlySpan<(IStage Stage, int Index)> Outputs => ReadOnlySpan<(IStage Stage, int Index)>.Empty;

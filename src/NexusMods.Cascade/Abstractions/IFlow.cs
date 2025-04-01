@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Implementation;
 using NexusMods.Cascade.Implementation.Omega;
+using ObservableCollections;
 using R3;
 
 namespace NexusMods.Cascade.Abstractions;
@@ -38,6 +39,8 @@ public interface IFlow
     IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : IComparable<T>;
 
     Observable<T> Observe<T>(IQuery<T> counterSquared) where T : IComparable<T>;
+
+    ObservableList<T> ObserveAll<T>(IQuery<T> query) where T : IComparable<T>;
 
     void EnqueueEffect<TState>(Action<TState> effect, TState state) where TState : notnull;
 
