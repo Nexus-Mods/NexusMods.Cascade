@@ -40,7 +40,7 @@ public class LowLevelBenchmarks
                 _lastVal++;
                 _inlet.Add(_lastVal);
             }
-            return _outlet.Values.Values.First();
+            return _outlet.Values.First();
         });
     }
 }

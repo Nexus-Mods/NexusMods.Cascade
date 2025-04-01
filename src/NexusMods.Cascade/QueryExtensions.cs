@@ -7,8 +7,8 @@ namespace NexusMods.Cascade;
 public static class QueryExtensions
 {
     public static IQuery<TOut> Select<TIn, TOut>(this IQuery<TIn> query, Func<TIn, TOut> selector)
-        where TOut : notnull
-        where TIn : notnull
+        where TOut : IComparable<TOut>
+        where TIn : IComparable<TIn>
     {
         return StageBuilder.Create<TIn, TOut, Func<TIn, TOut>>(query, SelectImpl, selector);
 
@@ -19,7 +19,7 @@ public static class QueryExtensions
     }
 
 
-    public static IQuery<T> Where<T>(this IQuery<T> query, Func<T, bool> predicate) where T : notnull
+    public static IQuery<T> Where<T>(this IQuery<T> query, Func<T, bool> predicate) where T : IComparable<T>
     {
         return StageBuilder.Create<T, T, Func<T, bool>>(query, WhereImpl, predicate);
 
@@ -31,9 +31,9 @@ public static class QueryExtensions
 
     public static IQuery<TResult> Join<TLeft, TRight, TKey, TResult>(this IQuery<TLeft> left, IQuery<TRight> right,
         Func<TLeft, TKey> leftSelector, Func<TRight, TKey> rightSelector, Func<TLeft, TRight, TResult> resultSelector)
-        where TLeft : notnull
-        where TRight : notnull
-        where TResult : notnull
+        where TLeft : IComparable<TLeft>
+        where TRight : IComparable<TRight>
+        where TResult : IComparable<TResult>
         where TKey : notnull
     {
         return new InnerJoin<TLeft,TRight,TKey, TResult>(left, right, leftSelector, rightSelector, resultSelector);

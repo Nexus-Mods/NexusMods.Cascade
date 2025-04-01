@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Implementation;
 using NexusMods.Cascade.Implementation.Omega;
 using R3;
@@ -24,26 +25,19 @@ public interface IFlow
     /// <summary>
     /// Get the result of a query
     /// </summary>
-    ImmutableDictionary<T, int> QueryAll<T>(IQuery<T> query) where T : notnull;
+    ResultSet<T> QueryAll<T>(IQuery<T> query) where T : IComparable<T>;
 
     /// <summary>
     /// Get the result of a query
     /// </summary>
-    T QueryOne<T>(IQuery<T> query) where T : notnull;
+    T QueryOne<T>(IQuery<T> query) where T : IComparable<T>;
 
-    /// <summary>
-    /// Set the value of an inlet to a new value
-    /// </summary>
-    void Set<T>(CollectionInlet<T> collectionInlet, T newValue) where T : notnull;
-
-    void Update<T>(IInlet<T> setInlet, params T[] valueTuple) where T : notnull;
-
-    IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : notnull;
+    IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : IComparable<T>;
 
 
-    IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : notnull;
+    IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : IComparable<T>;
 
-    Observable<T> Observe<T>(IQuery<T> counterSquared) where T : notnull;
+    Observable<T> Observe<T>(IQuery<T> counterSquared) where T : IComparable<T>;
 
     void EnqueueEffect<TState>(Action<TState> effect, TState state) where TState : notnull;
 

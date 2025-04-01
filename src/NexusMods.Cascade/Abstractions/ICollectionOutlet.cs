@@ -1,11 +1,13 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public interface ICollectionOutlet<T> : IOutlet where T : notnull
+public interface ICollectionOutlet<T> : IOutlet where T : IComparable<T>
 {
     /// <summary>
     /// The value of the outlet.
     /// </summary>
-    public ImmutableDictionary<T, int> Values { get; }
+    public ResultSet<T> Values { get; }
 }

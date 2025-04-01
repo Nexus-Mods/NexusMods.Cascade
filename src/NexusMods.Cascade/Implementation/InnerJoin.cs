@@ -27,9 +27,9 @@ internal sealed class InnerJoin<TLeft, TRight, TKey, TResult>(
     Func<TRight, TKey> rightSelector,
     Func<TLeft, TRight, TResult> resultSelector) :
     AJoinStageDefinition<TLeft, TRight, TResult, JoinState<TLeft, TRight, TKey>>(left, right)
-    where TLeft : notnull
-    where TRight : notnull
-    where TResult : notnull
+    where TLeft : IComparable<TLeft>
+    where TRight : IComparable<TRight>
+    where TResult : IComparable<TResult>
     where TKey : notnull
 {
     protected override void AcceptLeftChange(TLeft input, int delta, ref ChangeSetWriter<TResult> writer, in JoinState<TLeft, TRight, TKey> state)

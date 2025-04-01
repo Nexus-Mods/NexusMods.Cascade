@@ -3,11 +3,12 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 using R3;
 
 namespace NexusMods.Cascade.Implementation;
 
-public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull
+public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : IComparable<T>
 {
     public IStage CreateInstance(IFlow flow)
     {
@@ -50,7 +51,7 @@ public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinit
 
         public IStageDefinition Definition => _definition;
         public IFlow Flow => _flow;
-        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : notnull
+        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : IComparable<T1>
         {
             foreach (var (value, delta) in changes.Changes)
             {

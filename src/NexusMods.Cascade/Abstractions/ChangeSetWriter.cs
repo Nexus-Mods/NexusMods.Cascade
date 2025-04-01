@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public ref struct ChangeSetWriter<T> where T : notnull
+public ref struct ChangeSetWriter<T> where T : notnull, IComparable<T>
 {
     private readonly List<Change<T>> _list;
 
@@ -71,8 +72,34 @@ public ref struct ChangeSetWriter<T> where T : notnull
         return builder.ToImmutable();
     }
 
+    public ImmutableSortedDictionary<T, int> ToImmutableSortedDictionary()
+    {
+        if (_list.Count == 0)
+            return ImmutableSortedDictionary<T, int>.Empty;
+
+        var builder = ImmutableSortedDictionary.CreateBuilder<T, int>();
+        foreach (var (value, delta) in AsSpan())
+        {
+            if (builder.TryGetValue(value, out var current))
+            {
+                if (current + delta == 0)
+                    builder.Remove(value);
+                else
+                    builder[value] = current + delta;
+            }
+            else
+                builder.Add(value, delta);
+        }
+        return builder.ToImmutable();
+    }
+
     public ChangeSet<T> ToChangeSet()
     {
         return new ChangeSet<T>(AsSpan());
+    }
+
+    public ResultSet<T> ToResultSet()
+    {
+        return new ResultSet<T>(AsSpan());
     }
 }

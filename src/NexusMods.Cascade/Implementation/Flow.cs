@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Implementation.Omega;
 using R3;
 
@@ -27,7 +28,7 @@ internal sealed class Flow : IFlow
         });
     }
 
-    public ImmutableDictionary<T, int> QueryAll<T>(IQuery<T> query) where T : notnull
+    public ResultSet<T> QueryAll<T>(IQuery<T> query) where T : IComparable<T>
     {
         return Runtime.DoSync(() =>
         {
@@ -36,7 +37,7 @@ internal sealed class Flow : IFlow
         });
     }
 
-    public T QueryOne<T>(IQuery<T> query) where T : notnull
+    public T QueryOne<T>(IQuery<T> query) where T : IComparable<T>
     {
         return Runtime.DoSync(() =>
         {
@@ -45,29 +46,19 @@ internal sealed class Flow : IFlow
         });
     }
 
-    public void Set<T>(CollectionInlet<T> collectionInlet, T newValue) where T : notnull
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Update<T>(IInlet<T> setInlet, params T[] valueTuple) where T : notnull
-    {
-        throw new NotImplementedException();
-    }
-
-    public IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : notnull
+    public IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : IComparable<T>
     {
         var inletStage = AddStage(inlet);
         return (IInlet<T>)inletStage;
     }
 
-    public IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : notnull
+    public IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : IComparable<T>
     {
         var inletStage = AddStage(inlet);
         return (IValueInlet<T>)inletStage;
     }
 
-    public Observable<T> Observe<T>(IQuery<T> query) where T : notnull
+    public Observable<T> Observe<T>(IQuery<T> query) where T : IComparable<T>
     {
         return Runtime.DoSync(static input =>
         {
@@ -97,7 +88,7 @@ internal sealed class Flow : IFlow
         return tcs.Task;
     }
 
-    private ICollectionOutlet<T> GetCollectionOutlet<T>(IQuery<T> query) where T : notnull
+    private ICollectionOutlet<T> GetCollectionOutlet<T>(IQuery<T> query) where T : IComparable<T>
     {
         var type = typeof(ICollectionOutlet<T>);
         var stage = AddStage(query);
@@ -110,7 +101,7 @@ internal sealed class Flow : IFlow
         return instance;
     }
 
-    private IValueOutlet<T> GetValueOutlet<T>(IQuery<T> query) where T : notnull
+    private IValueOutlet<T> GetValueOutlet<T>(IQuery<T> query) where T : IComparable<T>
     {
         var type = typeof(IValueOutlet<T>);
         var stage = AddStage(query);

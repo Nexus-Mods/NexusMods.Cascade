@@ -5,6 +5,7 @@
     <ItemGroup>
       <PackageReference Include="Clarp" />
       <PackageReference Include="JetBrains.Annotations" />
+      <PackageReference Include="ObservableCollections" />
       <PackageReference Include="R3" />
       <PackageReference Include="Reloaded.Memory" />
     </ItemGroup>

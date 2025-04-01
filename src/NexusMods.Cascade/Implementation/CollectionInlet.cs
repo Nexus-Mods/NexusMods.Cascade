@@ -4,10 +4,11 @@ using System.Diagnostics;
 using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class CollectionInlet<T> : IQuery<T> where T : notnull
+public class CollectionInlet<T> : IQuery<T> where T : IComparable<T>
 {
     public IStage CreateInstance(IFlow flow)
     {
@@ -36,7 +37,7 @@ public class CollectionInlet<T> : IQuery<T> where T : notnull
         private readonly Ref<ImmutableDictionary<T, int>> _state = new(ImmutableDictionary<T, int>.Empty);
 
         public IFlow Flow => flow;
-        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> delta) where T1 : notnull
+        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> delta) where T1 : IComparable<T1>
         {
             throw new NotImplementedException();
         }

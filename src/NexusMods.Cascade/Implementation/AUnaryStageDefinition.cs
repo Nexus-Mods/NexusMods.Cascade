@@ -2,13 +2,14 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
 public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<TIn> upstream) : IQuery<TOut>
-    where TOut : notnull
+    where TOut : IComparable<TOut>
     where TState : new()
-    where TIn : notnull
+    where TIn : IComparable<TIn>
 {
     public IStage CreateInstance(IFlow flow)
     {

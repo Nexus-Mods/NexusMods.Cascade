@@ -1,12 +1,13 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
 public abstract class AJoinStageDefinition<TLeft, TRight, TResult, TState>(IStageDefinition<TLeft> left, IStageDefinition<TRight> right) : IQuery<TResult>
-    where TResult : notnull
-    where TLeft : notnull
-    where TRight : notnull
+    where TResult : IComparable<TResult>
+    where TLeft : IComparable<TLeft>
+    where TRight : IComparable<TRight>
     where TState : new()
 {
     public IStage CreateInstance(IFlow flow)

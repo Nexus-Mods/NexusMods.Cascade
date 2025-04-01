@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -36,7 +37,7 @@ public interface IStage
     /// <summary>
     /// Accept a change from the input stage at the given index.
     /// </summary>
-    public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
+    public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : IComparable<T>;
 
     /// <summary>
     /// Mark the given input index as complete. This will cause the stage to stop accepting changes from this input. Depending
@@ -47,7 +48,7 @@ public interface IStage
 }
 
 
-public interface IStage<T> : IStage where T : notnull
+public interface IStage<T> : IStage where T : IComparable<T>
 {
     public void WriteCurrentValues(ref ChangeSetWriter<T> writer);
 }

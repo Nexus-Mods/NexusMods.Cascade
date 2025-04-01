@@ -2,10 +2,11 @@
 using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class ValueInlet<T> : IQuery<T> where T : notnull
+public class ValueInlet<T> : IQuery<T> where T : IComparable<T>
 {
     public IStage CreateInstance(IFlow flow)
         => new ValueInletStage(this, flow);

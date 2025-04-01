@@ -10,7 +10,7 @@ namespace NexusMods.Cascade.Collections;
 /// <summary>
 /// An immutable on-heap set of values and their deltas.
 /// </summary>
-public readonly struct ResultSet<T> : IReadOnlyCollection<Change<T>>
+public readonly struct ResultSet<T> : IReadOnlyCollection<T>
     where T : notnull, IComparable<T>
 {
     private readonly ImmutableDictionary<T, int> _values;
@@ -83,12 +83,42 @@ public readonly struct ResultSet<T> : IReadOnlyCollection<Change<T>>
         return new ResultSet<T>(builder.ToImmutable());
     }
 
+    /// <summary>
+    /// Merges the given <see cref="ChangeSet{T}"/> into the current <see cref="ResultSet{T}"/>.
+    /// </summary>
+    public ResultSet<T> Merge<TIn>(ChangeSet<TIn> other, out List<Change<T>> netChanges) where TIn : IComparable<TIn>
+    {
+        netChanges = [];
+        var builder = _values.ToBuilder();
+        foreach (var (value, delta) in other.Changes)
+        {
+            var castedValue = (T)(object)value!;
+            if (builder.TryGetValue(castedValue, out var existingDelta))
+            {
+                if (existingDelta + delta == 0)
+                {
+                    netChanges.Add(new Change<T>(castedValue, -1));
+                    builder.Remove(castedValue);
+                }
+                else
+                    builder[castedValue] = existingDelta + delta;
+            }
+            else
+            {
+                netChanges.Add(new Change<T>(castedValue, 1));
+                builder[castedValue] = delta;
+            }
+        }
+
+        return new ResultSet<T>(builder.ToImmutable());
+    }
+
     /// <inheritdoc />
-    public IEnumerator<Change<T>> GetEnumerator()
+    public IEnumerator<T> GetEnumerator()
     {
         foreach (var (key, value) in _values)
         {
-            yield return new Change<T>(key, value);
+            yield return key;
         }
     }
 

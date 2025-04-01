@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
@@ -17,7 +18,7 @@ namespace NexusMods.Cascade.Implementation;
 /// The type of the definition that describes this stage. Must implement <see cref="IStageDefinition{TResult}"/>.
 /// </typeparam>
 public abstract class AStage<TResult, TDefinition> : IStage<TResult>
-    where TResult : notnull
+    where TResult : IComparable<TResult>
     where TDefinition : IStageDefinition<TResult>
 {
     protected readonly Ref<ImmutableArray<(IStage, int)>> _outputs = new(ImmutableArray<(IStage, int)>.Empty);
@@ -42,7 +43,7 @@ public abstract class AStage<TResult, TDefinition> : IStage<TResult>
     public abstract ReadOnlySpan<IStage> Inputs { get; }
 
     public ReadOnlySpan<(IStage Stage, int Index)> Outputs => _outputs.Value.AsSpan();
-    public abstract void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
+    public abstract void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : IComparable<T>;
     public void Complete(int inputIndex)
     {
         Debug.Assert(inputIndex == 0);

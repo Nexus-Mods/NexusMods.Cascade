@@ -1,4 +1,4 @@
-﻿namespace NexusMods.Cascade.Abstractions;
+﻿namespace NexusMods.Cascade.Collections;
 
 public readonly record struct Change<T>(T Value, int Delta)
 {

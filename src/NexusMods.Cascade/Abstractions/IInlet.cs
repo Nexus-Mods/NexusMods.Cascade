@@ -1,8 +1,9 @@
 ﻿using System;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public interface IInlet<T> where T : notnull
+public interface IInlet<T> where T : IComparable<T>
 {
     /// <summary>
     /// Push a value into the inlet.

@@ -25,13 +25,13 @@ public class BasicTests
 
         var isAdult = flow.QueryAll(IsAdult);
 
-        await Assert.That(isAdult.Keys.ToArray()).IsEquivalentTo([("Alice", false)]);
+        await Assert.That(isAdult.ToArray()).IsEquivalentTo([("Alice", false)]);
 
         instance.Add(("Bob", 18));
 
         isAdult = flow.QueryAll(IsAdult);
 
-        await Assert.That(isAdult.Keys.ToArray()).IsEquivalentTo([("Alice", false), ("Bob", true)], CollectionOrdering.Any);
+        await Assert.That(isAdult.ToArray()).IsEquivalentTo([("Alice", false), ("Bob", true)], CollectionOrdering.Any);
     }
 
 
@@ -61,7 +61,7 @@ public class BasicTests
 
         result = flow.QueryAll(NamesAgesScores);
 
-        await Assert.That(result.Keys).IsEquivalentTo([("Alice", 17, 100)]);
+        await Assert.That(result).IsEquivalentTo([("Alice", 17, 100)]);
 
 
         agesInlet.Add(("Bob", 18));
@@ -69,13 +69,13 @@ public class BasicTests
 
         result = flow.QueryAll(NamesAgesScores);
 
-        await Assert.That(result.Keys).IsEquivalentTo([("Alice", 17, 100), ("Bob", 18, 100)], CollectionOrdering.Any);
+        await Assert.That(result).IsEquivalentTo([("Alice", 17, 100), ("Bob", 18, 100)], CollectionOrdering.Any);
 
         agesInlet.Remove(("Alice", 17));
 
         result = flow.QueryAll(NamesAgesScores);
 
-        await Assert.That(result.Keys).IsEquivalentTo([("Bob", 18, 100)], CollectionOrdering.Any);
+        await Assert.That(result).IsEquivalentTo([("Bob", 18, 100)], CollectionOrdering.Any);
     }
 
     private static readonly ValueInlet<int> Counter = new();

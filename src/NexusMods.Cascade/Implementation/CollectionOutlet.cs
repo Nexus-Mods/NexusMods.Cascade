@@ -1,11 +1,18 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.Specialized;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
+using ObservableCollections;
 
 namespace NexusMods.Cascade.Implementation;
 
-public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull
+public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull, IComparable<T>
 {
     public IStage CreateInstance(IFlow flow)
     {
@@ -15,7 +22,8 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
 
     private sealed class Stage : ICollectionOutlet<T>
     {
-        private readonly Ref<ImmutableDictionary<T, int>> _values;
+        private readonly Ref<ResultSet<T>> _values;
+        private readonly ObservableList<T> _observableList = [];
         private readonly CollectionOutlet<T> _definition;
         private readonly IStage<T> _upstream;
         private readonly Flow _flow;
@@ -29,10 +37,14 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
             upstream.ConnectOutput(this, 0);
             var writer = ChangeSetWriter<T>.Create();
             upstream.WriteCurrentValues(ref writer);
-            _values = new Ref<ImmutableDictionary<T, int>>(writer.ToImmutableDictionary());
+            var resultSet = writer.ToResultSet();
+            _values = new Ref<ResultSet<T>>(resultSet);
+            _observableList.AddRange(resultSet);
         }
 
-        public ImmutableDictionary<T, int> Values => _values.Value;
+        #region Cascade Code
+
+        public ResultSet<T> Values => _values.Value;
 
         public ReadOnlySpan<IStage> Inputs => new([_upstream]);
         public ReadOnlySpan<(IStage Stage, int Index)> Outputs => ReadOnlySpan<(IStage Stage, int Index)>.Empty;
@@ -45,36 +57,34 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
 
         public IStageDefinition Definition => _definition;
         public IFlow Flow => _flow;
-        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : notnull
+        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : IComparable<T1>
         {
-            var builder = _values.Value.ToBuilder();
+            _values.Value = _values.Value.Merge(changes, out var netChanges);
 
-            foreach (var (change, delta) in changes.Changes)
+            _flow.EnqueueEffect(static state =>
             {
-                var casted = (T)(object)change;
-                if (builder.TryGetValue(casted, out var value))
+                var (self, changes) = state;
+                foreach (var (key, delta) in changes)
                 {
-                    if (value + delta == 0)
+                    if (delta > 0)
                     {
-                        builder.Remove(casted);
+                        self._observableList.Add(key);
                     }
                     else
                     {
-                        builder[casted] = value + delta;
+                        self._observableList.Remove(key);
                     }
                 }
-                else
-                {
-                    builder[casted] = delta;
-                }
-            }
-
-            _values.Value = builder.ToImmutable();
+            }, (this, netChanges));
         }
 
         public void Complete(int inputIndex)
         {
             // This is a no-op for CollectionOutlet
         }
+
+
+        #endregion
+
     }
 }
