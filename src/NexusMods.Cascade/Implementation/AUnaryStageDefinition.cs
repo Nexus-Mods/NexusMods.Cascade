@@ -51,12 +51,7 @@ public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<
                 var casted = (TIn)(object)change;
                 _definition.AcceptChange(casted, deltaValue, ref writer, _state);
             }
-
-            var outputChangeSet = writer.ToChangeSet();
-            foreach (var (stage, port) in _outputs.Value.AsSpan())
-            {
-                stage.AcceptChange(port, outputChangeSet);
-            }
+            writer.ForwardAll(this);
         }
     }
 }
