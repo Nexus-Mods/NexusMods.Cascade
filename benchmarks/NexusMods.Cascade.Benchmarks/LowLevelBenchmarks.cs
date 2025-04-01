@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using BenchmarkDotNet.Attributes;
+using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Implementation;
@@ -31,7 +32,7 @@ public class LowLevelBenchmarks
     [Benchmark]
     public int Minimalist()
     {
-        return LockingTransaction.RunInTransaction(() =>
+        return Runtime.DoSync(() =>
         {
             for (int i = 0; i < 1000; i++)
             {

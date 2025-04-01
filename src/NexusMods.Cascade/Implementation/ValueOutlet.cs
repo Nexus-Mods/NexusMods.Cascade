@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using R3;
 
 namespace NexusMods.Cascade.Implementation;
 
@@ -13,7 +15,7 @@ public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinit
         return new ValueOutletStage(this, (IStage<T>)upstreamInstance, (Flow)flow);
     }
 
-    private sealed class ValueOutletStage : IValueOutlet<T>
+    private sealed class ValueOutletStage : BindableReactiveProperty<T>, IValueOutlet<T>
     {
         private readonly Ref<T> _value;
         private readonly ValueOutlet<T> _definition;
@@ -31,6 +33,7 @@ public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinit
             upstream.WriteCurrentValues(ref writer);
             var changes = writer.ToChangeSet().Changes;
             _value = changes.Length > 0 ? new Ref<T>(changes[0].Value) : new Ref<T>();
+            base.Value = _value.Value;
         }
 
         public void WriteCurrentValues(ref ChangeSetWriter<T> writer)
@@ -57,7 +60,10 @@ public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinit
                 var casted = (T)(object)value;
                 _value.Value = casted;
             }
+            _flow.EnqueueEffect(static self => self.SyncValues(), this);
         }
+
+        private void SyncValues() => base.Value = _value.Value;
 
         public void Complete(int inputIndex)
         {
@@ -65,5 +71,6 @@ public sealed class ValueOutlet<T>(IStageDefinition<T> upstream) : IStageDefinit
         }
 
         public T Value => _value.Value;
+        public Observable<T> Observable => AsObservable();
     }
 }

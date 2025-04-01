@@ -1,6 +1,7 @@
 ﻿using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Implementation;
 using NexusMods.Cascade.Implementation.Omega;
+using R3;
 using TUnit.Assertions.Enums;
 
 namespace NexusMods.Cascade.Tests;
@@ -104,6 +105,32 @@ public class BasicTests
         counter.Value = 0;
         result = flow.QueryOne(CounterSquared);
         await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task CanUseObservablesWithInlet()
+    {
+        var flow = IFlow.Create();
+
+        var counter = flow.Get(Counter);
+
+        var result = flow.Observe(CounterSquared);
+
+        var resultList = new List<int>();
+
+        using var d = result.Do(v => resultList.Add(v)).Subscribe();
+
+        counter.Value = 2;
+        await flow.FlushAsync();
+        await Assert.That(resultList).IsEquivalentTo([0, 4]);
+
+        counter.Value = 3;
+        await flow.FlushAsync();
+        await Assert.That(resultList).IsEquivalentTo([0, 4, 9]);
+
+        counter.Value = 0;
+        await flow.FlushAsync();
+        await Assert.That(resultList).IsEquivalentTo([0, 4, 9, 0]);
     }
 }
 

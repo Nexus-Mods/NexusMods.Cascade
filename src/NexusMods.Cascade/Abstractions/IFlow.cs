@@ -1,6 +1,10 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
+using System.Threading;
+using System.Threading.Tasks;
 using NexusMods.Cascade.Implementation;
 using NexusMods.Cascade.Implementation.Omega;
+using R3;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -38,4 +42,10 @@ public interface IFlow
 
 
     IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : notnull;
+
+    Observable<T> Observe<T>(IQuery<T> counterSquared) where T : notnull;
+
+    void EnqueueEffect<TState>(Action<TState> effect, TState state) where TState : notnull;
+
+    Task FlushAsync();
 }

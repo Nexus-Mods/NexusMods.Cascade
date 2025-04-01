@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
@@ -62,7 +63,7 @@ public class CollectionInlet<T> : IQuery<T> where T : notnull
 
         public void Add(params T[] values)
         {
-            LockingTransaction.RunInTransaction(() =>
+            Runtime.DoSync(() =>
             {
                 var writer = new ChangeSetWriter<T>();
                 writer.Add(1, values.AsSpan());
@@ -89,7 +90,7 @@ public class CollectionInlet<T> : IQuery<T> where T : notnull
 
         public void Remove(params T[] values)
         {
-            LockingTransaction.RunInTransaction(() =>
+            Runtime.DoSync(() =>
             {
                 var writer = new ChangeSetWriter<T>();
                 writer.Add(-1, values.AsSpan());

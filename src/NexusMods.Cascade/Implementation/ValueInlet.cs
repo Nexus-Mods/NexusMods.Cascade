@@ -1,4 +1,5 @@
 ﻿using System;
+using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
@@ -40,7 +41,7 @@ public class ValueInlet<T> : IQuery<T> where T : notnull
 
         public void OnNext(T value)
         {
-            LockingTransaction.RunInTransaction(() =>
+            Runtime.DoSync(() =>
             {
                 var prevValue = _value.Value;
                 _value.Value = value;
@@ -48,7 +49,6 @@ public class ValueInlet<T> : IQuery<T> where T : notnull
                 writer.Add(prevValue, -1);
                 writer.Add(value, 1);
                 writer.ForwardAll(this);
-                return 0;
             });
         }
 

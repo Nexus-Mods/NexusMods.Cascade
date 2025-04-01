@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Threading;
+using System.Threading.Tasks;
+using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Implementation.Omega;
+using R3;
 
 namespace NexusMods.Cascade.Implementation;
 
@@ -10,10 +14,11 @@ internal sealed class Flow : IFlow
 {
     private readonly Ref<ImmutableDictionary<IStageDefinition, IStage>> _stages = new(ImmutableDictionary<IStageDefinition, IStage>.Empty);
     private readonly Ref<ImmutableDictionary<(IStage Stage, Type Type), IOutlet>> _outlets = new(ImmutableDictionary<(IStage Stage, Type Type), IOutlet>.Empty);
+    private readonly Agent<int> _externalUpdates = new(0);
 
     public IStage AddStage(IStageDefinition definition)
     {
-        return LockingTransaction.RunInTransaction(() =>
+        return Runtime.DoSync(() =>
         {
             if (_stages.Value.TryGetValue(definition, out var stage))
                 return stage;
@@ -24,7 +29,7 @@ internal sealed class Flow : IFlow
 
     public ImmutableDictionary<T, int> QueryAll<T>(IQuery<T> query) where T : notnull
     {
-        return LockingTransaction.RunInTransaction(() =>
+        return Runtime.DoSync(() =>
         {
             var outlet = GetCollectionOutlet(query);
             return outlet.Values;
@@ -33,7 +38,7 @@ internal sealed class Flow : IFlow
 
     public T QueryOne<T>(IQuery<T> query) where T : notnull
     {
-        return LockingTransaction.RunInTransaction(() =>
+        return Runtime.DoSync(() =>
         {
             var outlet = GetValueOutlet(query);
             return outlet.Value;
@@ -60,6 +65,36 @@ internal sealed class Flow : IFlow
     {
         var inletStage = AddStage(inlet);
         return (IValueInlet<T>)inletStage;
+    }
+
+    public Observable<T> Observe<T>(IQuery<T> query) where T : notnull
+    {
+        return Runtime.DoSync(static input =>
+        {
+            var (query, flow) = input;
+            var outlet = flow.GetValueOutlet(query);
+            return outlet.Observable;
+        }, (query, this));
+    }
+
+    public void EnqueueEffect<TState>(Action<TState> effect, TState state) where TState : notnull
+    {
+        _externalUpdates.Send(s =>
+        {
+            effect(state);
+            return s;
+        });
+    }
+
+    public Task FlushAsync()
+    {
+        var tcs = new TaskCompletionSource<int>();
+        _externalUpdates.Send(_ =>
+        {
+            tcs.TrySetResult(0);
+            return 0;
+        });
+        return tcs.Task;
     }
 
     private ICollectionOutlet<T> GetCollectionOutlet<T>(IQuery<T> query) where T : notnull
