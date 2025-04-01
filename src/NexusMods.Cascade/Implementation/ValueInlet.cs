@@ -6,7 +6,7 @@ using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class ValueInlet<T> : IQuery<T> where T : IComparable<T>
+public class ValueInlet<T> : IQuery<T> where T : notnull
 {
     public IStage CreateInstance(IFlow flow)
         => new ValueInletStage(this, flow);

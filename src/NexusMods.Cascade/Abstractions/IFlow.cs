@@ -31,34 +31,34 @@ public interface IFlow
     /// <summary>
     /// Get the result of a query
     /// </summary>
-    ResultSet<T> QueryAll<T>(IQuery<T> query) where T : IComparable<T>;
+    ResultSet<T> QueryAll<T>(IQuery<T> query) where T : notnull;
 
     /// <summary>
     /// Get the result of a query
     /// </summary>
-    T QueryOne<T>(IQuery<T> query) where T : IComparable<T>;
+    T QueryOne<T>(IQuery<T> query) where T : notnull;
 
     /// <summary>
     /// Get a collection inlet from the flow, creating a new one if it doesn't exist.
     /// </summary>
-    IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : IComparable<T>;
+    IInlet<T> Get<T>(CollectionInlet<T> inlet) where T : notnull;
 
     /// <summary>
     /// Get a value inlet from the flow, creating a new one if it doesn't exist.
     /// </summary>
-    IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : IComparable<T>;
+    IValueInlet<T> Get<T>(ValueInlet<T> inlet) where T : notnull;
 
     /// <summary>
     /// Observe the most recent value of a query. This will return an observable that will be updated with any new values
     /// added. Useful for getting a single value observable from a query.
     /// </summary>
-    Observable<T> Observe<T>(IQuery<T> counterSquared) where T : IComparable<T>;
+    Observable<T> Observe<T>(IQuery<T> counterSquared) where T : notnull;
 
     /// <summary>
     /// Observe all items in a collection. This will return an observable list that will be updated as items are added or
     /// removed from the query resultset
     /// </summary>
-    ObservableList<T> ObserveAll<T>(IQuery<T> query) where T : IComparable<T>;
+    ObservableList<T> ObserveAll<T>(IQuery<T> query) where T : notnull;
 
     /// <summary>
     /// Add a side-effect to the flow. This will be run when the current transaction finishes, and not be run if the transaction

@@ -10,7 +10,7 @@ using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Implementation;
 
-public class CollectionInlet<T> : IQuery<T> where T : IComparable<T>
+public class CollectionInlet<T> : IQuery<T> where T : notnull
 {
     public IStage CreateInstance(IFlow flow)
     {
@@ -39,7 +39,7 @@ public class CollectionInlet<T> : IQuery<T> where T : IComparable<T>
         private readonly Ref<ResultSet<T>> _state = new(new ResultSet<T>());
 
         public IFlow Flow => flow;
-        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> delta) where T1 : IComparable<T1>
+        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> delta) where T1 : notnull
         {
             throw new NotSupportedException();
         }

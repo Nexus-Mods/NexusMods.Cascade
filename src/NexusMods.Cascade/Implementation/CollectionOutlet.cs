@@ -12,7 +12,7 @@ using ObservableCollections;
 
 namespace NexusMods.Cascade.Implementation;
 
-public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull, IComparable<T>
+public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDefinition<T> where T : notnull
 {
     public IStage CreateInstance(IFlow flow)
     {
@@ -58,7 +58,7 @@ public sealed class CollectionOutlet<T>(IStageDefinition<T> upstream) : IStageDe
 
         public IStageDefinition Definition => _definition;
         public IFlow Flow => _flow;
-        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : IComparable<T1>
+        public void AcceptChange<T1>(int inputIndex, in ChangeSet<T1> changes) where T1 : notnull
         {
             _values.Value = _values.Value.Merge(changes, out var netChanges);
 

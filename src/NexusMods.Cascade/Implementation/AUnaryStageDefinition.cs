@@ -7,11 +7,11 @@ using NexusMods.Cascade.Collections;
 namespace NexusMods.Cascade.Implementation;
 
 public abstract class AUnaryStageDefinition<TIn, TOut, TState>(IStageDefinition<TIn> upstream) : IQuery<TOut>
-    where TOut : IComparable<TOut>
+    where TOut : notnull
     where TState : new()
-    where TIn : IComparable<TIn>
+    where TIn : notnull
 {
-    public IStage CreateInstance(IFlow flow)
+    public virtual IStage CreateInstance(IFlow flow)
     {
         var upstreamInstance = flow.AddStage(upstream);
         return new Stage(this, (IStage<TIn>)upstreamInstance, flow, new TState());

@@ -32,4 +32,10 @@
     <Folder Include="Rows\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Resources\SmallModlist.json.gz">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

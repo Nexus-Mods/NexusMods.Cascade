@@ -76,7 +76,7 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
 
 public static class {{= model.Name}}QueryExtensions
 {
-    public static IObservableQuery<{{= model.Name}}.Active, {{= model.Name}}, {{= model.PrimaryKey.Type}}> Observe(this Flow flow, IQuery<{{= model.Name}}> query)
+    public static IQuery<{{= model.Name}}.Active> Observe(this IFlow flow, IQuery<{{= model.Name}}> query)
     {
         throw new NotImplementedException();
     }

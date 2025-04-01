@@ -6,7 +6,7 @@ using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public ref struct ChangeSetWriter<T> where T : notnull, IComparable<T>
+public ref struct ChangeSetWriter<T> where T : notnull
 {
     private readonly List<Change<T>> _list;
 

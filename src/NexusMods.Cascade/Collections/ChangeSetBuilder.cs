@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using NexusMods.Cascade.Abstractions;
+using Reloaded.Memory.Extensions;
 
 namespace NexusMods.Cascade.Collections
 {
@@ -10,7 +11,7 @@ namespace NexusMods.Cascade.Collections
     /// they are sorted by Value and duplicate changes are collapsed (the delta values summed).
     /// If the sum is zero, that item is omitted.
     /// </summary>
-    public struct ChangeSetBuilder<T> : IDisposable where T : IComparable<T>
+    public struct ChangeSetBuilder<T> : IDisposable where T : notnull
     {
         private const int DefaultCapacity = 32;
         private IMemoryOwner<Change<T>>? _owner;
@@ -30,14 +31,14 @@ namespace NexusMods.Cascade.Collections
                 _owner = MemoryPool<Change<T>>.Shared.Rent(DefaultCapacity);
             }
 
-            Span<Change<T>> span = _owner.Memory.Span;
+            var span = _owner.Memory.Span;
             if (_count == span.Length)
             {
                 // Double the capacity.
-                int newCapacity = span.Length * 2;
+                var newCapacity = span.Length * 2;
                 var newOwner = MemoryPool<Change<T>>.Shared.Rent(newCapacity);
-                Span<Change<T>> newSpan = newOwner.Memory.Span;
-                span.Slice(0, _count).CopyTo(newSpan);
+                var newSpan = newOwner.Memory.Span;
+                span.SliceFast(0, _count).CopyTo(newSpan);
                 _owner.Dispose();
                 _owner = newOwner;
                 span = newSpan;
@@ -59,10 +60,10 @@ namespace NexusMods.Cascade.Collections
             if (_owner is null)
                 return ReadOnlySpan<Change<T>>.Empty;
 
-            Span<Change<T>> span = _owner.Memory.Span.Slice(0, _count);
+            var span = _owner.Memory.Span.Slice(0, _count);
 
             // Batch sort the changes by Value.
-            span.Sort((x, y) => x.Value.CompareTo(y.Value));
+            span.Sort();
 
             // Collapse duplicate entries by summing their deltas.
             int writeIndex = 0;
@@ -72,7 +73,7 @@ namespace NexusMods.Cascade.Collections
                 var currentValue = span[readIndex].Value;
                 int combinedDelta = 0;
                 // Sum all deltas for entries with the same Value.
-                while (readIndex < _count && span[readIndex].Value.CompareTo(currentValue) == 0)
+                while (readIndex < _count && span[readIndex].Value.Equals(currentValue))
                 {
                     combinedDelta += span[readIndex].Delta;
                     readIndex++;
@@ -88,7 +89,7 @@ namespace NexusMods.Cascade.Collections
 
             // Update the internal count to reflect the collapsed items.
             _count = writeIndex;
-            return span.Slice(0, writeIndex);
+            return span.SliceFast(0, writeIndex);
         }
 
         /// <summary>

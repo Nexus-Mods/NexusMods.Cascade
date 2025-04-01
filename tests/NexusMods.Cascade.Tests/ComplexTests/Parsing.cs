@@ -7,11 +7,12 @@ using NexusMods.Paths;
 
 namespace NexusMods.Cascade.Tests.ComplexTests;
 
-/*
+
 public static class Parsing
 {
+    public const string SmallModlist = "SmallModList";
 
-    public static IQuery<JToken> ParsedToken = from modList in Inlets.ModList
+    public static readonly IQuery<JToken> ParsedToken = from modList in Inlets.ModList
         let path = FileSystem.Shared.GetKnownPath(KnownPath.EntryDirectory) / "Resources" / (modList + ".json.gz")
         select LoadJson(path);
 
@@ -23,7 +24,7 @@ public static class Parsing
         from directive in topToken["Directives"]!
         let parsed = Directive.Parse(directive)
         where parsed != null
-        select parsed;
+        select parsed!.Value;
 
     private static JToken LoadJson(AbsolutePath path)
     {
@@ -34,4 +35,3 @@ public static class Parsing
     }
 
 }
-*/

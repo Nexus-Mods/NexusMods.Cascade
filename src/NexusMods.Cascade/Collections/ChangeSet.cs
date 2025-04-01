@@ -3,7 +3,7 @@ using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Collections;
 
-public readonly ref struct ChangeSet<T> where T : IComparable<T>
+public readonly ref struct ChangeSet<T> where T : notnull
 {
     private readonly ReadOnlySpan<Change<T>> _changes;
 

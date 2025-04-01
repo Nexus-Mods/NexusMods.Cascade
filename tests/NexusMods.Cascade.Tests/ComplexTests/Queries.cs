@@ -4,7 +4,7 @@ using NexusMods.Paths;
 
 namespace NexusMods.Cascade.Tests.ComplexTests;
 
-/*
+
 public static class Queries
 {
     public static IQuery<(string Type, int Count, Size Download)> ArchiveCountForType =
@@ -25,10 +25,10 @@ public static class Queries
         into grouped
         select (grouped.Key, grouped.Count);
 
+
     public static IQuery<Directive> EnabledFiles =
         from directive in DirectiveWithModName
         join mod in Inlets.EnabledMods on directive.Mod equals mod
         select directive.directive;
 
 }
-*/

@@ -5,7 +5,7 @@ using ObservableCollections;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public interface ICollectionOutlet<T> : IOutlet where T : IComparable<T>
+public interface ICollectionOutlet<T> : IOutlet where T : notnull
 {
     /// <summary>
     /// The value of the outlet.

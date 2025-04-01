@@ -3,7 +3,7 @@ using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public interface IInlet<T> where T : IComparable<T>
+public interface IInlet<T> where T : notnull
 {
     /// <summary>
     /// Add the values to the inlet.

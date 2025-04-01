@@ -11,7 +11,7 @@ namespace NexusMods.Cascade.Collections;
 /// An immutable on-heap set of values and their deltas.
 /// </summary>
 public readonly struct ResultSet<T> : IReadOnlyCollection<T>
-    where T : notnull, IComparable<T>
+    where T : notnull
 {
     private readonly ImmutableDictionary<T, int> _values;
 
@@ -110,7 +110,7 @@ public readonly struct ResultSet<T> : IReadOnlyCollection<T>
     /// <summary>
     /// Merges the given <see cref="ChangeSet{T}"/> into the current <see cref="ResultSet{T}"/>.
     /// </summary>
-    public ResultSet<T> Merge<TIn>(ChangeSet<TIn> other, out List<Change<T>> netChanges) where TIn : IComparable<TIn>
+    public ResultSet<T> Merge<TIn>(ChangeSet<TIn> other, out List<Change<T>> netChanges) where TIn : notnull
     {
         netChanges = [];
         var builder = _values.ToBuilder();
@@ -166,4 +166,19 @@ public readonly struct ResultSet<T> : IReadOnlyCollection<T>
     /// </summary>
     public IEnumerable<Change<T>> Changes => _values
         .Select(kvp => new Change<T>(kvp.Key, kvp.Value));
+
+    public ResultSet<T> Add(T change, int deltaValue)
+    {
+        if (_values.TryGetValue(change, out var delta))
+        {
+            if (delta + deltaValue == 0)
+                return new ResultSet<T>(_values.Remove(change));
+            else
+                return new ResultSet<T>(_values.SetItem(change, delta + deltaValue));
+        }
+        else
+        {
+            return new ResultSet<T>(_values.Add(change, deltaValue));
+        }
+    }
 }

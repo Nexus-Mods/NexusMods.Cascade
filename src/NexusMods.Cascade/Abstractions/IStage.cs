@@ -37,7 +37,7 @@ public interface IStage
     /// <summary>
     /// Accept a change from the input stage at the given index.
     /// </summary>
-    public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : IComparable<T>;
+    public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
 
     /// <summary>
     /// Mark the given input index as complete. This will cause the stage to stop accepting changes from this input. Depending
@@ -48,7 +48,7 @@ public interface IStage
 }
 
 
-public interface IStage<T> : IStage where T : IComparable<T>
+public interface IStage<T> : IStage where T : notnull
 {
     public void WriteCurrentValues(ref ChangeSetWriter<T> writer);
 }
