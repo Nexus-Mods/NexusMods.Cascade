@@ -16,5 +16,7 @@
     <PackageVersion Include="Reloaded.Memory" Version="9.4.2" />
     <PackageVersion Include="TransparentValueObjects" Version="1.0.2" />
     <PackageVersion Include="TUnit" Version="0.6.59" />
+    <PackageVersion Include="Weave" Version="2.1.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0"/>
   </ItemGroup>
 </Project>

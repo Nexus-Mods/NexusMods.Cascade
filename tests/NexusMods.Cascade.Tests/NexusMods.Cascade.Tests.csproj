@@ -27,4 +27,8 @@
     <PackageVersion Update="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Rows\" />
+  </ItemGroup>
+
 </Project>
