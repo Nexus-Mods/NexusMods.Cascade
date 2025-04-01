@@ -18,5 +18,6 @@
     <PackageVersion Include="TUnit" Version="0.6.59" />
     <PackageVersion Include="Weave" Version="2.1.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0"/>
+    <PackageVersion Include="System.CodeDom" Version="4.4.0"/>
   </ItemGroup>
 </Project>
