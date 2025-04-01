@@ -9,4 +9,6 @@ public interface IActiveRow<TBase, TKey>
     public TKey RowId { get; }
 
     public void MergeIn(in TBase row);
+
+    public abstract static IActiveRow<TBase, TKey> Create(in TBase row);
 }

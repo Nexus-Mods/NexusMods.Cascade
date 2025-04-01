@@ -5,7 +5,7 @@ public interface IRowDefinition
 
 }
 
-public interface IRowDefinition<T> : IRowDefinition
+public interface IRowDefinition<TKey> : IRowDefinition
 {
-
+    public TKey RowId { get; set; }
 }

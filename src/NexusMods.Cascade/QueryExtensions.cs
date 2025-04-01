@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Implementation;
@@ -67,5 +70,34 @@ public static class QueryExtensions
         where TKey : notnull
     {
         return new GroupBy<TResult, TKey>(query, keySelector);
+    }
+
+    public static IQuery<TActive> ToActive<TKey, TBase, TActive>(this IQuery<KeyedResultSet<TKey, TBase>> query)
+       where TBase : IRowDefinition<TKey>
+       where TActive : IActiveRow<TBase, TKey>
+       where TKey : IComparable<TKey>
+    {
+        return StageBuilder.Create<KeyedResultSet<TKey, TBase>, TActive, Ref<ImmutableDictionary<TKey, TActive>>>(
+            query,
+            ToActiveImpl,
+            new Ref<ImmutableDictionary<TKey, TActive>>(ImmutableDictionary<TKey, TActive>.Empty));
+
+        void ToActiveImpl(in KeyedResultSet<TKey, TActive> value, int delta, ref ChangeSetWriter<TActive> writer,
+            in Ref<ImmutableDictionary<TKey, TActive>> active)
+        {
+            if (delta < 0)
+                return;
+
+            if (active.Value.TryGetValue(value.Key, out var existing))
+            {
+                existing.MergeIn(value.First());
+                return;
+            }
+            else
+            {
+                active.Value = active.Value.SetItem(key, (TActive)TActive.Create(value));
+                writer.Write(active.Value[key], delta);
+            }
+        }
     }
 }
