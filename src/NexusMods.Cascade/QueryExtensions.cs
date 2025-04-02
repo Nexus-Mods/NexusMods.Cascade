@@ -72,32 +72,11 @@ public static class QueryExtensions
         return new GroupBy<TResult, TKey>(query, keySelector);
     }
 
-    public static IQuery<TActive> ToActive<TKey, TBase, TActive>(this IQuery<KeyedResultSet<TKey, TBase>> query)
+    public static IQuery<TActive> ToActive<TKey, TBase, TActive>(this IQuery<TBase> query)
        where TBase : IRowDefinition<TKey>
        where TActive : IActiveRow<TBase, TKey>
        where TKey : IComparable<TKey>
     {
-        return StageBuilder.Create<KeyedResultSet<TKey, TBase>, TActive, Ref<ImmutableDictionary<TKey, TActive>>>(
-            query,
-            ToActiveImpl,
-            new Ref<ImmutableDictionary<TKey, TActive>>(ImmutableDictionary<TKey, TActive>.Empty));
-
-        void ToActiveImpl(in KeyedResultSet<TKey, TActive> value, int delta, ref ChangeSetWriter<TActive> writer,
-            in Ref<ImmutableDictionary<TKey, TActive>> active)
-        {
-            if (delta < 0)
-                return;
-
-            if (active.Value.TryGetValue(value.Key, out var existing))
-            {
-                existing.MergeIn(value.First());
-                return;
-            }
-            else
-            {
-                active.Value = active.Value.SetItem(key, (TActive)TActive.Create(value));
-                writer.Write(active.Value[key], delta);
-            }
-        }
+        return new ToActiveRecord<TBase, TActive, TKey>(query);
     }
 }

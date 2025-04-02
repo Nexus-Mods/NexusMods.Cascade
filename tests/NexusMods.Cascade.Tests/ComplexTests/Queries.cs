@@ -4,6 +4,7 @@ using NexusMods.Paths;
 
 namespace NexusMods.Cascade.Tests.ComplexTests;
 
+public readonly partial record struct EnabledModSize(string Mod, Size Size, int FileCount) : IRowDefinition;
 
 public static class Queries
 {
@@ -30,5 +31,4 @@ public static class Queries
         from directive in DirectiveWithModName
         join mod in Inlets.EnabledMods on directive.Mod equals mod
         select directive.directive;
-
 }

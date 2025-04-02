@@ -8,7 +8,9 @@ public interface IActiveRow<TBase, TKey>
 {
     public TKey RowId { get; }
 
-    public void MergeIn(in TBase row);
+    public void MergeIn(in TBase row, int delta);
 
-    public abstract static IActiveRow<TBase, TKey> Create(in TBase row);
+    public static abstract IActiveRow<TBase, TKey> Create(in TBase row, int initialDelta);
+
+    public int DeltaCount { get; }
 }

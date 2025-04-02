@@ -15,10 +15,9 @@ using global::R3;
 using global::NexusMods.Cascade.Abstractions;
 
 
-public partial record struct {{= model.Name}} : IRowDefinition<{{= model.PrimaryKey.Type}}>
+public partial record struct {{= model.Name}} : IRowDefinition<{{= model.PrimaryKey.Type}}>, IComparable<{{= model.Name}}>
 {
     public {{= model.PrimaryKey.Type}} RowId => {{= model.PrimaryKey.Name}};
-
 
     /// <summary>
     /// Implicitly converts a tuple to a {{= model.Name}}
@@ -33,12 +32,20 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
         );
     }
 
+    public int CompareTo({{= model.Name}} other)
+    {
+        return RowId.CompareTo(other.RowId);
+    }
+
 
     public sealed class Active : global::NexusMods.Cascade.Abstractions.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
     {
-       public static IActiveRow<{{= model.Name}}, {{= model.PrimaryKey.Type}}> Create({{= model.Name}} seedData)
+       public int DeltaCount { get; private set; } = 0;
+
+
+       public static IActiveRow<{{= model.Name}}, {{= model.PrimaryKey.Type}}> Create(in {{= model.Name}} seedData, int initialDelta)
        {
-          return new Active(seedData);
+          return new Active(seedData) { DeltaCount = initialDelta };
        }
 
 
@@ -52,8 +59,9 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
 
        public {{= model.PrimaryKey.Type}} RowId { get; }
 
-       public void MergeIn(in {{= model.Name}} newData)
+       public void MergeIn(in {{= model.Name}} newData, int delta)
        {
+            DeltaCount += delta;
          {{each member in model.Members}}
            if (newData.{{= member.Name}} != {{= member.Name}}.Value) {
              {{= member.Name}}.Value = newData.{{= member.Name}};

@@ -1,4 +1,5 @@
 ﻿using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Implementation;
 using NexusMods.Cascade.Implementation.Omega;
 using R3;
@@ -6,13 +7,21 @@ using TUnit.Assertions.Enums;
 
 namespace NexusMods.Cascade.Tests;
 
+public readonly partial record struct Person(string Name, int Age) : IRowDefinition;
+
+public readonly partial record struct PersonScore(string Name, int Score) : IRowDefinition;
+
+public readonly partial record struct PersonAgeScore(string Name, int Age, int Score) : IRowDefinition;
+
+public readonly partial record struct AdultStatus(string Name, bool IsAdult) : IRowDefinition;
+
 public class BasicTests
 {
-    private static readonly CollectionInlet<(string Name, int Age)> NamesAndAges = new();
+    private static readonly CollectionInlet<Person> NamesAndAges = new();
 
-    private static readonly IQuery<(string Name, bool IsAdult)> IsAdult =
+    private static readonly IQuery<AdultStatus> IsAdult =
         from person in NamesAndAges
-        select (person.Name, person.Age >= 18);
+        select new AdultStatus(person.Name, person.Age >= 18);
 
     [Test]
     public async Task CanSelectValues()
@@ -21,26 +30,26 @@ public class BasicTests
 
         var instance = flow.Get(NamesAndAges);
 
-        instance.Add(("Alice", 17));
+        instance.Add(new Person("Alice", 17));
 
         var isAdult = flow.QueryAll(IsAdult);
 
-        await Assert.That(isAdult.ToArray()).IsEquivalentTo([("Alice", false)]);
+        await Assert.That(isAdult.ToArray()).IsEquivalentTo([new AdultStatus("Alice", false)]);
 
-        instance.Add(("Bob", 18));
+        instance.Add(new Person("Bob", 18));
 
         isAdult = flow.QueryAll(IsAdult);
 
-        await Assert.That(isAdult.ToArray()).IsEquivalentTo([("Alice", false), ("Bob", true)], CollectionOrdering.Any);
+        await Assert.That(isAdult.ToArray()).IsEquivalentTo([new AdultStatus("Alice", false), new AdultStatus("Bob", true)], CollectionOrdering.Any);
     }
 
 
-    private static readonly CollectionInlet<(string Name, int Score)> NamesAndScores = new();
+    private static readonly CollectionInlet<PersonScore> NamesAndScores = new();
 
-    private static readonly IQuery<(string Name, int Age, int Score)> NamesAgesScores =
+    private static readonly IQuery<PersonAgeScore> NamesAgesScores =
         from person in NamesAndAges
         join score in NamesAndScores on person.Name equals score.Name
-        select (person.Name, person.Age, score.Score);
+        select new PersonAgeScore(person.Name, person.Age, score.Score);
 
     [Test]
     public async Task CanPerformAInnerJoin()
@@ -49,7 +58,7 @@ public class BasicTests
 
         var agesInlet = flow.Get(NamesAndAges);
 
-        agesInlet.Add(("Alice", 17));
+        agesInlet.Add(new Person("Alice", 17));
 
         var result = flow.QueryAll(NamesAgesScores);
 
@@ -57,25 +66,25 @@ public class BasicTests
 
         var scoresInlet = flow.Get(NamesAndScores);
 
-        scoresInlet.Add(("Alice", 100));
+        scoresInlet.Add(new PersonScore("Alice", 100));
 
         result = flow.QueryAll(NamesAgesScores);
 
-        await Assert.That(result).IsEquivalentTo([("Alice", 17, 100)]);
+        await Assert.That(result).IsEquivalentTo([new PersonAgeScore("Alice", 17, 100)]);
 
 
-        agesInlet.Add(("Bob", 18));
-        scoresInlet.Add(("Bob", 100));
-
-        result = flow.QueryAll(NamesAgesScores);
-
-        await Assert.That(result).IsEquivalentTo([("Alice", 17, 100), ("Bob", 18, 100)], CollectionOrdering.Any);
-
-        agesInlet.Remove(("Alice", 17));
+        agesInlet.Add(new Person("Bob", 18));
+        scoresInlet.Add(new PersonScore("Bob", 100));
 
         result = flow.QueryAll(NamesAgesScores);
 
-        await Assert.That(result).IsEquivalentTo([("Bob", 18, 100)], CollectionOrdering.Any);
+        await Assert.That(result).IsEquivalentTo([new PersonAgeScore("Alice", 17, 100), new PersonAgeScore("Bob", 18, 100)], CollectionOrdering.Any);
+
+        agesInlet.Remove(new Person("Alice", 17));
+
+        result = flow.QueryAll(NamesAgesScores);
+
+        await Assert.That(result).IsEquivalentTo([new PersonAgeScore("Bob", 18, 100)], CollectionOrdering.Any);
     }
 
     private static readonly ValueInlet<int> Counter = new();
@@ -144,20 +153,55 @@ public class BasicTests
 
         await Assert.That(result).IsEmpty();
 
-        agesInlet.Add(("Alice", 17));
+        agesInlet.Add(new Person("Alice", 17));
 
         await flow.FlushAsync();
-        await Assert.That(result).IsEquivalentTo([("Alice", false)]);
+        await Assert.That(result).IsEquivalentTo([new AdultStatus("Alice", false)]);
 
-        agesInlet.Add(("Bob", 18));
-
-        await flow.FlushAsync();
-        await Assert.That(result).IsEquivalentTo([("Alice", false), ("Bob", true)], CollectionOrdering.Any);
-
-        agesInlet.Remove(("Alice", 17));
+        agesInlet.Add(new Person("Bob", 18));
 
         await flow.FlushAsync();
-        await Assert.That(result).IsEquivalentTo([("Bob", true)], CollectionOrdering.Any);
+        await Assert.That(result).IsEquivalentTo([new AdultStatus("Alice", false), new AdultStatus("Bob", true)], CollectionOrdering.Any);
+
+        agesInlet.Remove(new Person("Alice", 17));
+
+        await flow.FlushAsync();
+        await Assert.That(result).IsEquivalentTo([new AdultStatus("Bob", true)], CollectionOrdering.Any);
     }
+
+    [Test]
+    public async Task CanConvertToActiveRow()
+    {
+        var flow = IFlow.Create();
+
+        var agesInlet = flow.Get(NamesAndAges);
+
+        var result = flow.ObserveAll(IsAdult.ToActive<string, AdultStatus, AdultStatus.Active>());
+
+        await Assert.That(result).IsEmpty();
+
+        agesInlet.Add(new Person("Alice", 17));
+        await flow.FlushAsync();
+
+        await Assert.That(result.Count).IsEqualTo(1);
+        var alice = result.First();
+
+        await Assert.That(alice.IsAdult.Value).IsEqualTo(false);
+
+        agesInlet.Add(new ChangeSet<Person>([
+            new Change<Person>(new Person("Alice", 17), -1),
+            new Change<Person>(new Person("Alice", 18), 1)
+        ]));
+
+        await flow.FlushAsync();
+
+        await Assert.That(alice.IsAdult.Value).IsEqualTo(true);
+
+        agesInlet.Remove(new Person("Alice", 18));
+        await flow.FlushAsync();
+
+        await Assert.That(result).IsEmpty();
+    }
+
 }
 

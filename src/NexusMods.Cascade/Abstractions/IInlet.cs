@@ -19,4 +19,9 @@ public interface IInlet<T> where T : notnull
     /// Adds the given changes to the inlet, the delta is assumed to be the same for all values.
     /// </summary>
     void AddChanges(ReadOnlySpan<T> values, int delta);
+
+    /// <summary>
+    /// Add the given changes to the inlet.
+    /// </summary>
+    void Add(ChangeSet<T> changes);
 }

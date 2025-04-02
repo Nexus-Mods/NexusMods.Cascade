@@ -64,8 +64,27 @@ public class CollectionInlet<T> : IQuery<T> where T : notnull
                 writer.Add(delta, values);
                 self._state.Value = self._state.Value.Merge(writer.ToChangeSet());
                 writer.ForwardAll(self);
-                return 0;
             }, RefTuple.Create((this, delta), values));
         }
+
+        public void Add(ChangeSet<T> changes)
+        {
+            Runtime.DoSync(static state =>
+            {
+                var (self, changes) = state;
+                self._state.Value = self._state.Value.Merge(changes);
+                self.ForwardAll(changes);
+            }, RefTuple.Create(this, changes));
+
+        }
+
+        private void ForwardAll(ChangeSet<T> changes)
+        {
+            foreach (var (stage, index) in Outputs)
+            {
+                stage.AcceptChange(index, changes);
+            }
+        }
+
     }
 }
