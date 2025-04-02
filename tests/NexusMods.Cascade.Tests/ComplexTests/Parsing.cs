@@ -10,7 +10,7 @@ namespace NexusMods.Cascade.Tests.ComplexTests;
 
 public static class Parsing
 {
-    public const string SmallModlist = "SmallModList";
+    public const string SmallModlist = "SmallModlist";
 
     public static readonly IQuery<JToken> ParsedToken = from modList in Inlets.ModList
         let path = FileSystem.Shared.GetKnownPath(KnownPath.EntryDirectory) / "Resources" / (modList + ".json.gz")
