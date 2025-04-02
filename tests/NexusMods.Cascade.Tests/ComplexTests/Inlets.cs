@@ -1,17 +1,18 @@
-﻿using NexusMods.Paths;
+﻿using NexusMods.Cascade.Implementation;
+using NexusMods.Hashing.xxHash3;
+using NexusMods.Paths;
 
 namespace NexusMods.Cascade.Tests.ComplexTests;
 
+
 public static class Inlets
 {
-
-    /// <summary>
-    /// Inlet for the modlist path we'll be using in the tests
-    /// </summary>
-    public static readonly Inlet<TestFile> ModList = new();
+    public static readonly ValueInlet<string> ModList = new();
 
     /// <summary>
     /// Inlet for enabling or disabling mods
     /// </summary>
-    public static readonly Inlet<string> EnabledMods = new();
+    public static readonly CollectionInlet<string> EnabledMods = new();
+
+    public static readonly CollectionInlet<Hash> DownloadedArchives = new();
 }

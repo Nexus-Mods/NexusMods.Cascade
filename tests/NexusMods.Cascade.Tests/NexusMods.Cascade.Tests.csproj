@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Clarp" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="NexusMods.Hashing.xxHash3" />
@@ -19,17 +20,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\NexusMods.Cascade.SourceGenerator\NexusMods.Cascade.SourceGenerator.csproj" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\src\NexusMods.Cascade\NexusMods.Cascade.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Update="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Rows\" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Resources\SmallModlist.json.gz">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageVersion Update="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
   </ItemGroup>
 
 </Project>

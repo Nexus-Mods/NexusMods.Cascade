@@ -1,6 +1,6 @@
 ﻿namespace NexusMods.Cascade.Abstractions;
 
-public interface IQuery<T> : IStageDefinition<T>
+public interface IValueQuery<T> : IQuery<T>
 {
 
 }

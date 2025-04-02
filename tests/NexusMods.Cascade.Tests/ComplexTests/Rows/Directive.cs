@@ -1,10 +1,11 @@
 ﻿using Newtonsoft.Json.Linq;
+using NexusMods.Cascade.Abstractions;
 using NexusMods.Hashing.xxHash3;
 using NexusMods.Paths;
 
 namespace NexusMods.Cascade.Tests.ComplexTests.Rows;
 
-public record Directive(RelativePath To, Hash ArchiveHash, RelativePath? ArchivePath, Size Size, Hash Hash)
+public partial record struct Directive(RelativePath To, Hash ArchiveHash, RelativePath? ArchivePath, Size Size, Hash Hash) : IRowDefinition
 {
     public static Directive? Parse(JToken token)
     {

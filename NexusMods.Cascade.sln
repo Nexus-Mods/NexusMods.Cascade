@@ -28,6 +28,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusMods.Cascade", "src\Ne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusMods.Cascade.Tests", "tests\NexusMods.Cascade.Tests\NexusMods.Cascade.Tests.csproj", "{CD2CC009-1A10-4DA3-BBD0-E17217B22152}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{844AC345-09BE-436F-A97C-F685097F7676}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusMods.Cascade.Benchmarks", "benchmarks\NexusMods.Cascade.Benchmarks\NexusMods.Cascade.Benchmarks.csproj", "{CE06EC90-9B26-4C58-BDC8-496018A3FD15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusMods.Cascade.SourceGenerator", "src\NexusMods.Cascade.SourceGenerator\NexusMods.Cascade.SourceGenerator.csproj", "{15DDD50C-F169-418E-8193-723800365019}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +42,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{A92DED3D-BC67-4E04-9A06-9A1B302B3070} = {0377EBE6-F147-4233-86AD-32C821B9567E}
 		{CD2CC009-1A10-4DA3-BBD0-E17217B22152} = {6ED01F9D-5E12-4EB2-9601-64A2ADC719DE}
+		{CE06EC90-9B26-4C58-BDC8-496018A3FD15} = {844AC345-09BE-436F-A97C-F685097F7676}
+		{15DDD50C-F169-418E-8193-723800365019} = {0377EBE6-F147-4233-86AD-32C821B9567E}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A92DED3D-BC67-4E04-9A06-9A1B302B3070}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -46,5 +54,13 @@ Global
 		{CD2CC009-1A10-4DA3-BBD0-E17217B22152}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD2CC009-1A10-4DA3-BBD0-E17217B22152}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD2CC009-1A10-4DA3-BBD0-E17217B22152}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE06EC90-9B26-4C58-BDC8-496018A3FD15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE06EC90-9B26-4C58-BDC8-496018A3FD15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE06EC90-9B26-4C58-BDC8-496018A3FD15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE06EC90-9B26-4C58-BDC8-496018A3FD15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15DDD50C-F169-418E-8193-723800365019}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15DDD50C-F169-418E-8193-723800365019}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15DDD50C-F169-418E-8193-723800365019}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15DDD50C-F169-418E-8193-723800365019}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

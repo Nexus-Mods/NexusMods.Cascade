@@ -1,0 +1,91 @@
+@namespace NexusMods.Cascade.SourceGenerator
+@methodname RenderModel
+@model RowDefinitionAnalyzer
+@using System.Linq
+
+#nullable enable
+
+namespace {{= model.Namespace}};
+
+using global::System;
+using global::System.Linq;
+using global::System.Collections;
+using global::System.Collections.Generic;
+using global::R3;
+using global::NexusMods.Cascade.Abstractions;
+
+
+public partial record struct {{= model.Name}} : IRowDefinition<{{= model.PrimaryKey.Type}}>, IComparable<{{= model.Name}}>
+{
+    public {{= model.PrimaryKey.Type}} RowId => {{= model.PrimaryKey.Name}};
+
+    /// <summary>
+    /// Implicitly converts a tuple to a {{= model.Name}}
+    /// </summary>
+    public static implicit operator {{= model.Name}}(({{= model.PrimaryKey.Type}}, {{= string.Join(", ", model.Members.Select(m => m.Type))}}) tuple)
+    {
+        return new {{= model.Name}}(
+        tuple.Item1
+        {{each member in model.Members}}
+        ,tuple.Item{{= member.Index + 2}}
+        {{/each}}
+        );
+    }
+
+    public int CompareTo({{= model.Name}} other)
+    {
+        return RowId.CompareTo(other.RowId);
+    }
+
+
+    public sealed class Active : global::NexusMods.Cascade.Abstractions.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
+    {
+       public int DeltaCount { get; private set; } = 0;
+
+
+       public static IActiveRow<{{= model.Name}}, {{= model.PrimaryKey.Type}}> Create(in {{= model.Name}} seedData, int initialDelta)
+       {
+          return new Active(seedData) { DeltaCount = initialDelta };
+       }
+
+
+       public Active({{= model.Name}} seedData)
+       {
+          RowId = seedData.{{= model.PrimaryKey.Name}};
+          {{each member in model.Members}}
+            {{= member.Name}} = new global::R3.BindableReactiveProperty<{{= member.Type}}>(seedData.{{= member.Name}});
+          {{/each}}
+       }
+
+       public {{= model.PrimaryKey.Type}} RowId { get; }
+
+       public void MergeIn(in {{= model.Name}} newData, int delta)
+       {
+            DeltaCount += delta;
+         {{each member in model.Members}}
+           if (newData.{{= member.Name}} != {{= member.Name}}.Value) {
+             {{= member.Name}}.Value = newData.{{= member.Name}};
+           }
+         {{/each}}
+       }
+
+       public void Dispose()
+       {
+         {{each member in model.Members}}
+           {{= member.Name}}.Dispose();
+         {{/each}}
+       }
+
+       {{each member in model.Members}}
+        public readonly global::R3.BindableReactiveProperty<{{= member.Type}}> {{= member.Name}};
+       {{/each}}
+    }
+}
+
+public static class {{= model.Name}}QueryExtensions
+{
+    public static IQuery<{{= model.Name}}.Active> Observe(this IFlow flow, IQuery<{{= model.Name}}> query)
+    {
+        throw new NotImplementedException();
+    }
+}

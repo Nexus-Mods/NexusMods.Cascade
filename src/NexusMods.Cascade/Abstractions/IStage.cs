@@ -1,10 +1,29 @@
-﻿namespace NexusMods.Cascade.Abstractions;
+﻿using System;
+using System.Collections.Immutable;
+using NexusMods.Cascade.Collections;
+
+namespace NexusMods.Cascade.Abstractions;
 
 /// <summary>
 /// A instance of a stage in a flow
 /// </summary>
 public interface IStage
 {
+    /// <summary>
+    /// The stages connected to the inputs of this stage
+    /// </summary>
+    public ReadOnlySpan<IStage> Inputs { get; }
+
+    /// <summary>
+    /// The stages connected to the outputs of this stage
+    /// </summary>
+    public ReadOnlySpan<(IStage Stage, int Index)> Outputs { get; }
+
+    /// <summary>
+    /// Connect a stage to the output of this stage and tag it with the given index
+    /// </summary>
+    void ConnectOutput(IStage stage, int index);
+
     /// <summary>
     /// The definition stage this stage is based on.
     /// </summary>
@@ -13,20 +32,23 @@ public interface IStage
     /// <summary>
     /// The flow this stage is part of
     /// </summary>
-    public IFlowImpl Flow { get; }
+    public IFlow Flow { get; }
 
     /// <summary>
-    /// The output sets of this stage
+    /// Accept a change from the input stage at the given index.
     /// </summary>
-    public IChangeSet[] ChangeSets { get; }
+    public void AcceptChange<T>(int inputIndex, in ChangeSet<T> delta) where T : notnull;
 
     /// <summary>
-    /// Flow data into the stage from a previous stage into the given input index
+    /// Mark the given input index as complete. This will cause the stage to stop accepting changes from this input. Depending
+    /// on the logic of the stage, this may also cause the stage to stop accepting changes from all inputs and to shutdown.
     /// </summary>
-    public void AcceptChanges<T>(ChangeSet<T> outputSet, int inputIndex) where T : notnull;
+    /// <param name="inputIndex"></param>
+    public void Complete(int inputIndex);
+}
 
-    /// <summary>
-    /// Resets the temporary state of the outputs of the stage
-    /// </summary>
-    void ResetAllOutputs();
+
+public interface IStage<T> : IStage where T : notnull
+{
+    public void WriteCurrentValues(ref ChangeSetWriter<T> writer);
 }
