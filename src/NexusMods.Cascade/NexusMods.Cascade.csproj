@@ -9,9 +9,5 @@
       <PackageReference Include="R3" />
       <PackageReference Include="Reloaded.Memory" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="ValueTypes\" />
-    </ItemGroup>
 
 </Project>

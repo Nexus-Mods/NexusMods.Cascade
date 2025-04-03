@@ -28,14 +28,4 @@
     <PackageVersion Update="NexusMods.MnemonicDB.SourceGenerator" Version="0.9.98" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Rows\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Resources\SmallModlist.json.gz">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
