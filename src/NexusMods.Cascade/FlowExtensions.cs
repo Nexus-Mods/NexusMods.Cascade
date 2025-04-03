@@ -1,5 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Abstractions.Diffs;
+using NexusMods.Cascade.Implementation.Diffs;
 
 namespace NexusMods.Cascade;
 
@@ -13,6 +15,20 @@ public static class FlowExtensions
         {
             output = selector(input);
             return true;
+        }
+    }
+
+    public static IDiffFlow<TOut> Select<TIn, TOut>(this IDiffFlow<TIn> upstream, Func<TIn, TOut> selector)
+    {
+        return DiffFlow.Create<TIn, TOut>(upstream, SelectImpl);
+
+        void SelectImpl(in DiffSet<TIn> input, in DiffSetWriter<TOut> output)
+        {
+            foreach (var (value, delta) in input.AsSpan())
+            {
+                var selected = selector(value);
+                output.Add(selected, delta);
+            }
         }
     }
 
@@ -30,6 +46,21 @@ public static class FlowExtensions
 
             output = default!;
             return false;
+        }
+    }
+
+    public static IDiffFlow<T> Where<T>(this IDiffFlow<T> upstream, Func<T, bool> selector)
+    {
+        return DiffFlow.Create<T, T>(upstream, SelectImpl);
+
+        void SelectImpl(in DiffSet<T> input, in DiffSetWriter<T> output)
+        {
+            foreach (var (value, delta) in input.AsSpan())
+            {
+                if (!selector(value))
+                    continue;
+                output.Add(value, delta);
+            }
         }
     }
 }

@@ -1,0 +1,28 @@
+﻿using System;
+
+namespace NexusMods.Cascade.Abstractions.Diffs;
+
+public interface IDiffInlet<T> : IInlet<DiffSet<T>>
+{
+    /// <summary>
+    /// A rather inefficient way to get the values from the diff set, but exists mostly for testing and convenience.
+    /// </summary>
+    public T[] Values
+    {
+        get
+        {
+            var values = Value.AsSpan();
+            var result = GC.AllocateUninitializedArray<T>(values.Length);
+            for (var i = 0; i < values.Length; i++)
+            {
+                result[i] = values[i].Value;
+            }
+            return result;
+        }
+        set
+        {
+            var values = new DiffSet<T>(value);
+            Value = values;
+        }
+    }
+}

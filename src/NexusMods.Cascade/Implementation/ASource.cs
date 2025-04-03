@@ -8,7 +8,7 @@ namespace NexusMods.Cascade.Implementation;
 /// <summary>
 /// An abstract base class for a source of data. Handles the connection and disconnection of sinks.
 /// </summary>
-public abstract class ASource<T> : ISource<T>
+public abstract class ASource<T> : ISource<T> where T : allows ref struct
 {
     protected readonly TxArray<ISink<T>> Sinks = [];
 
@@ -19,6 +19,9 @@ public abstract class ASource<T> : ISource<T>
         return new Disposer(this, sink);
     }
 
+    /// <summary>
+    /// Sends the given value to all connected sinks.
+    /// </summary>
     protected void Forward(in T value)
     {
         foreach (var sink in Sinks)
@@ -27,6 +30,9 @@ public abstract class ASource<T> : ISource<T>
         }
     }
 
+    /// <summary>
+    /// Notifies all connected sinks that the source has completed.
+    /// </summary>
     protected void CompleteSinks()
     {
         foreach (var sink in Sinks)

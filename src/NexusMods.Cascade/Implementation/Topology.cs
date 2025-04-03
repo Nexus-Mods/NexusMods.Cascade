@@ -2,6 +2,8 @@
 using System.Data;
 using Clarp;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Abstractions.Diffs;
+using NexusMods.Cascade.Implementation.Diffs;
 using NexusMods.Cascade.TransactionalConnections;
 
 namespace NexusMods.Cascade.Implementation;
@@ -12,7 +14,7 @@ internal class Topology : ITopology
     private readonly TxDictionary<(ISource Source, Type Type), IOutlet> _outlets = new();
 
     /// <inheritdoc />
-    public ISource<T> Intern<T>(IFlow<T> flow)
+    public ISource<T> Intern<T>(IFlow<T> flow) where T : allows ref struct
     {
         return Runtime.DoSync(() =>
         {
@@ -46,6 +48,22 @@ internal class Topology : ITopology
             var outletImpl = (IOutlet)Intern(new Outlet<T>(flow));
             _outlets.Add((source, typeof(T)), outletImpl);
             return (IOutlet<T>)outletImpl;
+        });
+    }
+
+    public IDiffOutlet<T> Outlet<T>(IDiffFlow<T> flow)
+    {
+        return Runtime.DoSync(() =>
+        {
+            var source = Intern(flow);
+            if (_outlets.TryGetValue((source, typeof(DiffSet<T>)), out var outlet))
+            {
+                return (IDiffOutlet<T>)outlet;
+            }
+
+            var outletImpl = (IDiffOutlet<T>)Intern(new DiffOutlet<T>(flow));
+            _outlets.Add((source, typeof(DiffSet<T>)), outletImpl);
+            return outletImpl;
         });
     }
 }

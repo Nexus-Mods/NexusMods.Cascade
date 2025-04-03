@@ -14,7 +14,7 @@ public interface ISink
 /// <summary>
 /// A sink for data, most often handed to a source to receive data.
 /// </summary>
-public interface ISink<T> : ISink
+public interface ISink<T> : ISink where T : allows ref struct
 {
     /// <summary>
     /// Accepts a new value from the source. This method is called when the source has a new value to emit.

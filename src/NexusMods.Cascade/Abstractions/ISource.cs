@@ -11,7 +11,7 @@ public interface ISource
 /// A source of data.
 /// </summary>
 /// <typeparam name="T">The type of values this source emits</typeparam>
-public interface ISource<T> : ISource
+public interface ISource<T> : ISource where T : allows ref struct
 {
     /// <summary>
     /// Connects a sink to this source. A disposable is returned

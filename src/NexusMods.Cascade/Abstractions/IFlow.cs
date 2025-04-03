@@ -11,7 +11,7 @@ public interface IFlow
 
 }
 
-public interface IFlow<T> : IFlow
+public interface IFlow<T> : IFlow where T : allows ref struct
 {
     /// <summary>
     /// Create a new source for this flow, connecting the source to the given topology.

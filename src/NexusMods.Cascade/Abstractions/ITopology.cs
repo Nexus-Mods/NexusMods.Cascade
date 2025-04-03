@@ -1,5 +1,7 @@
 ﻿using System;
+using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation;
+using NexusMods.Cascade.Implementation.Diffs;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -13,9 +15,11 @@ public interface ITopology
     /// Adds a flow to this topology. If the flow is already added, the same source will be returned, otherwise the
     /// source will be created using the flow as a template
     /// </summary>
-    ISource<T> Intern<T>(IFlow<T> flow);
+    ISource<T> Intern<T>(IFlow<T> flow) where T : allows ref struct;
 
     IInlet<T> Intern<T>(Inlet<T> inlet) => (IInlet<T>)Intern((IFlow<T>)inlet);
+
+    IDiffInlet<T> Intern<T>(DiffInlet<T> inlet) => (IDiffInlet<T>)Intern<DiffSet<T>>(inlet);
 
     /// <summary>
     /// Enqueue an effect to be executed when the topology has finished processing. Use this to execute effects
@@ -31,5 +35,7 @@ public interface ITopology
     /// <summary>
     /// Get an outlet for a flow. This will implicity add the flow to the topology if it is not already added.
     /// </summary>
-    IOutlet<T> Outlet<T>(IFlow<T> squared);
+    IOutlet<T> Outlet<T>(IFlow<T> flow);
+
+    IDiffOutlet<T> Outlet<T>(IDiffFlow<T> flow);
 }
