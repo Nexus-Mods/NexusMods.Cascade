@@ -21,19 +21,11 @@ public readonly struct Diff<T> : IComparable<Diff<T>>
 
     public int CompareTo(Diff<T> other)
     {
-        var cmp = GlobalCompare(Value, other.Value);
+        var cmp = GlobalCompare.Compare(Value, other.Value);
         if (cmp != 0)
             return cmp;
         return Delta.CompareTo(other.Delta);
 
     }
 
-    private static int GlobalCompare(T a, T b)
-    {
-        if (a is IComparable<T> comparableA)
-        {
-            return comparableA.CompareTo(b);
-        }
-        throw new NotImplementedException("GlobalCompare is not implemented for this type.");
-    }
 }

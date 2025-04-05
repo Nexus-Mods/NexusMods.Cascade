@@ -14,8 +14,7 @@ public interface ISource
 public interface ISource<T> : ISource where T : allows ref struct
 {
     /// <summary>
-    /// Connects a sink to this source. A disposable is returned
-    /// that can be used to disconnect the sink from the source.
+    /// Connects a sink to this source. A disposable is returned that can be used to disconnect the sink from the source.
     /// </summary>
     IDisposable Connect(ISink<T> sink);
 
