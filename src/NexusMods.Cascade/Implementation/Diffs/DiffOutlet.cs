@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Abstractions.Diffs;

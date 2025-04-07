@@ -3,6 +3,8 @@ using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation;
 using NexusMods.Cascade.Implementation.Diffs;
 using TUnit.Assertions.Enums;
+using System.Reactive;
+using System.Reactive.Linq;
 
 namespace NexusMods.Cascade.Tests;
 
@@ -33,6 +35,24 @@ public class BasicTests
         inlet.Value = 0;
         await Assert.That(outlet.Value).IsEqualTo(0);
 
+    }
+
+    [Test]
+    public async Task CanObserveOutlet()
+    {
+        var t = ITopology.Create();
+
+        var inlet = t.Intern(Int);
+        var outlet = (IObservableOutlet<int>)t.Outlet(SquaredInt);
+
+        var lst = new List<int>();
+
+        using var _ = outlet.Subscribe(x => lst.Add(x));
+
+        inlet.Value = 2;
+        await t.FlushAsync();
+
+        await Assert.That(lst).IsEquivalentTo([0, 4]);
     }
 
     private static readonly DiffInlet<int> Ints = new();

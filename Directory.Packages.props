@@ -14,6 +14,7 @@
     <PackageVersion Include="ObservableCollections" Version="3.3.3" />
     <PackageVersion Include="R3" Version="1.3.0" />
     <PackageVersion Include="Reloaded.Memory" Version="9.4.2" />
+    <PackageVersion Include="System.Reactive" Version="6.0.1" />
     <PackageVersion Include="TransparentValueObjects" Version="1.0.2" />
     <PackageVersion Include="TUnit" Version="0.6.59" />
     <PackageVersion Include="Weave" Version="2.1.0" />

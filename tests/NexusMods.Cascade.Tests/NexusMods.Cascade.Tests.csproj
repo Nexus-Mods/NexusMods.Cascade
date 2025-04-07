@@ -15,6 +15,7 @@
     <PackageReference Include="NexusMods.MnemonicDB" />
     <PackageReference Include="NexusMods.MnemonicDB.Abstractions" />
     <PackageReference Include="NexusMods.Paths" />
+    <PackageReference Include="System.Reactive" />
     <PackageReference Include="TUnit" />
     <PackageReference Include="NexusMods.MnemonicDB.SourceGenerator" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

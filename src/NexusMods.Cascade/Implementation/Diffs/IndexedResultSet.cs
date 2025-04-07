@@ -27,11 +27,11 @@ public class IndexedResultSet<TKey, TValue>
         {
             var span = _value.Value.AsSpan();
 
-            int start = LowerBound(span, key);
+            var start = LowerBound(span, key);
             if (start == span.Length || GlobalCompare.Compare(span[start].Key, key) != 0)
                 return ReadOnlySpan<KeyedDiff<TKey, TValue>>.Empty;
 
-            int end = UpperBound(span, key, start);
+            var end = UpperBound(span, key, start);
             var length = end - start;
 
             return span.Slice(start, length);

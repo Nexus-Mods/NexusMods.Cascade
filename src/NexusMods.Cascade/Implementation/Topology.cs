@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Data;
+using System.Threading.Tasks;
 using Clarp;
+using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation.Diffs;
@@ -12,6 +13,7 @@ internal class Topology : ITopology
 {
     private readonly TxDictionary<IFlow, ISource> _flows = new();
     private readonly TxDictionary<(ISource Source, Type Type), IOutlet> _outlets = new();
+    private readonly Agent<object> _effectQueue = new();
 
     /// <inheritdoc />
     public ISource<T> Intern<T>(IFlow<T> flow) where T : allows ref struct
@@ -31,7 +33,19 @@ internal class Topology : ITopology
 
     public void EnqueueEffect<TState>(Action<TState> effect, TState state)
     {
-        throw new RowNotInTableException();
+        _effectQueue.Send(o =>
+        {
+            effect.Invoke(state);
+            return o;
+        });
+    }
+
+    public Task FlushAsync()
+    {
+        // Since all effects are enqueued on the same thread, we can just add a task and wait for it to complete.
+        var tcs = new TaskCompletionSource();
+        EnqueueEffect(static tcs => tcs.SetResult(), tcs);
+        return tcs.Task;
     }
 
 
