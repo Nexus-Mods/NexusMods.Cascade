@@ -1,4 +1,5 @@
-﻿using Clarp;
+﻿using System;
+using Clarp;
 using Clarp.Concurrency;
 using Clarp.Utils;
 using NexusMods.Cascade.Abstractions;
@@ -44,6 +45,21 @@ public class DiffInlet<T> : IDiffFlow<T>
 
                 }, RefTuple.Create(this, value));
             }
+        }
+
+        public void Update(ReadOnlySpan<T> values, int delta = 1)
+        {
+            var writer = new DiffSetWriter<T>();
+            foreach (var value in values)
+                writer.Add(value, delta);
+            writer.Build(out var outputSet);
+
+            Runtime.DoSync(static t =>
+            {
+                var (self, deltas) = t;
+                self._value.Merge(deltas);
+                self.Forward(deltas);
+            }, RefTuple.Create(this, outputSet));
         }
     }
 }

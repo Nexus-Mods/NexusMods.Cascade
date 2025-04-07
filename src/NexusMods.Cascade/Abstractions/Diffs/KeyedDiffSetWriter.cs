@@ -89,4 +89,10 @@ public struct KeyedDiffSetWriter<TKey, TValue>
     {
         _diffs.AddRange(diffs);
     }
+
+    public void Add<TSource>(TSource source) where TSource : IEnumerable<KeyedDiff<TKey, TValue>>
+    {
+        foreach (var itm in source)
+            _diffs.Add(itm);
+    }
 }

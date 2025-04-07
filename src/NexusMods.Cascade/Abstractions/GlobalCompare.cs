@@ -13,7 +13,21 @@ public sealed class GlobalCompare
         {
             return comparableA.CompareTo(b);
         }
-        throw new NotImplementedException("GlobalCompare is not implemented for this type.");
+        return FallbackCompare(a!, b!);
+    }
+
+    private static int FallbackCompare<T>(T a, T b)
+    {
+        if (ReferenceEquals(a, b))
+            return 0;
+
+        var hashA = a?.GetHashCode() ?? 0;
+        var hashB = b?.GetHashCode() ?? 0;
+        var cmp = hashA.CompareTo(hashB);
+        if (cmp != 0)
+            return cmp;
+
+        throw new InvalidOperationException("GlobalCompare is not implemented for this type.");
     }
 }
 

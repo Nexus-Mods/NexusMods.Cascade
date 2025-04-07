@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Abstractions.Diffs;
@@ -73,6 +74,16 @@ public class IndexedResultSet<TKey, TValue>
         var writer = new KeyedDiffSetWriter<TKey, TValue>();
         writer.Add(_value.Value);
         writer.Add(changes.AsSpan());
+
+        writer.Build(out var outputSet);
+        _value.Value = outputSet.AsSpan().ToArray();
+    }
+
+    public void Merge<TSource>(in TSource source) where TSource : IEnumerable<KeyedDiff<TKey, TValue>>
+    {
+        var writer = new KeyedDiffSetWriter<TKey, TValue>();
+        writer.Add(_value.Value);
+        writer.Add(source);
 
         writer.Build(out var outputSet);
         _value.Value = outputSet.AsSpan().ToArray();

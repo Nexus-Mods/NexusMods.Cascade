@@ -34,7 +34,15 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
 
     public int CompareTo({{= model.Name}} other)
     {
-        return RowId.CompareTo(other.RowId);
+        var cmp = GlobalCompare.Compare(RowId, other.RowId);
+        if (cmp != 0)
+          return cmp;
+
+        {{each member in model.Members}}
+        cmp = GlobalCompare.Compare({{= member.Name}}, other.{{= member.Name}});
+        if (cmp != 0) return cmp;
+        {{/each}}
+        return 0;
     }
 
 
@@ -79,13 +87,5 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
        {{each member in model.Members}}
         public readonly global::R3.BindableReactiveProperty<{{= member.Type}}> {{= member.Name}};
        {{/each}}
-    }
-}
-
-public static class {{= model.Name}}QueryExtensions
-{
-    public static IQuery<{{= model.Name}}.Active> Observe(this IFlow flow, IQuery<{{= model.Name}}> query)
-    {
-        throw new NotImplementedException();
     }
 }
