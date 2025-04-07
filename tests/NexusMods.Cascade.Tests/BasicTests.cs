@@ -107,4 +107,25 @@ public class BasicTests
         await Assert.That(outlet.Values)
             .IsEquivalentTo([(2, 2), (3, 3)], CollectionOrdering.Any);
     }
+
+    [Test]
+    public async Task CanObserveDiffsOutlets()
+    {
+        var t = ITopology.Create();
+        var inlet = t.Intern(Ints);
+        var outlet = (IObservableDiffOutlet<int>)t.Outlet(SquaredInts);
+
+
+        await Assert.That(outlet.Count).IsEqualTo(0);
+
+        inlet.Values = [2, 4];
+
+        await t.FlushAsync();
+
+        await Assert.That(outlet.Count).IsEqualTo(2);
+
+        await Assert.That(outlet).IsEquivalentTo([4, 16], CollectionOrdering.Any);
+
+
+    }
 }
