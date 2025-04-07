@@ -22,12 +22,12 @@ public class DiffOutlet<T>(IDiffFlow<T> upstream) : IDiffFlow<T>
         return outlet;
     }
 
-    private class DiffOutletImpl : ASource<DiffSet<T>>, IDiffSink<T>, IDiffOutlet<T>, IObservableDiffOutlet<T>
+    internal class DiffOutletImpl : ASource<DiffSet<T>>, IDiffSink<T>, IDiffOutlet<T>, IObservableDiffOutlet<T>
     {
         private static readonly PropertyChangedEventArgs _countChanged = new(nameof(Count));
         private readonly ResultSet<T> _resultSet;
         internal readonly Ref<IDisposable> UpstreamDisposable = new();
-        private readonly IDiffSource<T> _upstream;
+        private readonly IDiffSource<T>? _upstream;
         private readonly ITopology _topology;
         private int _count = 0;
 
@@ -36,6 +36,13 @@ public class DiffOutlet<T>(IDiffFlow<T> upstream) : IDiffFlow<T>
             _topology = topology;
             _upstream = source;
             _resultSet = new(source.Current);
+        }
+
+
+        public DiffOutletImpl(ITopology topology, ReadOnlySpan<Diff<T>> initialValue)
+        {
+            _topology = topology;
+            _resultSet = new(new DiffSet<T>(initialValue));
         }
 
         public override DiffSet<T> Current => _resultSet.AsDiffSet();
@@ -146,6 +153,11 @@ public class DiffOutlet<T>(IDiffFlow<T> upstream) : IDiffFlow<T>
             => _resultSet.SetEquals(other);
 
         #endregion
+
+        public IDiffOutlet<T> Get<TKey>(Func<T, TKey> keySelector, TKey key)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }

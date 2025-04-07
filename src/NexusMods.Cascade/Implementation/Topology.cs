@@ -11,7 +11,11 @@ namespace NexusMods.Cascade.Implementation;
 
 internal class Topology : ITopology
 {
-    private readonly TxDictionary<IFlow, ISource> _flows = new();
+    /// <summary>
+    /// Mapping of flows to sources would be a IFlow -> ISource mapping, but some things like
+    /// indexed flows are not strictly flows or sources, but we still store them here.
+    /// </summary>
+    private readonly TxDictionary<object, object> _flows = new();
     private readonly TxDictionary<(ISource Source, Type Type), IOutlet> _outlets = new();
     private readonly Agent<object> _effectQueue = new();
 
@@ -79,5 +83,23 @@ internal class Topology : ITopology
             _outlets.Add((source, typeof(DiffSet<T>)), outletImpl);
             return outletImpl;
         });
+    }
+
+    public IIndexedDiffOutlet<TKey, TValue> Outlet<TKey, TValue>(IIndexedDiffFlow<TKey, TValue> flow)
+    {
+        return Runtime.DoSync(() =>
+        {
+            if (_flows.TryGetValue(flow, out var source))
+            {
+                return (IIndexedDiffOutlet<TKey, TValue>)source;
+            }
+
+            var newSource = flow.ConstructIn(this);
+            _flows.Add(flow, newSource);
+            return (IIndexedDiffOutlet<TKey, TValue>)newSource;
+
+
+        });
+
     }
 }

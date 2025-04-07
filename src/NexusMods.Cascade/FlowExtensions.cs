@@ -107,6 +107,12 @@ public static class FlowExtensions
         });
     }
 
+    public static IIndexedDiffFlow<TKey, TValue> IndexedBy<TValue, TKey>(this IDiffFlow<TValue> upstream,
+        Func<TValue, TKey> keySelector) where TKey : notnull
+    {
+        return new IndexedDiffFlow<TKey, TValue>(upstream, keySelector);
+    }
+
     #region Join
 
 

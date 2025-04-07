@@ -58,5 +58,10 @@ public interface ITopology
     /// Get an outlet for a flow. This will implicity add the flow to the topology if it is not already added.
     /// </summary>
     IDiffOutlet<T> Outlet<T>(IDiffFlow<T> flow);
+
+    /// <summary>
+    /// Gets a indexed outlet for a indexed flow.
+    /// </summary>
+    IIndexedDiffOutlet<TKey, TValue> Outlet<TKey, TValue>(IIndexedDiffFlow<TKey, TValue> flow);
 }
 

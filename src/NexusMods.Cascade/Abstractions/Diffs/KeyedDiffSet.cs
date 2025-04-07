@@ -29,4 +29,52 @@ public readonly ref struct KeyedDiffSet<TKey, TValue>
     }
 
     public ReadOnlySpan<KeyedDiff<TKey, TValue>> AsSpan() => _diffs;
+
+
+    public KeyedDiffSet<TKey, TValue> this[TKey key]
+    {
+        get
+        {
+            var span = _diffs;
+
+            var start = LowerBound(span, key);
+            if (start == span.Length || GlobalCompare.Compare(span[start].Key, key) != 0)
+                return Empty;
+
+            var end = UpperBound(span, key, start);
+            var length = end - start;
+
+            return new KeyedDiffSet<TKey, TValue>(span.Slice(start, length));
+        }
+    }
+
+    private int LowerBound(ReadOnlySpan<KeyedDiff<TKey, TValue>> span, TKey key)
+    {
+        int left = 0, right = span.Length;
+        while (left < right)
+        {
+            int mid = left + (right - left) / 2;
+            if (GlobalCompare.Compare(span[mid].Key, key) < 0)
+                left = mid + 1;
+            else
+                right = mid;
+        }
+
+        return left;
+    }
+
+    private int UpperBound(ReadOnlySpan<KeyedDiff<TKey, TValue>> span, TKey key, int lowerBound)
+    {
+        int left = lowerBound, right = span.Length;
+        while (left < right)
+        {
+            int mid = left + (right - left) / 2;
+            if (GlobalCompare.Compare(span[mid].Key, key) <= 0)
+                left = mid + 1;
+            else
+                right = mid;
+        }
+
+        return left;
+    }
 }
