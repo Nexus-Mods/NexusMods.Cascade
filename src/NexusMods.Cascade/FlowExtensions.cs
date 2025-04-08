@@ -4,6 +4,7 @@ using System.Linq;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation.Diffs;
+using NexusMods.Cascade.TransactionalConnections;
 
 namespace NexusMods.Cascade;
 
@@ -102,6 +103,49 @@ public static class FlowExtensions
                 {
                     var group = groups[key];
                     output.Add(new Grouping<TKey, T>(key, group.ToArray()), 1);
+                }
+            }
+        });
+    }
+
+    public static IDiffFlow<TActive> ToActive<TActive, TBase, TKey>(this IDiffFlow<TBase> upstream)
+      where TActive : IActiveRow<TBase, TKey>
+      where TBase : IRowDefinition<TKey>
+      where TKey : notnull
+    {
+        return DiffFlow.Create<TBase, TActive>(upstream, src =>
+        {
+            var state = new TxDictionary<TKey, TActive>();
+
+            return DiffFlow.CreateUnary<TBase, TActive>(src, ToActiveImpl);
+
+            void ToActiveImpl(in DiffSet<TBase> input, in DiffSetWriter<TActive> output)
+            {
+                var toCheck = new HashSet<TActive>();
+
+                foreach (var (value, delta) in input.AsSpan())
+                {
+                    if (state.TryGetValue(value.RowId, out var active))
+                    {
+                        active.Update(value, delta);
+                    }
+                    else
+                    {
+                        active = (TActive)TActive.Create(value, delta);
+                        output.Add(active, 1);
+                        state.Add(active.RowId, active);
+                        toCheck.Add(active);
+                    }
+                }
+
+                foreach (var row in toCheck)
+                {
+                    // TODO: do a ToComplete on the row
+                    if (row._Delta == 0)
+                    {
+                        state.Remove(row.RowId);
+                        output.Add(row, -1);
+                    }
                 }
             }
         });

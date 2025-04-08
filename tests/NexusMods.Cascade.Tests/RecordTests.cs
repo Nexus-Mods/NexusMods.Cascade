@@ -94,4 +94,34 @@ public class RecordTests
         ], CollectionOrdering.Any);
     }
 
+    [Test]
+    public async Task CanUseActiveRows()
+    {
+        var t = ITopology.Create();
+        var inlet = t.Intern(CityTemp);
+
+        var outlet = t.Outlet(AverageCityTemp.ToActive());
+
+        await Assert.That(outlet.Values).IsEmpty();
+
+        inlet.Update([
+            new CityInfo("London", "EU", 1, 10, 1000000)
+        ]);
+
+        var city = outlet.Values.First();
+
+        await Assert.That(city.Timestamp).IsEqualTo(1);
+        await Assert.That(city.RowId).IsEqualTo("London");
+
+        inlet.Update([
+            new Diff<CityInfo>(new CityInfo("London", "EU", 2, 15, 1000010), 1),
+            new Diff<CityInfo>(new CityInfo("London", "EU", 1, 10, 1000000), -1)
+        ]);
+
+        await Assert.That(outlet.Values.First().Timestamp).IsEqualTo(2);
+        await Assert.That(outlet.Values.First().RowId).IsEqualTo("London");
+
+
+    }
+
 }

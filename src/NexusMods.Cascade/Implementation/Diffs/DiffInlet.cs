@@ -52,6 +52,11 @@ public class DiffInlet<T> : IDiffFlow<T>
             var writer = new DiffSetWriter<T>();
             foreach (var value in values)
                 writer.Add(value, delta);
+            ApplyUpdate(ref writer);
+        }
+
+        private void ApplyUpdate(ref DiffSetWriter<T> writer)
+        {
             writer.Build(out var outputSet);
 
             Runtime.DoSync(static t =>
@@ -60,6 +65,13 @@ public class DiffInlet<T> : IDiffFlow<T>
                 self._value.Merge(deltas);
                 self.Forward(deltas);
             }, RefTuple.Create(this, outputSet));
+        }
+
+        public void Update(ReadOnlySpan<Diff<T>> diffs)
+        {
+            var writer = new DiffSetWriter<T>();
+            writer.Add(diffs);
+            ApplyUpdate(ref writer);
         }
     }
 }

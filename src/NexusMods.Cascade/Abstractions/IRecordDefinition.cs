@@ -10,4 +10,7 @@ public interface IRowDefinition;
 /// A row that has a given type as the primary key, this interface is added by the source generator, so
 /// use the non-generic version in user code.
 /// </summary>
-public interface IRowDefinition<TKey> : IRowDefinition;
+public interface IRowDefinition<TKey> : IRowDefinition
+{
+    public TKey RowId { get; }
+}

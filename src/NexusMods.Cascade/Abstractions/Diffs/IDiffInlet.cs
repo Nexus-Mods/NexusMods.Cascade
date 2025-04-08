@@ -30,4 +30,6 @@ public interface IDiffInlet<T> : IInlet<DiffSet<T>>
     /// Adds new values to the inlet, assumes a delta of 1 if not specified.
     /// </summary>
     void Update(ReadOnlySpan<T> values, int delta = 1);
+
+    void Update(ReadOnlySpan<Diff<T>> diffs);
 }
