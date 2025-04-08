@@ -10,23 +10,18 @@ namespace NexusMods.Cascade.Benchmarks;
 [MemoryDiagnoser]
 public class LowLevelBenchmarks
 {
-    private IFlow _flow = null!;
+    private ITopology _flow = null!;
     private IInlet<int> _inlet = null!;
-    private ICollectionOutlet<int> _outlet = null!;
-    private int _lastVal;
-    private static readonly CollectionInlet<int> BasicInlet = new();
-    private static readonly CollectionOutlet<int> BasicOutlet = new(BasicInlet);
+    private IOutlet<int> _outlet = null!;
+    private static readonly Inlet<int> BasicInlet = new();
+    private static readonly Outlet<int> BasicOutlet = new(BasicInlet);
 
     [IterationSetup]
     public void GlobalSetup()
     {
-        _flow = IFlow.Create();
-
-
-        _inlet = _flow.Get(BasicInlet);
-        _outlet = (ICollectionOutlet<int>)_flow.AddStage(BasicOutlet);
-        _inlet.Add(0);
-        _lastVal = 0;
+        _flow = ITopology.Create();
+        _inlet = _flow.Intern(BasicInlet);
+        _outlet = _flow.Outlet(BasicOutlet);
     }
 
     [Benchmark]
@@ -34,13 +29,11 @@ public class LowLevelBenchmarks
     {
         return Runtime.DoSync(() =>
         {
-            for (int i = 0; i < 1000; i++)
+            for (var i = 0; i < 1000; i++)
             {
-                _inlet.Remove(_lastVal);
-                _lastVal++;
-                _inlet.Add(_lastVal);
+                _inlet.Value = i;
             }
-            return _outlet.Values.First();
+            return _outlet.Value;
         });
     }
 }

@@ -1,207 +1,135 @@
 ﻿using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation;
-using NexusMods.Cascade.Implementation.Omega;
-using R3;
+using NexusMods.Cascade.Implementation.Diffs;
 using TUnit.Assertions.Enums;
+using System.Reactive;
+using System.Reactive.Linq;
 
 namespace NexusMods.Cascade.Tests;
 
-public readonly partial record struct Person(string Name, int Age) : IRowDefinition;
-
-public readonly partial record struct PersonScore(string Name, int Score) : IRowDefinition;
-
-public readonly partial record struct PersonAgeScore(string Name, int Age, int Score) : IRowDefinition;
-
-public readonly partial record struct AdultStatus(string Name, bool IsAdult) : IRowDefinition;
-
 public class BasicTests
 {
-    private static readonly CollectionInlet<Person> NamesAndAges = new();
+    private static readonly Inlet<int> Int = new();
 
-    private static readonly IQuery<AdultStatus> IsAdult =
-        from person in NamesAndAges
-        select new AdultStatus(person.Name, person.Age >= 18);
+    private static readonly IFlow<int> SquaredInt = Int
+        .Select(x => x * x);
 
     [Test]
     public async Task CanSelectValues()
     {
-        var flow = IFlow.Create();
+        var t = ITopology.Create();
 
-        var instance = flow.Get(NamesAndAges);
+        var inlet = t.Intern(Int);
 
-        instance.Add(new Person("Alice", 17));
+        var outlet = t.Outlet(SquaredInt);
 
-        var isAdult = flow.QueryAll(IsAdult);
+        await Assert.That(outlet.Value).IsEqualTo(0);
 
-        await Assert.That(isAdult.ToArray()).IsEquivalentTo([new AdultStatus("Alice", false)]);
+        inlet.Value = 2;
+        await Assert.That(outlet.Value).IsEqualTo(4);
 
-        instance.Add(new Person("Bob", 18));
+        inlet.Value = 3;
+        await Assert.That(outlet.Value).IsEqualTo(9);
 
-        isAdult = flow.QueryAll(IsAdult);
+        inlet.Value = 0;
+        await Assert.That(outlet.Value).IsEqualTo(0);
 
-        await Assert.That(isAdult.ToArray()).IsEquivalentTo([new AdultStatus("Alice", false), new AdultStatus("Bob", true)], CollectionOrdering.Any);
-    }
-
-
-    private static readonly CollectionInlet<PersonScore> NamesAndScores = new();
-
-    private static readonly IQuery<PersonAgeScore> NamesAgesScores =
-        from person in NamesAndAges
-        join score in NamesAndScores on person.Name equals score.Name
-        select new PersonAgeScore(person.Name, person.Age, score.Score);
-
-    [Test]
-    public async Task CanPerformAInnerJoin()
-    {
-        var flow = IFlow.Create();
-
-        var agesInlet = flow.Get(NamesAndAges);
-
-        agesInlet.Add(new Person("Alice", 17));
-
-        var result = flow.QueryAll(NamesAgesScores);
-
-        await Assert.That(result).IsEmpty();
-
-        var scoresInlet = flow.Get(NamesAndScores);
-
-        scoresInlet.Add(new PersonScore("Alice", 100));
-
-        result = flow.QueryAll(NamesAgesScores);
-
-        await Assert.That(result).IsEquivalentTo([new PersonAgeScore("Alice", 17, 100)]);
-
-
-        agesInlet.Add(new Person("Bob", 18));
-        scoresInlet.Add(new PersonScore("Bob", 100));
-
-        result = flow.QueryAll(NamesAgesScores);
-
-        await Assert.That(result).IsEquivalentTo([new PersonAgeScore("Alice", 17, 100), new PersonAgeScore("Bob", 18, 100)], CollectionOrdering.Any);
-
-        agesInlet.Remove(new Person("Alice", 17));
-
-        result = flow.QueryAll(NamesAgesScores);
-
-        await Assert.That(result).IsEquivalentTo([new PersonAgeScore("Bob", 18, 100)], CollectionOrdering.Any);
-    }
-
-    private static readonly ValueInlet<int> Counter = new();
-
-    private static readonly IQuery<int> CounterSquared =
-        from count in Counter
-        select count * count;
-
-
-    [Test]
-    public async Task CanSelectValueFromValueInlet()
-    {
-        var flow = IFlow.Create();
-
-        var counter = flow.Get(Counter);
-
-        counter.Value = 2;
-
-        var result = flow.QueryOne(CounterSquared);
-
-        await Assert.That(result).IsEqualTo(4);
-
-        counter.Value = 3;
-        result = flow.QueryOne(CounterSquared);
-        await Assert.That(result).IsEqualTo(9);
-
-        counter.Value = 0;
-        result = flow.QueryOne(CounterSquared);
-        await Assert.That(result).IsEqualTo(0);
     }
 
     [Test]
-    public async Task CanUseObservablesWithInlet()
+    public async Task CanObserveOutlet()
     {
-        var flow = IFlow.Create();
+        var t = ITopology.Create();
 
-        var counter = flow.Get(Counter);
+        var inlet = t.Intern(Int);
+        var outlet = (IObservableOutlet<int>)t.Outlet(SquaredInt);
 
-        var result = flow.Observe(CounterSquared);
+        var lst = new List<int>();
 
-        var resultList = new List<int>();
+        using var _ = outlet.Subscribe(x => lst.Add(x));
 
-        using var d = result.Do(v => resultList.Add(v)).Subscribe();
 
-        counter.Value = 2;
-        await flow.FlushAsync();
-        await Assert.That(resultList).IsEquivalentTo([0, 4]);
+        // Small race coding here, but we're just testing that it works for now
+        await Task.Delay(100);
 
-        counter.Value = 3;
-        await flow.FlushAsync();
-        await Assert.That(resultList).IsEquivalentTo([0, 4, 9]);
+        inlet.Value = 2;
+        await t.FlushAsync();
 
-        counter.Value = 0;
-        await flow.FlushAsync();
-        await Assert.That(resultList).IsEquivalentTo([0, 4, 9, 0]);
+        await Assert.That(lst).IsEquivalentTo([0, 4]);
+    }
+
+    private static readonly DiffInlet<int> Ints = new();
+
+    private static readonly IDiffFlow<int> SquaredInts = Ints
+        .Select(x => x * x);
+
+    [Test]
+    public async Task CanSelectDiffs()
+    {
+        var t = ITopology.Create();
+
+        var inlet = t.Intern(Ints);
+
+        var outlet = t.Outlet(SquaredInts);
+
+        await Assert.That(outlet.Values).IsEquivalentTo(Array.Empty<int>(), CollectionOrdering.Any);
+
+        inlet.Values = [2, 4];
+        await Assert.That(outlet.Values).IsEquivalentTo([4, 16], CollectionOrdering.Any);
+
+        inlet.Values = [3, 9];
+        await Assert.That(outlet.Values).IsEquivalentTo([9, 81], CollectionOrdering.Any);
+
+        inlet.Values = [3, 0];
+        await Assert.That(outlet.Values).IsEquivalentTo([9, 0], CollectionOrdering.Any);
     }
 
     [Test]
-    public async Task CanObserveCollectionResults()
+    public async Task CanJoinDiffs()
     {
-        var flow = IFlow.Create();
+        var aVals = new DiffInlet<int>();
+        var bVals = new DiffInlet<int>();
 
-        var agesInlet = flow.Get(NamesAndAges);
+        var t = ITopology.Create();
 
-        var result = flow.ObserveAll(IsAdult);
+        var aInlet = t.Intern(aVals);
+        var bInlet = t.Intern(bVals);
 
-        await Assert.That(result).IsEmpty();
+        var query = from a in aVals
+                     join b in bVals on a equals b
+                     select (a, b);
 
-        agesInlet.Add(new Person("Alice", 17));
+        var outlet = t.Outlet(query);
 
-        await flow.FlushAsync();
-        await Assert.That(result).IsEquivalentTo([new AdultStatus("Alice", false)]);
+        await Assert.That(outlet.Values)
+            .IsEquivalentTo(Array.Empty<(int, int)>(), CollectionOrdering.Any);
 
-        agesInlet.Add(new Person("Bob", 18));
+        aInlet.Values = [1, 2, 3];
+        bInlet.Values = [3, 2];
 
-        await flow.FlushAsync();
-        await Assert.That(result).IsEquivalentTo([new AdultStatus("Alice", false), new AdultStatus("Bob", true)], CollectionOrdering.Any);
-
-        agesInlet.Remove(new Person("Alice", 17));
-
-        await flow.FlushAsync();
-        await Assert.That(result).IsEquivalentTo([new AdultStatus("Bob", true)], CollectionOrdering.Any);
+        await Assert.That(outlet.Values)
+            .IsEquivalentTo([(2, 2), (3, 3)], CollectionOrdering.Any);
     }
 
     [Test]
-    public async Task CanConvertToActiveRow()
+    public async Task CanObserveDiffsOutlets()
     {
-        var flow = IFlow.Create();
+        var t = ITopology.Create();
+        var inlet = t.Intern(Ints);
+        var outlet = (IObservableDiffOutlet<int>)t.Outlet(SquaredInts);
 
-        var agesInlet = flow.Get(NamesAndAges);
 
-        var result = flow.ObserveAll(IsAdult.ToActive<string, AdultStatus, AdultStatus.Active>());
+        await Assert.That(outlet.Count).IsEqualTo(0);
 
-        await Assert.That(result).IsEmpty();
+        inlet.Values = [2, 4];
 
-        agesInlet.Add(new Person("Alice", 17));
-        await flow.FlushAsync();
+        await t.FlushAsync();
 
-        await Assert.That(result.Count).IsEqualTo(1);
-        var alice = result.First();
+        await Assert.That(outlet.Count).IsEqualTo(2);
 
-        await Assert.That(alice.IsAdult.Value).IsEqualTo(false);
+        await Assert.That(outlet).IsEquivalentTo([4, 16], CollectionOrdering.Any);
 
-        agesInlet.Add(new ChangeSet<Person>([
-            new Change<Person>(new Person("Alice", 17), -1),
-            new Change<Person>(new Person("Alice", 18), 1)
-        ]));
 
-        await flow.FlushAsync();
-
-        await Assert.That(alice.IsAdult.Value).IsEqualTo(true);
-
-        agesInlet.Remove(new Person("Alice", 18));
-        await flow.FlushAsync();
-
-        await Assert.That(result).IsEmpty();
     }
-
 }
-
