@@ -132,4 +132,23 @@ public class BasicTests
 
 
     }
+
+    [Test]
+    public async Task EachAndPrevious()
+    {
+        var t = ITopology.Create();
+        var inlet = t.Intern(Int);
+
+        var outlet = t.Outlet(Int.EachAndPrevious());
+
+        await Assert.That(outlet.Value).IsEqualTo((0, 0));
+
+        inlet.Value = 2;
+
+        await Assert.That(outlet.Value).IsEqualTo((0, 2));
+
+        inlet.Value = 3;
+
+        await Assert.That(outlet.Value).IsEqualTo((2, 3));
+    }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation.Diffs;
@@ -64,6 +65,21 @@ public static class FlowExtensions
                     continue;
                 output.Add(value, delta);
             }
+        }
+    }
+
+    public static IFlow<(T? Prev, T Current)> EachAndPrevious<T>(this IFlow<T> upstream)
+    {
+        var prevState = new Ref<T?>(default!);
+        return Flow.Create<T, (T? Prev, T Current)>(upstream,
+            source => source.CreateSource<T, (T? Prev, T Current)>(EachAndPreviousImpl));
+
+        bool EachAndPreviousImpl(in T input, out (T? Prev, T Current) output)
+        {
+            var prev = prevState.Value;
+            prevState.Value = input;
+            output = (prev, input);
+            return true;
         }
     }
 

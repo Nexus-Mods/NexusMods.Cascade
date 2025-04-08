@@ -18,6 +18,9 @@ public static class Flow
         return new UnaryFlow<TIn, TOut>(upstream, ctorFn);
     }
 
+    public static ISource<TOut> CreateSource<TIn, TOut>(this ISource<TIn> input, UnaryFlowFn<TIn, TOut> stepFn)
+        => new UnarySource<TIn,TOut>(input, stepFn);
+
 }
 
 internal class UnaryFlow<TIn, TOut>(IFlow<TIn> upstream, Func<ISource<TIn>, ISource<TOut>> ctorFn) : IFlow<TOut>
@@ -30,18 +33,51 @@ internal class UnaryFlow<TIn, TOut>(IFlow<TIn> upstream, Func<ISource<TIn>, ISou
     }
 }
 
+internal class UnarySource<TIn, TOut> : ASource<TOut>, ISink<TIn>
+{
+    private readonly ISource<TIn> _upstream;
+    private readonly Flow.UnaryFlowFn<TIn, TOut> _stepFn;
+
+    public UnarySource(ISource<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn)
+    {
+        _upstream = upstream;
+        _upstream.Connect(this);
+        _stepFn = stepFn;
+    }
+
+    public override TOut Current
+    {
+        get
+        {
+            if (_stepFn(_upstream.Current, out var result))
+                return result;
+            return default!;
+        }
+    }
+    public void OnNext(in TIn value)
+    {
+        if (_stepFn(_upstream.Current, out var result))
+            Forward(result);
+    }
+
+    public void OnCompleted()
+    {
+        CompleteSinks();
+    }
+}
+
 internal class UnaryFlowStateless<TIn, TOut>(IFlow<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn) : IFlow<TOut>
 {
     public ISource<TOut> ConstructIn(ITopology topology)
     {
         var upstreamSource = topology.Intern(upstream);
-        var source = new UnarySource<TIn, TOut>(topology, upstreamSource, stepFn);
+        var source = new UnarySourceStateless<TIn, TOut>(topology, upstreamSource, stepFn);
         upstreamSource.Connect(source);
         return source;
     }
 }
 
-internal class UnarySource<TIn, TOut>(ITopology topology, ISource<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn) : ASource<TOut>, ISink<TIn>
+internal class UnarySourceStateless<TIn, TOut>(ITopology topology, ISource<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn) : ASource<TOut>, ISink<TIn>
 {
     public void OnNext(in TIn value)
     {
