@@ -145,6 +145,7 @@ public class BasicTests
 
         inlet.Value = 2;
 
+
         await Assert.That(outlet.Value).IsEqualTo((0, 2));
 
         inlet.Value = 3;

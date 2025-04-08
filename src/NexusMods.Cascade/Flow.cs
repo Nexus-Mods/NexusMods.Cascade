@@ -1,5 +1,6 @@
 ﻿using System;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Abstractions.Diffs;
 using NexusMods.Cascade.Implementation;
 
 namespace NexusMods.Cascade;
@@ -65,6 +66,7 @@ internal class UnarySource<TIn, TOut> : ASource<TOut>, ISink<TIn>
         CompleteSinks();
     }
 }
+
 
 internal class UnaryFlowStateless<TIn, TOut>(IFlow<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn) : IFlow<TOut>
 {
