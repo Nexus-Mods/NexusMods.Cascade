@@ -8,13 +8,29 @@ public static class Flow
 {
     public delegate bool UnaryFlowFn<TIn, TOut>(in TIn input, out TOut output);
 
-    public static IFlow<TOut> Create<TIn, TOut>(IFlow<TIn> upstream, UnaryFlowFn<TIn, TOut> fn)
+    public static IFlow<TOut> CreateNoState<TIn, TOut>(IFlow<TIn> upstream, UnaryFlowFn<TIn, TOut> fn)
     {
-        return new UnaryFlow<TIn, TOut>(upstream, fn);
+        return new UnaryFlowStateless<TIn, TOut>(upstream, fn);
+    }
+
+    public static IFlow<TOut> Create<TIn, TOut>(IFlow<TIn> upstream, Func<ISource<TIn>, ISource<TOut>> ctorFn)
+    {
+        return new UnaryFlow<TIn, TOut>(upstream, ctorFn);
+    }
+
+}
+
+internal class UnaryFlow<TIn, TOut>(IFlow<TIn> upstream, Func<ISource<TIn>, ISource<TOut>> ctorFn) : IFlow<TOut>
+{
+    public ISource<TOut> ConstructIn(ITopology topology)
+    {
+        var upstreamSource = topology.Intern(upstream);
+        var source = ctorFn(upstreamSource);
+        return source;
     }
 }
 
-internal class UnaryFlow<TIn, TOut>(IFlow<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn) : IFlow<TOut>
+internal class UnaryFlowStateless<TIn, TOut>(IFlow<TIn> upstream, Flow.UnaryFlowFn<TIn, TOut> stepFn) : IFlow<TOut>
 {
     public ISource<TOut> ConstructIn(ITopology topology)
     {

@@ -12,7 +12,7 @@ public static class FlowExtensions
 {
     public static IFlow<TOut> Select<TIn, TOut>(this IFlow<TIn> upstream, Func<TIn, TOut> selector)
     {
-        return Flow.Create<TIn, TOut>(upstream, SelectImpl);
+        return Flow.CreateNoState<TIn, TOut>(upstream, SelectImpl);
 
         bool SelectImpl(in TIn input, out TOut output)
         {
@@ -37,7 +37,7 @@ public static class FlowExtensions
 
     public static IFlow<T> Where<T>(this IFlow<T> upstream, Func<T, bool> predicate)
     {
-        return Flow.Create<T, T>(upstream, WhereImpl);
+        return Flow.CreateNoState<T, T>(upstream, WhereImpl);
 
         bool WhereImpl(in T input, out T output)
         {
