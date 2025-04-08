@@ -49,6 +49,10 @@ public class BasicTests
 
         using var _ = outlet.Subscribe(x => lst.Add(x));
 
+
+        // Small race coding here, but we're just testing that it works for now
+        await Task.Delay(100);
+
         inlet.Value = 2;
         await t.FlushAsync();
 
