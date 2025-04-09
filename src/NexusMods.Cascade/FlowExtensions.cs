@@ -167,7 +167,9 @@ public static class FlowExtensions
             (left, right) =>
             {
                 var leftState = new IndexedResultSet<TKey, TLeft>();
+                leftState.Merge(left.Current.AsSpan(), leftKeySelector);
                 var rightState = new IndexedResultSet<TKey, TRight>();
+                rightState.Merge(right.Current.AsSpan(), rightKeySelector);
 
                 return DiffFlow.CreateJoin<TLeft, TRight, TResult>(left, right, LeftImpl, RightImpl, InitializeImpl);
 

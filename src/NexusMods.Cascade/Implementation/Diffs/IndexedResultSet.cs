@@ -79,11 +79,21 @@ public class IndexedResultSet<TKey, TValue>
         _value.Value = outputSet.AsSpan().ToArray();
     }
 
-    public void Merge<TSource>(in TSource source) where TSource : IEnumerable<KeyedDiff<TKey, TValue>>
+    public void Merge<TSource>(in TSource source) where TSource : IEnumerable<KeyedDiff<TKey, TValue>>, allows ref struct
     {
         var writer = new KeyedDiffSetWriter<TKey, TValue>();
         writer.Add(_value.Value);
         writer.Add(source);
+
+        writer.Build(out var outputSet);
+        _value.Value = outputSet.AsSpan().ToArray();
+    }
+
+    public void Merge(in ReadOnlySpan<Diff<TValue>> source, Func<TValue, TKey> keyFn)
+    {
+        var writer = new KeyedDiffSetWriter<TKey, TValue>();
+        writer.Add(_value.Value);
+        writer.Add(in source, keyFn);
 
         writer.Build(out var outputSet);
         _value.Value = outputSet.AsSpan().ToArray();

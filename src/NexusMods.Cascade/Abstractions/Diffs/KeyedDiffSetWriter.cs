@@ -90,9 +90,15 @@ public struct KeyedDiffSetWriter<TKey, TValue>
         _diffs.AddRange(diffs);
     }
 
-    public void Add<TSource>(TSource source) where TSource : IEnumerable<KeyedDiff<TKey, TValue>>
+    public void Add<TSource>(TSource source) where TSource : IEnumerable<KeyedDiff<TKey, TValue>>, allows ref struct
     {
         foreach (var itm in source)
             _diffs.Add(itm);
+    }
+
+    public void Add(in ReadOnlySpan<Diff<TValue>> source, Func<TValue, TKey> keyFn)
+    {
+        foreach (var (value, diff) in source)
+            _diffs.Add(new KeyedDiff<TKey, TValue>(keyFn(value), new Diff<TValue>(value, diff)));
     }
 }
