@@ -67,6 +67,11 @@ public static class FlowExtensions
         }
     }
 
+    public static IDiffFlow<T> Recursive<T>(this IDiffFlow<T> primary,
+        Func<IDiffFlow<T>, IDiffFlow<T>> feedback) =>
+        new Recursive<T>(primary, feedback);
+
+
     public static IDiffFlow<IGrouping<TKey, T>> GroupBy<T, TKey>(this IDiffFlow<T> upstream, Func<T, TKey> keySelector)
     {
         return DiffFlow.Create<T, IGrouping<TKey, T>>(upstream, src =>

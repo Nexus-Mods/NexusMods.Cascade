@@ -31,5 +31,15 @@ public interface IDiffInlet<T> : IInlet<DiffSet<T>>
     /// </summary>
     void Update(ReadOnlySpan<T> values, int delta = 1);
 
+    void Update(params ReadOnlySpan<(T, int)> values)
+    {
+        var set = GC.AllocateUninitializedArray<Diff<T>>(values.Length);
+        for (var i = 0; i < values.Length; i++)
+        {
+            set[i] = new Diff<T>(values[i].Item1, values[i].Item2);
+        }
+        Update(set);
+    }
+
     void Update(ReadOnlySpan<Diff<T>> diffs);
 }
