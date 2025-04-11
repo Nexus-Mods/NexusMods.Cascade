@@ -1,6 +1,4 @@
-﻿using NexusMods.Cascade.Implementation;
-
-namespace NexusMods.Cascade.Abstractions;
+﻿namespace NexusMods.Cascade.Abstractions;
 
 /// <summary>
 /// A definition of a set of sources and sinks. This is created separately from sources as sinks as normally
@@ -8,13 +6,16 @@ namespace NexusMods.Cascade.Abstractions;
 /// </summary>
 public interface IFlow
 {
-
+    public FlowDescription Description { get; }
 }
 
-public interface IFlow<T> : IFlow where T : allows ref struct
+public interface IFlow<T> : IFlow
 {
-    /// <summary>
-    /// Create a new source for this flow, connecting the source to the given topology.
-    /// </summary>
-    ISource<T> ConstructIn(ITopology topology);
+}
+
+/// <summary>
+/// A diff flow is a flow that emits diffsets instead of scalar values
+/// </summary>
+public interface IDiffFlow<T> : IFlow<IDiffSet<T>> where T : notnull {
+
 }

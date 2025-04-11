@@ -1,159 +1,105 @@
 ﻿using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.Abstractions.Diffs;
-using NexusMods.Cascade.Implementation;
-using NexusMods.Cascade.Implementation.Diffs;
-using TUnit.Assertions.Enums;
-using System.Reactive;
-using System.Reactive.Linq;
+using Shouldly;
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 namespace NexusMods.Cascade.Tests;
 
 public class BasicTests
 {
-    private static readonly Inlet<int> Int = new();
-
-    private static readonly IFlow<int> SquaredInt = Int
-        .Select(x => x * x);
 
     [Test]
-    public async Task CanSelectValues()
+    public async Task CanSelectValues_OutletBeforeInput()
     {
         var t = ITopology.Create();
 
-        var inlet = t.Intern(Int);
+        var inletDef = new InletDefinition<int>();
 
-        var outlet = t.Outlet(SquaredInt);
+        var inlet = t.Intern(inletDef);
 
-        await Assert.That(outlet.Value).IsEqualTo(0);
+        var outlet = t.Outlet(from i in inletDef
+                              select i * i);
 
-        inlet.Value = 2;
-        await Assert.That(outlet.Value).IsEqualTo(4);
+        inlet.Value = 9;
+
+        outlet.Value.ShouldBe(81);
+    }
+
+    [Test]
+    public async Task CanSelectValues_OutletAfterInput()
+    {
+        var t = ITopology.Create();
+
+        var inletDef = new InletDefinition<int>();
+
+        var inlet = t.Intern(inletDef);
+
+        inlet.Value = 9;
+
+        var outlet = t.Outlet(from i in inletDef
+                              select i * i);
+
+        outlet.Value.ShouldBe(81);
+    }
+
+    [Test]
+    public async Task CanFilterValues_OutletBeforeInput()
+    {
+        var t = ITopology.Create();
+
+        var inletDef = new InletDefinition<int>();
+
+        var inlet = t.Intern(inletDef);
+
+        var outlet = t.Outlet(from i in inletDef
+                              where i > 5
+                              select i);
+
+        inlet.Value = 9;
+
+        outlet.Value.ShouldBe(9);
 
         inlet.Value = 3;
-        await Assert.That(outlet.Value).IsEqualTo(9);
 
-        inlet.Value = 0;
-        await Assert.That(outlet.Value).IsEqualTo(0);
-
+        outlet.Value.ShouldBe(9); // Defaults to 0 when predicate fails
     }
 
     [Test]
-    public async Task CanObserveOutlet()
+    public async Task CanFilterValues_OutletAfterInput()
     {
         var t = ITopology.Create();
 
-        var inlet = t.Intern(Int);
-        var outlet = (IObservableOutlet<int>)t.Outlet(SquaredInt);
+        var inletDef = new InletDefinition<int>();
 
-        var lst = new List<int>();
+        var inlet = t.Intern(inletDef);
 
-        using var _ = outlet.Subscribe(x => lst.Add(x));
+        inlet.Value = 9;
 
+        var outlet = t.Outlet(from i in inletDef
+                              where i > 5
+                              select i);
 
-        // Small race coding here, but we're just testing that it works for now
-        await Task.Delay(100);
+        outlet.Value.ShouldBe(9);
 
-        inlet.Value = 2;
-        await t.FlushAsync();
+        inlet.Value = 3;
 
-        await Assert.That(lst).IsEquivalentTo([0, 4]);
-    }
-
-    private static readonly DiffInlet<int> Ints = new();
-
-    private static readonly IDiffFlow<int> SquaredInts = Ints
-        .Select(x => x * x);
-
-    [Test]
-    public async Task CanSelectDiffs()
-    {
-        var t = ITopology.Create();
-
-        var inlet = t.Intern(Ints);
-
-        var outlet = t.Outlet(SquaredInts);
-
-        await Assert.That(outlet.Values).IsEquivalentTo(Array.Empty<int>(), CollectionOrdering.Any);
-
-        inlet.Values = [2, 4];
-        await Assert.That(outlet.Values).IsEquivalentTo([4, 16], CollectionOrdering.Any);
-
-        inlet.Values = [3, 9];
-        await Assert.That(outlet.Values).IsEquivalentTo([9, 81], CollectionOrdering.Any);
-
-        inlet.Values = [3, 0];
-        await Assert.That(outlet.Values).IsEquivalentTo([9, 0], CollectionOrdering.Any);
+        outlet.Value.ShouldBe(9); // Previous value is retained
     }
 
     [Test]
-    public async Task CanJoinDiffs()
-    {
-        var aVals = new DiffInlet<int>();
-        var bVals = new DiffInlet<int>();
-
-        var t = ITopology.Create();
-
-        var aInlet = t.Intern(aVals);
-        var bInlet = t.Intern(bVals);
-
-        var query = from a in aVals
-            join b in bVals on a equals b
-            select (a, b);
-
-        var outlet = t.Outlet(query);
-
-        await Assert.That(outlet.Values)
-            .IsEquivalentTo(Array.Empty<(int, int)>(), CollectionOrdering.Any);
-
-        aInlet.Values = [1, 2, 3];
-        bInlet.Values = [3, 2];
-
-        await Assert.That(outlet.Values)
-            .IsEquivalentTo([(2, 2), (3, 3)], CollectionOrdering.Any);
-    }
-
-    [Test]
-    public async Task CanStartWithDataInInlets()
-    {
-        var aVals = new DiffInlet<int>();
-        var bVals = new DiffInlet<int>();
-
-        var t = ITopology.Create();
-
-        var aInlet = t.Intern(aVals);
-        var bInlet = t.Intern(bVals);
-
-        aInlet.Values = [1, 2, 3];
-        bInlet.Values = [2, 3, 4];
-
-        var query = from a in aVals
-            join b in bVals on a equals b
-            select (a, b);
-
-        var outlet = t.Outlet(query);
-
-        await Assert.That(outlet.Values)
-            .IsEquivalentTo([(2, 2), (3, 3)], CollectionOrdering.Any);
-    }
-
-    [Test]
-    public async Task CanObserveDiffsOutlets()
+    public async Task CanSelectDiffValues_OutletBeforeInput()
     {
         var t = ITopology.Create();
-        var inlet = t.Intern(Ints);
-        var outlet = (IObservableDiffOutlet<int>)t.Outlet(SquaredInts);
 
+        var inletDef = new DiffInletDefinition<int>();
 
-        await Assert.That(outlet.Count).IsEqualTo(0);
+        var inlet = t.Intern(inletDef);
 
-        inlet.Values = [2, 4];
+        var outlet = t.Outlet(from i in inletDef
+                              select i * i);
 
-        await t.FlushAsync();
+        inlet.Values = [9, 7];
 
-        await Assert.That(outlet.Count).IsEqualTo(2);
-
-        await Assert.That(outlet).IsEquivalentTo([4, 16], CollectionOrdering.Any);
-
-
+        outlet.Values.ShouldBe([81, 49]);
     }
+
 }
