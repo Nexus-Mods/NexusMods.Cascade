@@ -1,8 +1,10 @@
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace NexusMods.Cascade.Abstractions;
 
-public class DiffOutlet<T> where T : notnull
+public class DiffOutlet<T> : IReadOnlySet<T> where T : notnull
 {
     private readonly NodeRef _nodeRef;
 
@@ -10,8 +12,7 @@ public class DiffOutlet<T> where T : notnull
     {
         _nodeRef = node;
     }
-
-    public IEnumerable<T> Values => ((ResultSet<T>)_nodeRef.Value.UserState!).Values;
+    private IImmutableDictionary<T, int> CurrentState => ((ResultSet<T>)_nodeRef.Value.UserState!).Dictionary;
 
     public static FlowDescription MakeFlow(FlowDescription upstream)
     {
@@ -32,4 +33,44 @@ public class DiffOutlet<T> where T : notnull
         return (newNode, null);
     }
 
+    public IEnumerator<T> GetEnumerator() => CurrentState.Keys.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public int Count => CurrentState.Count;
+    public bool Contains(T item)
+        => CurrentState.ContainsKey(item);
+
+    public bool IsProperSubsetOf(IEnumerable<T> other)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<T> other)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public bool IsSubsetOf(IEnumerable<T> other)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public bool IsSupersetOf(IEnumerable<T> other)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public bool Overlaps(IEnumerable<T> other)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public bool SetEquals(IEnumerable<T> other)
+    {
+        throw new System.NotImplementedException();
+    }
 }

@@ -1,5 +1,7 @@
 ﻿using NexusMods.Cascade.Abstractions;
 using Shouldly;
+using TUnit.Assertions.Enums;
+
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 namespace NexusMods.Cascade.Tests;
@@ -99,7 +101,7 @@ public class BasicTests
 
         inlet.Values = [9, 7];
 
-        outlet.Values.ShouldBe([81, 49]);
+        await Assert.That(outlet).IsEquivalentTo([81, 49], CollectionOrdering.Any);
     }
 
 }

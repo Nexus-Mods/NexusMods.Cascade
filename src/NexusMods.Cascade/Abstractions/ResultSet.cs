@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 
 namespace NexusMods.Cascade.Abstractions;
 
@@ -81,5 +82,7 @@ public class ResultSet<T> : IDiffSet<T>
     {
         return GetEnumerator();
     }
+
+    public IImmutableDictionary<T, int> Dictionary => _state;
 
 }
