@@ -56,6 +56,14 @@ internal class Topology : ITopology
                 return nodeRef;
             var constructed = self.Construct(flow);
             self._nodes[flow] = constructed;
+
+            // We need to backflow into the node if it has a state function
+            if (constructed.Value.Flow.StateFn is not null && constructed.Value.Upstream.Length > 0)
+            {
+                var newState = self.BackflowInto(constructed);
+                constructed.Value = newState;
+            }
+
             return constructed;
         }, (this, flow));
     }
@@ -145,7 +153,7 @@ internal class Topology : ITopology
                 continue;
 
             // If we have a stateFn, then we are a base node
-            if (thisNode.Value.Flow.StateFn != null)
+            if (thisNode.Value.Flow.StateFn != null && thisNode != outletRef)
                 baseNodes.Add(thisNode);
 
             foreach (var upstream in thisNode.Value.Upstream)

@@ -84,5 +84,25 @@ public class ResultSet<T> : IDiffSet<T>
     }
 
     public IImmutableDictionary<T, int> Dictionary => _state;
+    public bool IsEmpty => _state.IsEmpty;
 
+    public ResultSet<T> Add(T value, int delta)
+    {
+        if (_state.TryGetValue(value, out var currentDelta))
+        {
+            var newDelta = currentDelta + delta;
+            if (newDelta != 0)
+            {
+                return new ResultSet<T>(_state.SetItem(value, newDelta));
+            }
+            else
+            {
+                return new ResultSet<T>(_state.Remove(value));
+            }
+        }
+        else
+        {
+            return new ResultSet<T>(_state.Add(value, delta));
+        }
+    }
 }
