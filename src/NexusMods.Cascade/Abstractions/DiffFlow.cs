@@ -1,6 +1,6 @@
 namespace NexusMods.Cascade.Abstractions;
 
-public readonly record struct DiffFlow<T>
+public readonly record struct DiffFlow<T> : IDiffFlow<T> where T : notnull
 {
     public DiffFlow(FlowDescription description)
     {

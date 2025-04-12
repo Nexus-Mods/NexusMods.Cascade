@@ -20,6 +20,7 @@ public record FlowDescription
     public FlowDescription[] UpstreamFlows { get; init; } = [];
 
     public Node.ReducerFn[] Reducers { get; init; } = [];
+    public Action<ITopology, NodeRef>? PostCreateFn { get; init; }
 
     public override string ToString()
     {

@@ -48,9 +48,9 @@ public class ResultSet<T> : IDiffSet<T>
     /// Merges the changeset into the current state, duplicate items will have their deltas summed, and
     /// any values resulting in a delta of 0 will be removed.
     /// </summary>
-    public ResultSet<T> MergeIn(DiffSet<T> other)
+    public ResultSet<T> MergeIn(IEnumerable<Diff<T>> other)
     {
-        var builder = ImmutableDictionary.CreateBuilder<T, int>();
+        var builder = _state.ToBuilder();
         foreach (var (value, delta) in other)
         {
             if (_state.TryGetValue(value, out var currentDelta))

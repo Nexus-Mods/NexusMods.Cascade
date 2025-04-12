@@ -28,7 +28,7 @@ public class DiffOutlet<T> : IReadOnlySet<T> where T : notnull
     private static (Node, object?) ReducerFn(Node node, int tag, object value)
     {
         var oldState = (ResultSet<T>)node.UserState!;
-        var newState = oldState.MergeIn((DiffSet<T>)value);
+        var newState = oldState.MergeIn((IEnumerable<Diff<T>>)value);
         var newNode = node with { UserState = newState };
         return (newNode, null);
     }

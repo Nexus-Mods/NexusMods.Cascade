@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade;
@@ -195,6 +198,39 @@ public static class FlowExtensions
                 }
             }
             return emittedResults;
+        }
+    }
+
+    public static DiffFlow<T> Recursive<T>(this IDiffFlow<T> upstream, Func<DiffFlow<T>, DiffFlow<T>> recurFn,
+        [CallerArgumentExpression(nameof(recurFn))] string expr = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+        where T : notnull
+    {
+        var flow = new FlowDescription
+        {
+            DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
+            UpstreamFlows = [upstream.Description],
+            Reducers = [IdentityImpl, IdentityImpl],
+            PostCreateFn = (topo, node) =>
+            {
+                var recurFlow = recurFn(new DiffFlow<T>(node.Value.Flow));
+                var recurNode = topo.Intern(recurFlow.Description);
+                recurNode.Connect(node, 0);
+                node.Value = node.Value with { Upstream = node.Value.Upstream };
+            }
+        };
+
+        return flow;
+
+        (Node, object?) IdentityImpl(Node state, int tag, object input)
+        {
+            var diffSet = (IEnumerable<Diff<T>>)input;
+            if (!diffSet.Any())
+            {
+                return (state, null);
+            }
+            return (state, input);
         }
 
     }

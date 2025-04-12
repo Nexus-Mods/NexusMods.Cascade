@@ -56,6 +56,7 @@ internal class Topology : ITopology
                 return nodeRef;
             var constructed = self.Construct(flow);
             self._nodes[flow] = constructed;
+            constructed.Value.Flow.PostCreateFn?.Invoke(self, constructed);
 
             // We need to backflow into the node if it has a state function
             if (constructed.Value.Flow.StateFn is not null && constructed.Value.Upstream.Length > 0)
