@@ -217,7 +217,10 @@ public static class FlowExtensions
                 var recurFlow = recurFn(new DiffFlow<T>(node.Value.Flow));
                 var recurNode = topo.Intern(recurFlow.Description);
                 recurNode.Connect(node, 0);
-                node.Value = node.Value with { Upstream = node.Value.Upstream };
+                var newUpstream = GC.AllocateUninitializedArray<NodeRef>(node.Value.Upstream.Length + 1);
+                Array.Copy(node.Value.Upstream, 0, newUpstream, 0, node.Value.Upstream.Length);
+                newUpstream[^1] = recurNode;
+                node.Value = node.Value with { Upstream = newUpstream };
             }
         };
 
