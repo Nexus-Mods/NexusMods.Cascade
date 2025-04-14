@@ -114,7 +114,7 @@ internal class Topology : ITopology
         }, (this, flow));
     }
 
-    public DiffOutlet<T> Outlet<T>(DiffFlow<T> flow) where T : notnull
+    public DiffOutlet<T> Outlet<T>(IDiffFlow<T> flow) where T : notnull
     {
         return Runtime.DoSync(static s =>
         {
@@ -128,8 +128,9 @@ internal class Topology : ITopology
             var outletRef = self.Intern(outletDefinition);
             var newState = self.BackflowInto(outletRef);
             outletRef.Value = newState;
-            self._outlets[key] = outletRef;
-            return new DiffOutlet<T>(outletRef);
+            var returnOutlet = new DiffOutlet<T>(outletRef);
+            self._outlets[key] = returnOutlet;
+            return returnOutlet;
         }, (this, flow));
     }
 
