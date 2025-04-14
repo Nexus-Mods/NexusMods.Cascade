@@ -155,7 +155,10 @@ internal class Topology : ITopology
 
             // If we have a stateFn, then we are a base node
             if (thisNode.Value.Flow.StateFn != null && thisNode != outletRef)
+            {
                 baseNodes.Add(thisNode);
+                continue;
+            }
 
             foreach (var upstream in thisNode.Value.Upstream)
             {

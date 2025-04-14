@@ -1,4 +1,5 @@
 ﻿using NexusMods.Cascade.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace NexusMods.Cascade.Tests;
 
@@ -35,16 +36,19 @@ public class GroupJoinTests
 
         var groupJoined = from stooge in leftInlet
             join score in rightInlet on stooge.Id equals score.Id into scores
-            select new
-            {
-                stooge,
-                scores,
-            };
+            select (stooge.Id, stooge.Name, scores.Count());
 
         var outlet = t.Outlet(groupJoined);
 
 
-        await Assert.That(outlet.Count).IsEquivalentTo(0);
+        await Assert.That(outlet.Count).IsEquivalentTo(3);
+
+        await Assert.That(outlet).IsEquivalentTo(
+            [
+                (1, "Larry", 3),
+                (2, "Moe", 3),
+                (3, "Curly", 0),
+            ], CollectionOrdering.Any);
 
 
     }
