@@ -6,7 +6,7 @@
 /// </summary>
 public interface IFlow
 {
-    public FlowDescription Description { get; }
+    public FlowDescription AsFlow();
 }
 
 public interface IFlow<T> : IFlow
@@ -16,6 +16,7 @@ public interface IFlow<T> : IFlow
 /// <summary>
 /// A diff flow is a flow that emits diffsets instead of scalar values
 /// </summary>
-public interface IDiffFlow<T> : IFlow<IDiffSet<T>> where T : notnull {
-
+public interface IDiffFlow<T>
+{
+    public FlowDescription AsFlow();
 }

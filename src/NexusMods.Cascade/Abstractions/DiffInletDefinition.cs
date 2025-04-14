@@ -30,5 +30,5 @@ public class DiffInletDefinition<T> : IDiffFlow<T> where T : notnull
         };
     }
 
-    public FlowDescription Description => _description;
+    public FlowDescription AsFlow() => _description;
 }

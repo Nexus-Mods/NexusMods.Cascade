@@ -19,7 +19,7 @@ public static class FlowExtensions
         return new FlowDescription
         {
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
-            UpstreamFlows = [upstream.Description],
+            UpstreamFlows = [upstream.AsFlow()],
             Reducers = [SelectImpl]
         };
 
@@ -29,6 +29,7 @@ public static class FlowExtensions
         }
     }
 
+    [OverloadResolutionPriority(1)]
     public static DiffFlow<TOut> Select<TIn, TOut>(this IDiffFlow<TIn> upstream, Func<TIn, TOut> selector,
         [CallerArgumentExpression(nameof(selector))]
         string expr = "",
@@ -40,7 +41,7 @@ public static class FlowExtensions
         return new FlowDescription
         {
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
-            UpstreamFlows = [upstream.Description],
+            UpstreamFlows = [upstream.AsFlow()],
             Reducers = [SelectImpl]
         };
 
@@ -65,7 +66,7 @@ public static class FlowExtensions
         return new FlowDescription
         {
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
-            UpstreamFlows = [upstream.Description],
+            UpstreamFlows = [upstream.AsFlow()],
             Reducers = [WhereImpl]
         };
 
@@ -75,6 +76,7 @@ public static class FlowExtensions
         }
     }
 
+    [OverloadResolutionPriority(1)]
     public static DiffFlow<T> Where<T>(this IDiffFlow<T> upstream, Func<T, bool> predicate,
         [CallerArgumentExpression(nameof(predicate))] string expr = "",
         [CallerFilePath] string filePath = "",
@@ -84,7 +86,7 @@ public static class FlowExtensions
         return new FlowDescription
         {
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
-            UpstreamFlows = [upstream.Description],
+            UpstreamFlows = [upstream.AsFlow()],
             Reducers = [WhereImpl]
         };
 
@@ -119,7 +121,7 @@ public static class FlowExtensions
         return new FlowDescription
         {
             DebugInfo = DebugInfo.Create(resultExpr, filePath, lineNumber),
-            UpstreamFlows = [left.Description, right.Description],
+            UpstreamFlows = [left.AsFlow(), right.AsFlow()],
             Reducers = [LeftImpl, RightImpl],
             InitFn = InitImpl,
             StateFn = StateImpl,
@@ -211,12 +213,12 @@ public static class FlowExtensions
         var flow = new FlowDescription
         {
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
-            UpstreamFlows = [upstream.Description],
+            UpstreamFlows = [upstream.AsFlow()],
             Reducers = [IdentityImpl, IdentityImpl],
             PostCreateFn = (topo, node) =>
             {
                 var recurFlow = recurFn(new DiffFlow<T>(node.Value.Flow));
-                var recurNode = topo.Intern(recurFlow.Description);
+                var recurNode = topo.Intern(recurFlow.AsFlow());
                 recurNode.Connect(node, 0);
                 var newUpstream = GC.AllocateUninitializedArray<NodeRef>(node.Value.Upstream.Length + 1);
                 Array.Copy(node.Value.Upstream, 0, newUpstream, 0, node.Value.Upstream.Length);
@@ -256,7 +258,7 @@ public static class FlowExtensions
         var flow = new FlowDescription
         {
             DebugInfo = DebugInfo.Create(resultExpr, filePath, lineNumber),
-            UpstreamFlows = [left.Description, right.Description],
+            UpstreamFlows = [left.AsFlow(), right.AsFlow()],
             Reducers = [LeftImpl, RightImpl],
             InitFn = InitImpl,
             StateFn = StateImpl,

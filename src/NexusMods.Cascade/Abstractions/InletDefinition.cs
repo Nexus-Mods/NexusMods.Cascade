@@ -30,6 +30,6 @@ public class InletDefinition<T> : IFlow<T> where T : notnull
         };
     }
 
-    public FlowDescription Description => _description;
+    public FlowDescription AsFlow() => _description;
 }
 

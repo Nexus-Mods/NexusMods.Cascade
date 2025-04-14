@@ -11,17 +11,16 @@ namespace NexusMods.Cascade.Benchmarks;
 public class LowLevelBenchmarks
 {
     private ITopology _flow = null!;
-    private IInlet<int> _inlet = null!;
-    private IOutlet<int> _outlet = null!;
-    private static readonly Inlet<int> BasicInlet = new();
-    private static readonly Outlet<int> BasicOutlet = new(BasicInlet);
+    private Inlet<int> _inlet = null!;
+    private Outlet<int> _outlet = null!;
+    private static readonly InletDefinition<int> BasicInlet = new();
 
     [IterationSetup]
     public void GlobalSetup()
     {
         _flow = ITopology.Create();
         _inlet = _flow.Intern(BasicInlet);
-        _outlet = _flow.Outlet(BasicOutlet);
+        _outlet = _flow.Outlet(BasicInlet);
     }
 
     [Benchmark]

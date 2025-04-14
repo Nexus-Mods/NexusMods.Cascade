@@ -71,13 +71,13 @@ internal class Topology : ITopology
 
     public Inlet<T> Intern<T>(InletDefinition<T> inletDefinition) where T : notnull
     {
-        var interned = Intern(inletDefinition.Description);
+        var interned = Intern(inletDefinition.AsFlow());
         return new Inlet<T>(interned);
     }
 
     public DiffInlet<T> Intern<T>(DiffInletDefinition<T> inletDefinition) where T : notnull
     {
-        var interned = Intern(inletDefinition.Description);
+        var interned = Intern(inletDefinition.AsFlow());
         return new DiffInlet<T>(interned);
     }
 
@@ -95,16 +95,16 @@ internal class Topology : ITopology
         RunFlowQueue(queue);
     }
 
-    public Outlet<T> Outlet<T>(Flow<T> flow)
+    public Outlet<T> Outlet<T>(IFlow<T> flow)
     {
         return Runtime.DoSync(static s =>
         {
             var (self, flow) = s;
-            var key = (flow.Description, typeof(Outlet<T>));
+            var key = (Description: flow.AsFlow(), typeof(Outlet<T>));
             if (self._outlets.TryGetValue(key, out var outlet))
                 return (Outlet<T>)outlet;
 
-            var outletDefinition = Abstractions.Outlet<T>.MakeFlow(flow.Description);
+            var outletDefinition = Abstractions.Outlet<T>.MakeFlow(flow.AsFlow());
 
             var outletRef = self.Intern(outletDefinition);
             var newState = self.BackflowInto(outletRef);
@@ -119,11 +119,11 @@ internal class Topology : ITopology
         return Runtime.DoSync(static s =>
         {
             var (self, flow) = s;
-            var key = (flow.Description, typeof(DiffOutlet<T>));
+            var key = (Description: flow.AsFlow(), typeof(DiffOutlet<T>));
             if (self._outlets.TryGetValue(key, out var outlet))
                 return (DiffOutlet<T>)outlet;
 
-            var outletDefinition = Abstractions.DiffOutlet<T>.MakeFlow(flow.Description);
+            var outletDefinition = Abstractions.DiffOutlet<T>.MakeFlow(flow.AsFlow());
 
             var outletRef = self.Intern(outletDefinition);
             var newState = self.BackflowInto(outletRef);

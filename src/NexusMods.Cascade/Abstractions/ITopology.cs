@@ -29,7 +29,7 @@ public interface ITopology
     void FlowFrom(Node state, object value);
 
 
-    Outlet<T> Outlet<T>(Flow<T> flow);
+    Outlet<T> Outlet<T>(IFlow<T> flow);
 
     DiffOutlet<T> Outlet<T>(DiffFlow<T> flow) where T : notnull;
 }
