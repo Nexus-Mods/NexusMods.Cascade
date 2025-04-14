@@ -11,9 +11,5 @@
       <PackageReference Include="Shouldly" />
       <PackageReference Include="ZLinq" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="Implementation\Diffs\" />
-    </ItemGroup>
 
 </Project>
