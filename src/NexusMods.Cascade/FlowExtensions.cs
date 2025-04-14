@@ -324,13 +324,10 @@ public static class FlowExtensions
 
                 // Maybe retract the old values
                 var oldValues = rightSnapshot[key];
-                if (!oldValues.IsEmpty)
+                foreach (var (leftValue, leftDelta) in lefts)
                 {
-                    foreach (var (leftValue, leftDelta) in lefts)
-                    {
-                        var result = resultSelector(leftValue, new ResultSetGrouping<TKey,TInner>(key, oldValues));
-                        emittedResults.Add(result, -leftDelta);
-                    }
+                    var result = resultSelector(leftValue, new ResultSetGrouping<TKey,TInner>(key, oldValues));
+                    emittedResults.Add(result, -leftDelta);
                 }
 
                 // Emit the new values
