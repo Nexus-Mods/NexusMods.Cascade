@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
+using NexusMods.Cascade.Implementation;
 
 namespace NexusMods.Cascade;
 
@@ -236,6 +237,135 @@ public static class FlowExtensions
             return (state, input);
         }
 
+    }
+
+    public static DiffFlow<TResult> GroupJoin<TOuter, TInner, TKey, TResult>(
+        this IDiffFlow<TOuter> left,
+        IDiffFlow<TInner> right,
+        Func<TOuter, TKey> leftKeySelector,
+        Func<TInner, TKey> rightKeySelector,
+        Func<TOuter, IGrouping<TKey, TInner>, TResult> resultSelector,
+        [CallerArgumentExpression(nameof(resultSelector))] string resultExpr = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+        where TInner : notnull
+        where TOuter : notnull
+        where TResult : notnull
+        where TKey : notnull
+    {
+        var flow = new FlowDescription
+        {
+            DebugInfo = DebugInfo.Create(resultExpr, filePath, lineNumber),
+            UpstreamFlows = [left.Description, right.Description],
+            Reducers = [LeftImpl, RightImpl],
+            InitFn = InitImpl,
+            StateFn = StateImpl,
+        };
+
+        return flow;
+
+        object InitImpl()
+        {
+            var leftState = new KeyedResultSet<TKey, TOuter>();
+            var rightState = new KeyedResultSet<TKey, TInner>();
+            return (Left: leftState, Right: rightState);
+        }
+
+        (Node, object?) LeftImpl(Node state, int tag, object input)
+        {
+            var (leftState, rightState) = ((KeyedResultSet<TKey, TOuter>, KeyedResultSet<TKey, TInner>))state.UserState!;
+            var leftDiffSet = (IDiffSet<TOuter>)input;
+
+            var emittedResults = new DiffSet<TResult>();
+
+            foreach (var (leftValue, leftDelta) in leftDiffSet)
+            {
+                var leftKey = leftKeySelector(leftValue);
+                leftState = leftState.Add(leftKey, leftValue, leftDelta);
+
+                var rightValues = rightState[leftKey];
+                var result = resultSelector(leftValue, new ResultSetGrouping<TKey,TInner>(leftKey, rightValues));
+                emittedResults.Add(result, leftDelta);
+            }
+
+            return (state with { UserState = (leftState, rightState) }, emittedResults);
+        }
+
+
+        (Node, object?) RightImpl(Node state, int tag, object input)
+        {
+            // Holds modified right keys, because groups act like values in this case. If we only increment or decrement
+            // the delta of an item in a group, no reason to emit a new group, because the set if items in the group didn't
+            // change. However, if we add or remove an item from the group, we need to emit a new group as well as retract
+            // the old group.
+            var modifiedKeys = new HashSet<TKey>();
+
+            var (leftState, rightState) = ((KeyedResultSet<TKey, TOuter>, KeyedResultSet<TKey, TInner>))state.UserState!;
+            var rightDiffSet = (IDiffSet<TInner>)input;
+
+            var emittedResults = new DiffSet<TResult>();
+
+            var rightSnapshot = rightState;
+
+            foreach (var (rightValue, rightDelta) in rightDiffSet)
+            {
+                var rightKey = rightKeySelector(rightValue);
+                rightState = rightState.Add(rightKey, rightValue, rightDelta, out var opResult);
+
+                if (opResult != OpResult.Updated)
+                    modifiedKeys.Add(rightKey);
+            }
+
+            foreach (var key in modifiedKeys)
+            {
+                var lefts = leftState[key];
+                if (lefts.IsEmpty)
+                    continue;
+
+                // Maybe retract the old values
+                var oldValues = rightSnapshot[key];
+                if (!oldValues.IsEmpty)
+                {
+                    foreach (var (leftValue, leftDelta) in lefts)
+                    {
+                        var result = resultSelector(leftValue, new ResultSetGrouping<TKey,TInner>(key, oldValues));
+                        emittedResults.Add(result, -leftDelta);
+                    }
+                }
+
+                // Emit the new values
+                var newValues = rightState[key];
+
+                if (!newValues.IsEmpty)
+                {
+                    foreach (var (leftValue, leftDelta) in lefts)
+                    {
+                        var result = resultSelector(leftValue, new ResultSetGrouping<TKey,TInner>(key, newValues));
+                        emittedResults.Add(result, leftDelta);
+                    }
+                }
+            }
+
+            return (state with { UserState = (leftState, rightState) }, emittedResults);
+        }
+
+
+        object StateImpl(Node state)
+        {
+            var (leftState, rightState) = ((KeyedResultSet<TKey, TOuter>, KeyedResultSet<TKey, TInner>))state.UserState!;
+
+            var emittedResults = new DiffSet<TResult>();
+            foreach (var (leftKey, leftResultSet) in leftState)
+            {
+                var rightValues = rightState[leftKey];
+                foreach (var (leftValue, leftDelta) in leftResultSet)
+                {
+                    var result = resultSelector(leftValue, new ResultSetGrouping<TKey,TInner>(leftKey, rightValues));
+                    emittedResults.Add(result, leftDelta);
+                }
+            }
+            return emittedResults;
+        }
     }
 
 }

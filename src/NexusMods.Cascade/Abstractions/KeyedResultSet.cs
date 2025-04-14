@@ -38,6 +38,26 @@ public class KeyedResultSet<TKey, TValue>
         }
     }
 
+    public KeyedResultSet<TKey, TValue> Add(TKey key, TValue value, int delta, out OpResult opResult)
+    {
+        if (!_state.TryGetValue(key, out var resultSet))
+        {
+            resultSet = new ResultSet<TValue>();
+            resultSet = resultSet.Add(value, delta);
+            opResult = OpResult.Added;
+            return new KeyedResultSet<TKey, TValue>(_state.Add(key, resultSet));
+        }
+        else
+        {
+            resultSet = resultSet.Add(value, delta, out opResult);
+            if (resultSet.IsEmpty)
+            {
+                return new KeyedResultSet<TKey, TValue>(_state.Remove(key));
+            }
+            return new KeyedResultSet<TKey, TValue>(_state.SetItem(key, resultSet));
+        }
+    }
+
     public ResultSet<TValue> this[TKey leftKey]
     {
         get
