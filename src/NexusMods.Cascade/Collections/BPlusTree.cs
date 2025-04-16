@@ -145,6 +145,7 @@ public class BPlusTree<K, V> : IEnumerable<(K Key, V Value)> where K : notnull
         list.Sort((a, b) => _cmp.Compare(a.Item1, b.Item1));
 
         foreach (var (key, newVal) in list)
+        {
             if (TryFindLeafAndIndex(key, out var leaf, out var pos))
             {
                 ref var oldVal = ref leaf.Entries[pos].Value;
@@ -156,6 +157,7 @@ public class BPlusTree<K, V> : IEnumerable<(K Key, V Value)> where K : notnull
             {
                 Insert(key, newVal);
             }
+        }
     }
 
     /// <summary>Yields all (key,value) with key ≥ lowerBound in order.</summary>

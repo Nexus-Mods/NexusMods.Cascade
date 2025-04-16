@@ -2,7 +2,7 @@
 
 using FluentAssertions;
 
-namespace NexusMods.Cascade.Tests;
+namespace NexusMods.Cascade.Tests.Collections;
 
 public class DiffSetTests
 {
