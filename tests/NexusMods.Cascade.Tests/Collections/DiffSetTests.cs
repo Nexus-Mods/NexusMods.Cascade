@@ -1,6 +1,7 @@
 ﻿// File: tests/NexusMods.Cascade.Tests/Collections/DiffSetTests.cs
 
 using FluentAssertions;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Tests.Collections;
 

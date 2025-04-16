@@ -1,4 +1,5 @@
 ﻿using System;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;
 

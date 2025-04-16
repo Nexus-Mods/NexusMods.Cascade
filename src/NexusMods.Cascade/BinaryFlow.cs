@@ -1,4 +1,5 @@
 ﻿using System;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;
 
@@ -10,8 +11,8 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
 {
     public required Func<TState> StateFactory { get; init; }
 
-    public required Action<DiffSet<TLeft>, TState, DiffSet<TResult>, TState> StepLeftFn { get; init; }
-    public required Action<DiffSet<TRight>, TState, DiffSet<TResult>, TState> StepRightFn { get; init; }
+    public required Action<DiffSet<TLeft>, TState, DiffSet<TResult>> StepLeftFn { get; init; }
+    public required Action<DiffSet<TRight>, TState, DiffSet<TResult>> StepRightFn { get; init; }
     public required Action<TState, DiffSet<TResult>> PrimeFn { get; init; }
 
     public override Node CreateNode(Topology topology)
@@ -37,19 +38,29 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
         private void AcceptLeft<TIn>(DiffSet<TIn> diffSet) where TIn : notnull
         {
             var casted = (DiffSet<TLeft>)(object)diffSet;
-            flow.StepLeftFn(casted, _state, OutputSet, _state);
+            flow.StepLeftFn(casted, _state, OutputSet);
         }
 
         private void AcceptRight<TIn>(DiffSet<TIn> diffSet) where TIn : notnull
         {
             var casted = (DiffSet<TRight>)(object)diffSet;
-            flow.StepRightFn(casted, _state, OutputSet, _state);
+            flow.StepRightFn(casted, _state, OutputSet);
         }
 
         public override void Prime()
         {
+            var leftCasted = (Node<TLeft>)Upstream[0];
+            var rightCasted = (Node<TRight>)Upstream[1];
             OutputSet.Clear();
-            flow.PrimeFn(_state, OutputSet);
+            leftCasted.ResetOutput();
+            leftCasted.Prime();
+            flow.StepLeftFn(leftCasted.OutputSet, _state, OutputSet);
+            leftCasted.ResetOutput();
+
+            rightCasted.ResetOutput();
+            rightCasted.Prime();
+            flow.StepRightFn(rightCasted.OutputSet, _state, OutputSet);
+            rightCasted.ResetOutput();
         }
     }
 }

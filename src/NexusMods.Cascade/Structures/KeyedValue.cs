@@ -1,6 +1,9 @@
-﻿namespace NexusMods.Cascade.Structures;
+﻿using System;
+using NexusMods.Cascade.Abstractions;
 
-public readonly struct KeyedValue<TKey, TValue>
+namespace NexusMods.Cascade.Structures;
+
+public readonly struct KeyedValue<TKey, TValue> : IComparable<KeyedValue<TKey, TValue>>
     where TKey : notnull
 {
     public readonly TKey Key;
@@ -10,5 +13,13 @@ public readonly struct KeyedValue<TKey, TValue>
     {
         Key = key;
         Value = value;
+    }
+
+    public int CompareTo(KeyedValue<TKey, TValue> other)
+    {
+        var cmp = GlobalCompare.Compare(Key, other.Key);
+        if (cmp != 0)
+            return cmp;
+        return GlobalCompare.Compare(Value, other.Value);
     }
 }

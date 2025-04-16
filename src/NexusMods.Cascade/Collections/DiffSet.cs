@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Collections;
 
 public class DiffSet<T> : Dictionary<T, int> where T : notnull
 {

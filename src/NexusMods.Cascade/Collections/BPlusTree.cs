@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using NexusMods.Cascade.Abstractions;
 
 namespace NexusMods.Cascade.Collections;
 
@@ -23,7 +24,7 @@ public class BPlusTree<K, V> : IEnumerable<(K Key, V Value)> where K : notnull
 
         _fanout = fanout;
         _maxKeys = fanout - 1;
-        _cmp = comparer ?? Comparer<K>.Default;
+        _cmp = comparer ?? GlobalComparer<K>.Instance;
         _root = null;
         Count = 0;
     }
@@ -305,7 +306,7 @@ public class BPlusTree<K, V> : IEnumerable<(K Key, V Value)> where K : notnull
     }
 
     /// <summary>Attempts to locate a key within a leaf; returns leaf and index if found.</summary>
-    private bool TryFindLeafAndIndex(K key, out LeafNode leaf, out int index)
+    protected bool TryFindLeafAndIndex(K key, out LeafNode leaf, out int index)
     {
         leaf = null!;
         index = -1;
@@ -339,13 +340,13 @@ public class BPlusTree<K, V> : IEnumerable<(K Key, V Value)> where K : notnull
     }
 
     // ─── Nested Types ────────────────────────────────────────────────────────
-    private struct Entry
+    public struct Entry
     {
         public K Key;
         public V Value;
     }
 
-    private abstract class Node { }
+    public abstract class Node { }
 
     private sealed class InternalNode : Node
     {
@@ -353,7 +354,7 @@ public class BPlusTree<K, V> : IEnumerable<(K Key, V Value)> where K : notnull
         public List<Node> Children { get; } = new();
     }
 
-    private sealed class LeafNode : Node
+    public sealed class LeafNode : Node
     {
         public int Count;
         public LeafNode? Next;
