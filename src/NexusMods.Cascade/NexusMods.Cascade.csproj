@@ -8,7 +8,6 @@
       <PackageReference Include="ObservableCollections" />
       <PackageReference Include="R3" />
       <PackageReference Include="Reloaded.Memory" />
-      <PackageReference Include="Shouldly" />
       <PackageReference Include="ZLinq" />
     </ItemGroup>
 
