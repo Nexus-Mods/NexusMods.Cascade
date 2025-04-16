@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using NexusMods.Cascade.Abstractions2;
 
 namespace NexusMods.Cascade;
@@ -10,9 +11,10 @@ public abstract class Node
         Topology = topology;
         Flow = flow;
         Upstream = new Node[upstreamSlots];
+        LastSeenIds = new int[upstreamSlots];
     }
 
-    internal abstract void FlowOut(Queue<Node> queue, Node subscriberNode, int index);
+    internal abstract void FlowOut(Queue<Node> queue, Node subscriberNode, int index, int oldRevisionId, int newRevisionId);
 
     /// <summary>
     /// The associated flow for this node. This is set by the topology.
@@ -30,6 +32,11 @@ public abstract class Node
     public readonly Node[] Upstream;
 
     /// <summary>
+    /// The last seen revision id for each upstream node. This is set by the topology.
+    /// </summary>
+    public readonly int[] LastSeenIds;
+
+    /// <summary>
     /// The downstream nodes that depend on this node. This is set by the topology.
     /// </summary>
     public readonly List<(Node Node, int Index)> Subscribers = [];
@@ -39,7 +46,23 @@ public abstract class Node
     /// </summary>
     public abstract void Accept<TIn>(int idx, DiffSet<TIn> diffSet) where TIn : notnull;
 
+    internal bool IsReadyToAdvance(int nextId)
+    {
+        foreach (var t in Upstream)
+        {
+            if (t.RevsionId != nextId)
+                return false;
+        }
+
+        return true;
+    }
+
     internal abstract void ResetOutput();
+
+    /// <summary>
+    /// The last updated revision id for this node. This is maintained by the topology.
+    /// </summary>
+    internal int RevsionId;
 }
 
 /// <summary>
@@ -59,11 +82,16 @@ public abstract class Node<TRet>(Topology topology, Flow flow, int upstreamSlots
     /// </summary>
     public abstract void Prime();
 
-    internal override void FlowOut(Queue<Node> queue, Node subscriberNode, int index)
+    internal override void FlowOut(Queue<Node> queue, Node subscriberNode, int index, int oldRevision, int newRevision)
     {
-        subscriberNode.Accept(index, OutputSet);
         if (OutputSet.Count > 0)
+            subscriberNode.Accept(index, OutputSet);
+
+        subscriberNode.LastSeenIds[index] = newRevision;
+
+        if (subscriberNode.IsReadyToAdvance(newRevision))
         {
+            subscriberNode.RevsionId = newRevision;
             queue.Enqueue(subscriberNode);
         }
     }

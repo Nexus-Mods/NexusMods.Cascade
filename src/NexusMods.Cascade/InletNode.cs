@@ -32,6 +32,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
         {
             lock (Topology.Lock)
             {
+                OutputSet.Clear();
                 OutputSet.MergeInInverted(_state);
                 _state.Clear();
                 _state.MergeIn(value, 1);

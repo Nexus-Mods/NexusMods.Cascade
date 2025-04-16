@@ -35,10 +35,7 @@ public class DiffSet<T> : Dictionary<T, int> where T : notnull
     public void MergeIn(T[] value, int i)
     {
         foreach (var item in value)
-        {
-            ref var delta = ref CollectionsMarshal.GetValueRefOrAddDefault(this, item, out _);
-            delta += i;
-        }
+            Update(item, i);
     }
 
     public void SetTo(DiffSet<T> state)
@@ -47,6 +44,16 @@ public class DiffSet<T> : Dictionary<T, int> where T : notnull
         foreach (var (value, delta) in state)
         {
             Add(value, delta);
+        }
+    }
+
+    public void Update(T item, int delta)
+    {
+        ref var currentDelta = ref CollectionsMarshal.GetValueRefOrAddDefault(this, item, out var exists);
+        currentDelta += delta;
+        if (currentDelta == 0)
+        {
+            Remove(item);
         }
     }
 }

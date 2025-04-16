@@ -11,8 +11,15 @@ public sealed class Topology
     /// </summary>
     internal readonly Lock Lock = new();
 
+    /// <summary>
+    /// Each update to the topology increments the revision id.
+    /// </summary>
+    internal int _revisionId = 0;
+
     private readonly Dictionary<int, Node> _nodes = new();
     private readonly Dictionary<int, Node> _outletNodes = new();
+    private readonly HashSet<Node> _inlets = [];
+
     private Queue<Node> _queue = new();
 
 
@@ -27,8 +34,37 @@ public sealed class Topology
 
             var inletNode = new InletNode<T>(this, inlet);
             _nodes[inlet.Id] = inletNode;
+            _inlets.Add(inletNode);
             return inletNode;
         }
+    }
+
+    /// <summary>
+    /// Flows data from any inlets through the topology to all graph nodes.
+    /// </summary>
+    public void FlowData()
+    {
+        var oldRevisionId = _revisionId;
+        _revisionId += 1;
+
+        foreach (var inlet in _inlets)
+        {
+            inlet.RevsionId = _revisionId;
+            _queue.Enqueue(inlet);
+        }
+
+        while (_queue.Count != 0)
+        {
+            var node = _queue.Dequeue();
+
+            foreach (var (subscriber, tag) in node.Subscribers)
+            {
+                node.FlowOut(_queue, subscriber, tag, oldRevisionId, _revisionId);
+            }
+            node.ResetOutput();
+        }
+
+
     }
 
     private Node Intern(Flow flow)
@@ -46,6 +82,8 @@ public sealed class Topology
                 var upstream = Intern(flow.Upstream[idx]);
                 upstream.Subscribers.Add((node, idx));
                 node.Upstream[idx] = upstream;
+                node.LastSeenIds[idx] = upstream.RevsionId;
+                node.ResetOutput();
             }
             _nodes[flow.Id] = node;
             return node;
@@ -83,20 +121,7 @@ public sealed class Topology
 
     public void FlowFrom<T>(InletNode<T> inletNode) where T : notnull
     {
-        _queue.Clear();
-        _queue.Enqueue(inletNode);
-        FlowFromCore();
+        FlowData();
     }
 
-    private void FlowFromCore()
-    {
-        while (_queue.Count > 0)
-        {
-            var currentNode = _queue.Dequeue();
-            foreach (var (subscriber, idx) in currentNode.Subscribers)
-            {
-                currentNode.FlowOut(_queue, subscriber, idx);
-            }
-        }
-    }
 }

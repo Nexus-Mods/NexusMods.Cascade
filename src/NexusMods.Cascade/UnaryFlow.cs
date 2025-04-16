@@ -30,6 +30,7 @@ public class UnaryFlow<TIn, TOut> : Flow<TOut>
             upstream.Prime();
             OutputSet.Clear();
             flow.StepFn(upstream.OutputSet, OutputSet);
+            upstream.ResetOutput();
         }
     }
 }
