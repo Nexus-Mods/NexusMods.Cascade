@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Abstractions2;
 
@@ -67,8 +68,33 @@ public static class FlowExtensions
     }
 
 
-    private struct JoinState<TLeft, TRight, TKey>
+    /// <summary>
+    ///     Creates a new flow that adds a key to each element of the upstream flow.
+    /// </summary>
+    public static Flow<KeyedValue<TKey, TValue>> Rekey<TValue, TKey>(
+        this Flow<TValue> flow,
+        Func<TValue, TKey> fn,
+        [CallerArgumentExpression(nameof(fn))] string? expression = null,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TValue : notnull
+        where TKey : notnull
     {
-        public BPlusTree<(TKey, TLeft), int> LeftTree;
+        return new UnaryFlow<TValue, KeyedValue<TKey, TValue>>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Rekey",
+                Expression = expression ?? string.Empty,
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [flow],
+            StepFn = (inlet, outlet) =>
+            {
+                foreach (var (value, delta) in inlet)
+                    outlet.Update(new KeyedValue<TKey, TValue>(fn(value), value), delta);
+            }
+        };
     }
 }
