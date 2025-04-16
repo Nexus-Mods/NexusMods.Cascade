@@ -9,10 +9,10 @@ namespace NexusMods.Cascade.Benchmarks;
 [MaxIterationCount(1000000)]
 public class LowLevelBenchmarks
 {
+    private static readonly Inlet<int> BasicInlet = new();
     private Topology _flow = null!;
     private InletNode<int> _inlet = null!;
     private OutletNode<int> _outlet = null!;
-    private static readonly Inlet<int> BasicInlet = new();
 
     [IterationSetup]
     public void GlobalSetup()

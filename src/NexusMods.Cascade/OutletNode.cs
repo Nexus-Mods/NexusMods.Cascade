@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using NexusMods.Cascade.Abstractions2;
 
 namespace NexusMods.Cascade;
 
@@ -10,9 +8,9 @@ public class OutletNode<T> : Node where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
 
-    public OutletNode(Topology topology, Flow flow) : base(topology, flow, 1)
-    {
-    }
+    public OutletNode(Topology topology, Flow flow) : base(topology, flow, 1) { }
+
+    public IEnumerable<T> Values => _state.Keys;
 
     internal override void FlowOut(Queue<Node> queue, Node subscriberNode, int index, int oldRevsion, int newRevsion)
     {
@@ -25,7 +23,6 @@ public class OutletNode<T> : Node where T : notnull
         var builder = _state.ToBuilder();
 
         foreach (var (value, delta) in casted)
-        {
             if (builder.TryGetValue(value, out var currentDelta))
             {
                 var newDelta = currentDelta + delta;
@@ -38,13 +35,9 @@ public class OutletNode<T> : Node where T : notnull
             {
                 builder[value] = delta;
             }
-        }
+
         _state = builder.ToImmutable();
     }
 
-    internal override void ResetOutput()
-    {
-    }
-
-    public IEnumerable<T> Values => _state.Keys;
+    internal override void ResetOutput() { }
 }

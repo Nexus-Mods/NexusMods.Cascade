@@ -6,31 +6,29 @@ namespace NexusMods.Cascade;
 
 public sealed class Topology
 {
-    /// <summary>
-    /// The global lock for the topology, only one thread can be in the topology at a time.
-    /// </summary>
-    internal readonly Lock Lock = new();
-
-    /// <summary>
-    /// Each update to the topology increments the revision id.
-    /// </summary>
-    internal int _revisionId = 0;
+    private readonly HashSet<Node> _inlets = [];
 
     private readonly Dictionary<int, Node> _nodes = new();
     private readonly Dictionary<int, Node> _outletNodes = new();
-    private readonly HashSet<Node> _inlets = [];
 
-    private Queue<Node> _queue = new();
+    /// <summary>
+    ///     The global lock for the topology, only one thread can be in the topology at a time.
+    /// </summary>
+    internal readonly Lock Lock = new();
+
+    private readonly Queue<Node> _queue = new();
+
+    /// <summary>
+    ///     Each update to the topology increments the revision id.
+    /// </summary>
+    internal int _revisionId;
 
 
     public InletNode<T> Intern<T>(Inlet<T> inlet) where T : notnull
     {
         lock (Lock)
         {
-            if (_nodes.TryGetValue(inlet.Id, out var node))
-            {
-                return (InletNode<T>)node;
-            }
+            if (_nodes.TryGetValue(inlet.Id, out var node)) return (InletNode<T>)node;
 
             var inletNode = new InletNode<T>(this, inlet);
             _nodes[inlet.Id] = inletNode;
@@ -40,7 +38,7 @@ public sealed class Topology
     }
 
     /// <summary>
-    /// Flows data from any inlets through the topology to all graph nodes.
+    ///     Flows data from any inlets through the topology to all graph nodes.
     /// </summary>
     public void FlowData()
     {
@@ -58,23 +56,16 @@ public sealed class Topology
             var node = _queue.Dequeue();
 
             foreach (var (subscriber, tag) in node.Subscribers)
-            {
                 node.FlowOut(_queue, subscriber, tag, oldRevisionId, _revisionId);
-            }
             node.ResetOutput();
         }
-
-
     }
 
     private Node Intern(Flow flow)
     {
         lock (Lock)
         {
-            if (_nodes.TryGetValue(flow.Id, out var node))
-            {
-                return node;
-            }
+            if (_nodes.TryGetValue(flow.Id, out var node)) return node;
 
             node = flow.CreateNode(this);
             for (var idx = 0; idx < flow.Upstream.Length; idx++)
@@ -85,6 +76,7 @@ public sealed class Topology
                 node.LastSeenIds[idx] = upstream.RevsionId;
                 node.ResetOutput();
             }
+
             _nodes[flow.Id] = node;
             return node;
         }
@@ -94,10 +86,7 @@ public sealed class Topology
     {
         lock (Lock)
         {
-            if (_outletNodes.TryGetValue(flow.Id, out var node))
-            {
-                return (OutletNode<T>)node;
-            }
+            if (_outletNodes.TryGetValue(flow.Id, out var node)) return (OutletNode<T>)node;
 
             var upstream = (Node<T>)Intern(flow);
 
@@ -123,5 +112,4 @@ public sealed class Topology
     {
         FlowData();
     }
-
 }

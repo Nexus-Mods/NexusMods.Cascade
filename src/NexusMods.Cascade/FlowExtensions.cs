@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Abstractions2;
 
 public static class FlowExtensions
 {
     /// <summary>
-    /// Creates a new flow that applies the given function to each element of the upstream flow.
+    ///     Creates a new flow that applies the given function to each element of the upstream flow.
     /// </summary>
     public static Flow<TOut> Select<TIn, TOut>(
         this Flow<TIn> flow,
@@ -29,16 +30,13 @@ public static class FlowExtensions
             Upstream = [flow],
             StepFn = (inlet, outlet) =>
             {
-                foreach (var (value, delta) in inlet)
-                {
-                    outlet.Update(fn(value), delta);
-                }
+                foreach (var (value, delta) in inlet) outlet.Update(fn(value), delta);
             }
         };
     }
 
     /// <summary>
-    /// Creates a new flow that includes only elements from the upstream flow that satisfy the given predicate.
+    ///     Creates a new flow that includes only elements from the upstream flow that satisfy the given predicate.
     /// </summary>
     public static Flow<T> Where<T>(
         this Flow<T> flow,
@@ -62,13 +60,15 @@ public static class FlowExtensions
             StepFn = (inlet, outlet) =>
             {
                 foreach (var (value, delta) in inlet)
-                {
                     if (predicate(value))
-                    {
                         outlet.Update(value, delta);
-                    }
-                }
             }
         };
+    }
+
+
+    private struct JoinState<TLeft, TRight, TKey>
+    {
+        public BPlusTree<(TKey, TLeft), int> LeftTree;
     }
 }

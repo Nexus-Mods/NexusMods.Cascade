@@ -7,6 +7,7 @@ public class UnaryFlow<TIn, TOut> : Flow<TOut>
     where TOut : notnull
 {
     public required Action<DiffSet<TIn>, DiffSet<TOut>> StepFn { get; init; }
+
     public override Node CreateNode(Topology topology)
     {
         return new UnaryNode(topology, this);

@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    
-    <Import Project="$([MSBuild]::GetPathOfFileAbove('NuGet.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-    
+
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('NuGet.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
+
     <ItemGroup>
-      <PackageReference Include="Clarp" />
-      <PackageReference Include="JetBrains.Annotations" />
-      <PackageReference Include="ObservableCollections" />
-      <PackageReference Include="R3" />
-      <PackageReference Include="Reloaded.Memory" />
-      <PackageReference Include="ZLinq" />
+        <PackageReference Include="Clarp"/>
+        <PackageReference Include="FluentAssertions"/>
+        <PackageReference Include="JetBrains.Annotations"/>
+        <PackageReference Include="ObservableCollections"/>
+        <PackageReference Include="R3"/>
+        <PackageReference Include="Reloaded.Memory"/>
     </ItemGroup>
 
 </Project>

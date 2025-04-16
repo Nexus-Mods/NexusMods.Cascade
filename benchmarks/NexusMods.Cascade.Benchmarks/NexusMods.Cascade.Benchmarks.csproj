@@ -8,12 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="BenchmarkDotNet" />
-      <PackageReference Include="JetBrains.Profiler.Api" />
+        <PackageReference Include="BenchmarkDotNet"/>
+        <PackageReference Include="FluentAssertions"/>
+        <PackageReference Include="JetBrains.Profiler.Api"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\NexusMods.Cascade\NexusMods.Cascade.csproj" />
+        <ProjectReference Include="..\..\src\NexusMods.Cascade\NexusMods.Cascade.csproj"/>
     </ItemGroup>
 
 </Project>

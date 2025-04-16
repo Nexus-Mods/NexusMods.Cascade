@@ -7,17 +7,10 @@ namespace NexusMods.Cascade;
 public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology, inlet, 0)
     where T : notnull
 {
-
-    private DiffSet<T> _state = new();
-
-
-    public override void Accept<TIn>(int idx, DiffSet<TIn> diffSet)
-    {
-        throw new NotSupportedException("Inlet nodes do not accept data.");
-    }
+    private readonly DiffSet<T> _state = new();
 
     /// <summary>
-    /// A somewhat slow way to get and set the values of an inlet, used mostly for testing.
+    ///     A somewhat slow way to get and set the values of an inlet, used mostly for testing.
     /// </summary>
     public T[] Values
     {
@@ -41,6 +34,12 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
                 OutputSet.Clear();
             }
         }
+    }
+
+
+    public override void Accept<TIn>(int idx, DiffSet<TIn> diffSet)
+    {
+        throw new NotSupportedException("Inlet nodes do not accept data.");
     }
 
     public override void Prime()

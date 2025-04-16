@@ -1,7 +1,7 @@
 ﻿namespace NexusMods.Cascade.Abstractions2;
 
 /// <summary>
-/// A flow definition for a inlet.
+///     A flow definition for a inlet.
 /// </summary>
 public class Inlet<T> : Flow<T>
     where T : notnull
