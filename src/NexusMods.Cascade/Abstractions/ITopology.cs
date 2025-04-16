@@ -32,5 +32,8 @@ public interface ITopology
     Outlet<T> Outlet<T>(IFlow<T> flow);
 
     DiffOutlet<T> Outlet<T>(IDiffFlow<T> flow) where T : notnull;
+
+
+    string Render();
 }
 

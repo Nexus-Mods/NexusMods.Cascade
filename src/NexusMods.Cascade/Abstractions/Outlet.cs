@@ -15,6 +15,7 @@ public class Outlet<T>
     {
         return new FlowDescription
         {
+            Name = "Outlet",
             InitFn = static () => default(T)!,
             UpstreamFlows = [upstream],
             Reducers = [ReducerFn],

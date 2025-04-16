@@ -11,6 +11,7 @@ public class DiffInletDefinition<T> : IDiffFlow<T> where T : notnull
     {
         _description = new FlowDescription
         {
+            Name = "DiffInlet",
             InitFn = static () => ResultSet<T>.Empty,
             StateFn = static state => state.UserState!,
             UpstreamFlows = [],
@@ -22,6 +23,7 @@ public class DiffInletDefinition<T> : IDiffFlow<T> where T : notnull
     {
         _description = new FlowDescription
         {
+            Name = name,
             InitFn = static () => ResultSet<T>.Empty,
             StateFn = static (state) => state.UserState!,
             UpstreamFlows = [],

@@ -1,9 +1,16 @@
 using System;
+using System.Threading;
 
 namespace NexusMods.Cascade.Abstractions;
 
 public record FlowDescription
 {
+    private static int _nextId = 0;
+
+    public string Name { get; init; } = string.Empty;
+
+    public int Id { get; } = Interlocked.Increment(ref _nextId);
+
     /// <summary>
     /// Debug information about the flow, such as the file and line number where it was created. In release mode this c
     /// can easily be stripped out with feature flags.

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Text;
 using Clarp;
 using Clarp.Concurrency;
 using NexusMods.Cascade.Abstractions;
@@ -169,6 +170,8 @@ internal class Topology : ITopology
             }
         }
 
+        Console.WriteLine($"Found {baseNodes.Count} base nodes");
+
         // Now start at the base nodes, and flow down through the graph. But we don't want to muck
         // with the internal state of the nodes, so we'll reset the state
 
@@ -194,6 +197,7 @@ internal class Topology : ITopology
         while (pendingFlowQueue.Count > 0)
         {
             var (nodeRef, data, tag) = pendingFlowQueue.Dequeue();
+            Console.WriteLine("Processiong node {0} of type {1}", nodeRef.Value.Flow.Id, nodeRef.Value.Flow.Name);
 
             // If we've never seen this node before, we need to reset its state
             if (!localState.TryGetValue(nodeRef, out var node))
@@ -257,4 +261,29 @@ internal class Topology : ITopology
 
         return nodeRef;
     }
+
+
+    public string Render()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("flowchart LR");
+
+        foreach (var node in _nodes)
+        {
+            var nodeRef = node.Value;
+            var thisId = nodeRef.Value.Flow.Id;
+            var thisName = nodeRef.Value.Flow.Name;
+            foreach (var (subscriber, tag) in nodeRef.Value.Subscribers)
+            {
+                string expr = "";
+                if (thisName is "Select" or "Where" or "Join" or "GroupJoin")
+                    expr = nodeRef.Value.Flow.DebugInfo!.Expression.Replace("\"", "''");
+                sb.AppendLine($"\tid{thisId}[\"`{thisName} {expr}`\"]  --> |{tag}|id{subscriber.Value.Flow.Id}");
+            }
+        }
+
+        var result = sb.ToString();
+        return result;
+    }
+
 }

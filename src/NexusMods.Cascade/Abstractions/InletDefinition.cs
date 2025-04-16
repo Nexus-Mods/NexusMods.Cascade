@@ -11,6 +11,7 @@ public class InletDefinition<T> : IFlow<T> where T : notnull
     {
         _description = new FlowDescription
         {
+            Name = "Inlet",
             InitFn = static () => default(T)!,
             StateFn = static (state) => state.UserState!,
             UpstreamFlows = [],
@@ -22,6 +23,7 @@ public class InletDefinition<T> : IFlow<T> where T : notnull
     {
         _description = new FlowDescription
         {
+            Name = name,
             InitFn = static () => default(T)!,
             StateFn = static (state) => state.UserState!,
             UpstreamFlows = [],

@@ -18,6 +18,7 @@ public static class FlowExtensions
     {
         return new FlowDescription
         {
+            Name = "Select",
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
             UpstreamFlows = [upstream.AsFlow()],
             Reducers = [SelectImpl]
@@ -40,6 +41,7 @@ public static class FlowExtensions
     {
         return new FlowDescription
         {
+            Name = "Select",
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
             UpstreamFlows = [upstream.AsFlow()],
             Reducers = [SelectImpl]
@@ -65,6 +67,7 @@ public static class FlowExtensions
     {
         return new FlowDescription
         {
+            Name = "Where",
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
             UpstreamFlows = [upstream.AsFlow()],
             Reducers = [WhereImpl]
@@ -85,6 +88,7 @@ public static class FlowExtensions
     {
         return new FlowDescription
         {
+            Name = "Where",
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
             UpstreamFlows = [upstream.AsFlow()],
             Reducers = [WhereImpl]
@@ -120,6 +124,7 @@ public static class FlowExtensions
     {
         return new FlowDescription
         {
+            Name = "Join",
             DebugInfo = DebugInfo.Create(resultExpr, filePath, lineNumber),
             UpstreamFlows = [left.AsFlow(), right.AsFlow()],
             Reducers = [LeftImpl, RightImpl],
@@ -212,6 +217,7 @@ public static class FlowExtensions
     {
         var flow = new FlowDescription
         {
+            Name = "Recursive",
             DebugInfo = DebugInfo.Create(expr, filePath, lineNumber),
             UpstreamFlows = [upstream.AsFlow()],
             Reducers = [IdentityImpl, IdentityImpl],
@@ -219,7 +225,7 @@ public static class FlowExtensions
             {
                 var recurFlow = recurFn(new DiffFlow<T>(node.Value.Flow));
                 var recurNode = topo.Intern(recurFlow.AsFlow());
-                recurNode.Connect(node, 0);
+                recurNode.Connect(node, 1);
                 var newUpstream = GC.AllocateUninitializedArray<NodeRef>(node.Value.Upstream.Length + 1);
                 Array.Copy(node.Value.Upstream, 0, newUpstream, 0, node.Value.Upstream.Length);
                 newUpstream[^1] = recurNode;
@@ -257,6 +263,7 @@ public static class FlowExtensions
     {
         var flow = new FlowDescription
         {
+            Name = "GroupJoin",
             DebugInfo = DebugInfo.Create(resultExpr, filePath, lineNumber),
             UpstreamFlows = [left.AsFlow(), right.AsFlow()],
             Reducers = [LeftImpl, RightImpl],
@@ -366,5 +373,6 @@ public static class FlowExtensions
             return emittedResults;
         }
     }
+
 
 }

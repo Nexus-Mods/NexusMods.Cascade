@@ -70,6 +70,32 @@ public class ResultSet<T> : IDiffSet<T>
     }
 
 
+    /// <summary>
+    /// Merges the changeset into the current state, duplicate items will have their deltas summed, and
+    /// any values resulting in a delta of 0 will be removed.
+    /// </summary>
+    public ResultSet<T> MergeIn(IDiffSet<T> other)
+    {
+        var builder = _state.ToBuilder();
+        foreach (var (value, delta) in other)
+        {
+            if (_state.TryGetValue(value, out var currentDelta))
+            {
+                var newDelta = currentDelta + delta;
+                if (newDelta != 0)
+                    builder[value] = newDelta;
+                else
+                    builder.Remove(value);
+            }
+            else
+            {
+                builder[value] = delta;
+            }
+        }
+        return new ResultSet<T>(builder.ToImmutable());
+    }
+
+
     public IEnumerator<Diff<T>> GetEnumerator()
     {
         foreach (var (value, delta) in _state)
