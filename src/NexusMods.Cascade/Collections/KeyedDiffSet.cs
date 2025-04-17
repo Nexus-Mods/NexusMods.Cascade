@@ -49,4 +49,23 @@ public class KeyedDiffSet<TKey, TValue> : BPlusTree<KeyedValue<TKey, TValue>, in
             }
         }
     }
+
+    public bool Contains(TKey key)
+    {
+        // Create a dummy value with default TValue to perform a range query.
+        var dummyEntry = new KeyedValue<TKey, TValue>(key, default!);
+        // RangeQuery returns an ordered sequence starting from the dummy entry.
+        foreach (var kvp in RangeQuery(dummyEntry))
+        {
+            // If the current entry's key is no longer equal to the searched key,
+            // then no further entries in the tree will match.
+            if (!EqualityComparer<TKey>.Default.Equals(kvp.Key.Key, key))
+            {
+                break;
+            }
+            // Found an entry with matching key.
+            return true;
+        }
+        return false;
+    }
 }

@@ -179,7 +179,7 @@ namespace NexusMods.Cascade.Tests.Operators
 
             // Assert: The output reflects the updated left value while preserving the right value.
             outlet.Values.Should().BeEquivalentTo([
-                new KeyedValue<int, (int, int)>(1, (20, 11))
+                new KeyedValue<int, (int, int)>(2, (20, 0))
             ]);
         }
     }

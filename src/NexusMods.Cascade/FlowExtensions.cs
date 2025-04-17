@@ -200,8 +200,7 @@ public static class FlowExtensions
                     if (!matchFound)
                     {
                         // Emit pairing with default(TRight) when no matching right record exists.
-                        output.Update((leftKv.Key, (leftKv.Value, default!)),
-                            delta);
+                        output.Update((leftKv.Key, (leftKv.Value, default!)), delta);
                     }
                 }
                 lefts.MergeIn(input);
@@ -216,6 +215,11 @@ public static class FlowExtensions
                     // When a right record arrives (or changes), join with all left entries.
                     foreach (var (leftValue, leftDelta) in lefts[rightKv.Key])
                     {
+                        if (!rights.Contains(rightKv.Key))
+                        {
+                            // Emit pairing with default(TLeft) when no matching left record exists.
+                            output.Update((rightKv.Key, (leftValue, default!)), -leftDelta);
+                        }
                         // Note: It is expected that any previous default join output will be canceled by a negative delta.
                         output.Update((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
                     }
