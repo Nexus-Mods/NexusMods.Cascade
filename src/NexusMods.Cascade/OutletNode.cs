@@ -13,7 +13,7 @@ public class OutletNode<T> : Node where T : notnull
 
     public IEnumerable<T> Values => _state.Keys;
 
-    internal override void FlowOut(Queue<Node> queue, Node subscriberNode, int index, int oldRevsion, int newRevsion)
+    internal override void FlowOut(Node subscriberNode, int tag)
     {
         throw new NotSupportedException("Outlet nodes do not have subscribers");
     }
@@ -41,4 +41,8 @@ public class OutletNode<T> : Node where T : notnull
     }
 
     internal override void ResetOutput() { }
+    internal override bool HasOutputData()
+    {
+        return false;
+    }
 }

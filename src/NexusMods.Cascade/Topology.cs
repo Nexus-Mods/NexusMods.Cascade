@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using NexusMods.Cascade.Abstractions2;
 
@@ -8,8 +11,26 @@ public sealed class Topology
 {
     private readonly HashSet<Node> _inlets = [];
 
+    /// <summary>
+    /// The nodes, all sorted by the processing order. Whenever the flow is run, the
+    /// nodes are processed in this order.
+    /// </summary>
+    private readonly List<Node> _processOrder = [];
+
+    /// <summary>
+    /// A temporary queue used to process the order of nodes in the topology.
+    /// </summary>
+    private readonly Queue<Node> _tempSortOrder = new();
+
+    /// <summary>
+    /// While processing the flow some nodes will have data in their outputs, we track those nodes here,
+    /// and reset the outputs after the flow is done.
+    /// </summary>
+    private readonly List<Node> _dirtyNodes = [];
+
     private readonly Dictionary<int, Node> _nodes = new();
     private readonly Dictionary<int, Node> _outletNodes = new();
+
 
     /// <summary>
     ///     The global lock for the topology, only one thread can be in the topology at a time.
@@ -17,11 +38,6 @@ public sealed class Topology
     internal readonly Lock Lock = new();
 
     private readonly Queue<Node> _queue = new();
-
-    /// <summary>
-    ///     Each update to the topology increments the revision id.
-    /// </summary>
-    internal int _revisionId;
 
 
     public InletNode<T> Intern<T>(Inlet<T> inlet) where T : notnull
@@ -33,6 +49,9 @@ public sealed class Topology
             var inletNode = new InletNode<T>(this, inlet);
             _nodes[inlet.Id] = inletNode;
             _inlets.Add(inletNode);
+
+            SortNodes();
+
             return inletNode;
         }
     }
@@ -42,23 +61,26 @@ public sealed class Topology
     /// </summary>
     public void FlowData()
     {
-        var oldRevisionId = _revisionId;
-        _revisionId += 1;
-
-        foreach (var inlet in _inlets)
+        foreach (var node in _processOrder)
         {
-            inlet.RevsionId = _revisionId;
-            _queue.Enqueue(inlet);
-        }
+            node.EndEpoch();
 
-        while (_queue.Count != 0)
-        {
-            var node = _queue.Dequeue();
+            if (!node.HasOutputData())
+                continue;
+
+            _dirtyNodes.Add(node);
 
             foreach (var (subscriber, tag) in node.Subscribers)
-                node.FlowOut(_queue, subscriber, tag, oldRevisionId, _revisionId);
+            {
+                node.FlowOut(subscriber, tag);
+            }
+        }
+
+        foreach (var node in _dirtyNodes)
+        {
             node.ResetOutput();
         }
+        _dirtyNodes.Clear();
     }
 
     private Node Intern(Flow flow)
@@ -104,6 +126,9 @@ public sealed class Topology
             upstream.ResetOutput();
 
             _outletNodes[flow.Id] = outletNode;
+
+            SortNodes();
+
             return outletNode;
         }
     }
@@ -111,5 +136,45 @@ public sealed class Topology
     public void FlowFrom<T>(InletNode<T> inletNode) where T : notnull
     {
         FlowData();
+    }
+
+    private void SortNodes()
+    {
+        // Initialize each node's InDegree based on its upstream dependencies.
+        foreach (var node in _nodes.Values)
+        {
+            node.InDegree = node.Upstream.Length;
+            if (node.InDegree == 0)
+                _queue.Enqueue(node);
+        }
+
+        // Start with nodes that have no upstream dependencies.
+
+        _processOrder.Clear();
+
+        while (_queue.Any())
+        {
+            var current = _queue.Dequeue();
+            _processOrder.Add(current);
+
+            // For each downstream subscriber, reduce its InDegree.
+            // Subscribers is a list of (Node, int) where Node is the downstream node.
+            foreach (var (subscriber, _) in current.Subscribers)
+            {
+                subscriber.InDegree--;
+                if (subscriber.InDegree == 0)
+                {
+                    _queue.Enqueue(subscriber);
+                }
+            }
+        }
+
+        _processOrder.AddRange(_outletNodes.Values);
+
+        // If we haven't processed every node, a cycle exists.
+        if (_processOrder.Count != _nodes.Count + _outletNodes.Count)
+        {
+            throw new InvalidOperationException("Cycle detected in the dependency graph.");
+        }
     }
 }

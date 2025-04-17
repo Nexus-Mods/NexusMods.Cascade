@@ -11,6 +11,11 @@ public abstract class Node
     public readonly Flow Flow;
 
     /// <summary>
+    /// Used by the topology to sort the nodes in the graph.
+    /// </summary>
+    internal int InDegree = 0;
+
+    /// <summary>
     ///     The last seen revision id for each upstream node. This is set by the topology.
     /// </summary>
     public readonly int[] LastSeenIds;
@@ -43,8 +48,7 @@ public abstract class Node
         LastSeenIds = new int[upstreamSlots];
     }
 
-    internal abstract void FlowOut(Queue<Node> queue, Node subscriberNode, int index, int oldRevisionId,
-        int newRevisionId);
+    internal abstract void FlowOut(Node subscriberNode, int index);
 
     /// <summary>
     ///     Accept data from an upstream node.
@@ -61,6 +65,16 @@ public abstract class Node
     }
 
     internal abstract void ResetOutput();
+
+    internal abstract bool HasOutputData();
+
+    /// <summary>
+    /// Called by the topology when all the inputs to the node have been processed and pushed into this
+    /// node. If the node needs to write to the outlet after it has all the changes, it should do so here.
+    /// </summary>
+    public virtual void EndEpoch()
+    {
+    }
 }
 
 /// <summary>
@@ -74,28 +88,26 @@ public abstract class Node<TRet>(Topology topology, Flow flow, int upstreamSlots
     /// </summary>
     public readonly DiffSet<TRet> OutputSet = new();
 
+
     /// <summary>
     ///     Populates the output set with the current state of the node, if required, the
     ///     node may call prime on its upstream nodes to get the data it needs.
     /// </summary>
     public abstract void Prime();
 
-    internal override void FlowOut(Queue<Node> queue, Node subscriberNode, int index, int oldRevision, int newRevision)
+    internal override void FlowOut(Node subscriberNode, int index)
     {
         if (OutputSet.Count > 0)
             subscriberNode.Accept(index, OutputSet);
-
-        subscriberNode.LastSeenIds[index] = newRevision;
-
-        if (subscriberNode.IsReadyToAdvance(newRevision))
-        {
-            subscriberNode.RevsionId = newRevision;
-            queue.Enqueue(subscriberNode);
-        }
     }
 
     internal override void ResetOutput()
     {
         OutputSet.Clear();
+    }
+
+    internal override bool HasOutputData()
+    {
+        return OutputSet.Count > 0;
     }
 }
