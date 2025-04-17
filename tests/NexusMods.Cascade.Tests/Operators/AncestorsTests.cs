@@ -134,5 +134,62 @@ namespace NexusMods.Cascade.Tests.Operators
 
             outlet.Values.Should().BeEquivalentTo(expectedUpdated, options => options.WithoutStrictOrdering());
         }
+
+
+        [Fact]
+        public void Combined_CountAndAncestors_ReturnsCorrectDepthForEachNode()
+        {
+            // Arrange:
+            // Build a tree using child -> parent relationships.
+            // For example, consider the following relationships:
+            //   2 -> 1
+            //   3 -> 2
+            //   4 -> 2
+            //   5 -> 3
+            //
+            // The implicit chains for each child are:
+            //   For child 2: (2,1), then since 1 has no mapping, (1, default).
+            //       => Depth of 2 is 2.
+            //   For child 3: (3,2), then (2,1), then (1, default).
+            //       => Depth of 3 is 3.
+            //   For child 4: (4,2), then (2,1), then (1, default).
+            //       => Depth of 4 is 3.
+            //   For child 5: (5,3), then (3,2), then (2,1), then (1, default).
+            //       => Depth of 5 is 4.
+            //
+            // Note: default for int is 0.
+            var topology = new Topology();
+            var inlet = new Inlet<KeyedValue<int, int>>();
+            var inletNode = topology.Intern(inlet);
+            inletNode.Values =
+            [
+                (2, 1),
+                (3, 2),
+                (4, 2),
+                (5, 3)
+            ];
+
+            // Act:
+            // The Ancestors flow computes every child->ancestor pair.
+            // Applying Count to that flow will aggregate the ancestor count per child,
+            // which is equivalent to the depth of the node.
+            var depthFlow = inlet.Ancestors().Count();
+            var outlet = topology.Outlet(depthFlow);
+
+            // Assert:
+            // We expect depths as follows:
+            //   Child 2: depth = 2
+            //   Child 3: depth = 3
+            //   Child 4: depth = 3
+            //   Child 5: depth = 4
+            outlet.Values.Should().BeEquivalentTo(new KeyedValue<int, int>[]{
+                (1, 1),
+                (2, 2),
+                (3, 3),
+                (4, 3),
+                (5, 4)
+            });
+        }
+
     }
 }
