@@ -1,4 +1,4 @@
-﻿namespace NexusMods.Cascade.Abstractions2;
+﻿namespace NexusMods.Cascade;
 
 public record DebugInfo
 {

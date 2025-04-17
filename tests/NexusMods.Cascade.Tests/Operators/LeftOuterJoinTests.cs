@@ -1,5 +1,4 @@
 ﻿using FluentAssertions;
-using NexusMods.Cascade.Abstractions2;
 using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Tests.Operators

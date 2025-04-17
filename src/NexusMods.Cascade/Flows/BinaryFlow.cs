@@ -1,7 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Collections;
 
-namespace NexusMods.Cascade;
+namespace NexusMods.Cascade.Flows;
 
 public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
     where TLeft : notnull

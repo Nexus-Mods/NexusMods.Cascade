@@ -2,9 +2,10 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Flows;
 using NexusMods.Cascade.Structures;
 
-namespace NexusMods.Cascade.Abstractions2;
+namespace NexusMods.Cascade;
 
 public static class FlowExtensions
 {

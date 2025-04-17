@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using NexusMods.Cascade.Abstractions2;
 using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;

@@ -1,5 +1,4 @@
 ﻿using System.Threading;
-using NexusMods.Cascade.Abstractions2;
 
 namespace NexusMods.Cascade;
 

@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using BenchmarkDotNet.Attributes;
-using NexusMods.Cascade.Abstractions2;
 
 namespace NexusMods.Cascade.Benchmarks;
 
