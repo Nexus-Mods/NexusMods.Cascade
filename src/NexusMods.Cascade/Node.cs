@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade;
 
@@ -53,7 +55,7 @@ public abstract class Node
     /// <summary>
     ///     Accept data from an upstream node.
     /// </summary>
-    public abstract void Accept<TIn>(int idx, DiffSet<TIn> diffSet) where TIn : notnull;
+    public abstract void Accept<TIn>(int idx, IToDiffSpan<TIn> diffs) where TIn : notnull;
 
     internal bool IsReadyToAdvance(int nextId)
     {
@@ -91,7 +93,7 @@ public abstract class Node<TRet>(Topology topology, Flow flow, int upstreamSlots
     /// <summary>
     ///     the output of the node. This is reset by the topology on each use.
     /// </summary>
-    public readonly DiffSet<TRet> OutputSet = new();
+    public readonly DiffList<TRet> Output = new();
 
 
     /// <summary>
@@ -102,17 +104,17 @@ public abstract class Node<TRet>(Topology topology, Flow flow, int upstreamSlots
 
     internal override void FlowOut(Node subscriberNode, int index)
     {
-        if (OutputSet.Count > 0)
-            subscriberNode.Accept(index, OutputSet);
+        if (Output.Count > 0)
+            subscriberNode.Accept(index, Output);
     }
 
     internal override void ResetOutput()
     {
-        OutputSet.Clear();
+        Output.Clear();
     }
 
     internal override bool HasOutputData()
     {
-        return OutputSet.Count > 0;
+        return Output.Count > 0;
     }
 }

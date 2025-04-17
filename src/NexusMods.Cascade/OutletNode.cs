@@ -18,12 +18,12 @@ public class OutletNode<T> : Node where T : notnull
         throw new NotSupportedException("Outlet nodes do not have subscribers");
     }
 
-    public override void Accept<TIn>(int idx, DiffSet<TIn> diffSet)
+    public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
     {
-        var casted = (DiffSet<T>)(object)diffSet;
+        var casted = (IToDiffSpan<T>)diffSet;
         var builder = _state.ToBuilder();
 
-        foreach (var (value, delta) in casted)
+        foreach (var (value, delta) in casted.ToDiffSpan())
             if (builder.TryGetValue(value, out var currentDelta))
             {
                 var newDelta = currentDelta + delta;

@@ -5,6 +5,7 @@ namespace NexusMods.Cascade.Collections;
 
 public class KeyedDiffSet<TKey, TValue> : BPlusTree<KeyedValue<TKey, TValue>, int>
     where TKey : notnull
+    where TValue : notnull
 {
     public KeyedDiffSet(int fanout = 32) : base(fanout)
     {
@@ -21,6 +22,12 @@ public class KeyedDiffSet<TKey, TValue> : BPlusTree<KeyedValue<TKey, TValue>, in
         {
             Update(key, delta);
         }
+    }
+
+    public void MergeIn(IToDiffSpan<KeyedValue<TKey, TValue>> diffSet)
+    {
+        foreach (var (key, delta) in diffSet.ToDiffSpan())
+            Update(key, delta);
     }
 
     private void Update(KeyedValue<TKey, TValue> pair, int delta)

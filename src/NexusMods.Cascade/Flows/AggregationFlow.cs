@@ -37,11 +37,11 @@ public class AggregationFlow<TKey, TInput, TState, TResult> : Flow<KeyedValue<TK
         private Dictionary<TKey, TResult> _previousValues = new();
 
 
-        public override void Accept<TIn>(int idx, DiffSet<TIn> diffSet)
+        public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
         {
-            var casted = (DiffSet<KeyedValue<TKey, TInput>>)(object)diffSet;
+            var casted = (IToDiffSpan<KeyedValue<TKey, TInput>>)diffSet;
 
-            foreach (var (value, delta) in casted)
+            foreach (var (value, delta) in casted.ToDiffSpan())
             {
                 _updatedKeys.Add(value.Key);
                 ref var currentState = ref CollectionsMarshal.GetValueRefOrAddDefault(_state, value.Key, out var exists);
@@ -67,14 +67,14 @@ public class AggregationFlow<TKey, TInput, TState, TResult> : Flow<KeyedValue<TK
                     {
                         if (!result.Equals(previousValue))
                         {
-                            OutputSet.Add(new KeyedValue<TKey, TResult>(key, previousValue), -1);
-                            OutputSet.Add(new KeyedValue<TKey, TResult>(key, result), 1);
+                            Output.Add(new KeyedValue<TKey, TResult>(key, previousValue), -1);
+                            Output.Add(new KeyedValue<TKey, TResult>(key, result), 1);
                             _previousValues[key] = result;
                         }
                     }
                     else
                     {
-                        OutputSet.Add(new KeyedValue<TKey, TResult>(key, result), 1);
+                        Output.Add(new KeyedValue<TKey, TResult>(key, result), 1);
                         _previousValues[key] = result;
                     }
                 }
@@ -82,7 +82,7 @@ public class AggregationFlow<TKey, TInput, TState, TResult> : Flow<KeyedValue<TK
                 {
                     if (_previousValues.TryGetValue(key, out var previousValue))
                     {
-                        OutputSet.Add(new KeyedValue<TKey, TResult>(key, previousValue), -1);
+                        Output.Add(new KeyedValue<TKey, TResult>(key, previousValue), -1);
                         _previousValues.Remove(key);
                     }
                 }
@@ -97,7 +97,7 @@ public class AggregationFlow<TKey, TInput, TState, TResult> : Flow<KeyedValue<TK
             upstreamCasted.ResetOutput();
             upstreamCasted.Prime();
 
-            Accept(0, upstreamCasted.OutputSet);
+            Accept(0, upstreamCasted.Output);
             EndEpoch();
             upstreamCasted.ResetOutput();
         }
@@ -106,7 +106,7 @@ public class AggregationFlow<TKey, TInput, TState, TResult> : Flow<KeyedValue<TK
         {
             foreach (var (key, state) in _previousValues)
             {
-                OutputSet.Update(new KeyedValue<TKey, TResult>(key, state), 1);
+                Output.Add(new KeyedValue<TKey, TResult>(key, state), 1);
             }
         }
     }

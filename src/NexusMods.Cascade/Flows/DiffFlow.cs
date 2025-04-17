@@ -15,7 +15,7 @@ public class DiffFlow<TIn, TOut, TState> : Flow<TOut>
     /// <summary>
     /// Diff the two states (old, new) to produce a DiffSet.
     /// </summary>
-    public required Action<TState, TState, DiffSet<TOut>> DiffFn { get; init; }
+    public required Action<TState, TState, DiffList<TOut>> DiffFn { get; init; }
 
     public override Node CreateNode(Topology topology)
         => new DiffFlowNode(topology, this);
@@ -24,16 +24,16 @@ public class DiffFlow<TIn, TOut, TState> : Flow<TOut>
     {
         private readonly DiffSet<TIn> _diffState = new();
         private TState _state = flow.StateFactory(new DiffSet<TIn>());
-        public override void Accept<TIn1>(int idx, DiffSet<TIn1> diffSet)
+        public override void Accept<TIn1>(int idx, IToDiffSpan<TIn1> diffSet)
         {
-            var casted = (DiffSet<TIn>)(object)diffSet;
+            var casted = (IToDiffSpan<TIn>)diffSet;
             _diffState.MergeIn(casted);
         }
 
         public override void EndEpoch()
         {
             var newState = flow.StateFactory(_diffState);
-            flow.DiffFn(_state, newState, OutputSet);
+            flow.DiffFn(_state, newState, Output);
             _state = newState;
         }
 
@@ -42,14 +42,14 @@ public class DiffFlow<TIn, TOut, TState> : Flow<TOut>
             var upstream = (Node<TIn>)Upstream[0];
             upstream.ResetOutput();
             upstream.Prime();
-            Accept(0, upstream.OutputSet);
+            Accept(0, upstream.Output);
             EndEpoch();
-            OutputSet.Clear();
+            Output.Clear();
         }
 
         public override void Prime()
         {
-            flow.DiffFn(flow.StateFactory(new DiffSet<TIn>()), _state, OutputSet);
+            flow.DiffFn(flow.StateFactory(new DiffSet<TIn>()), _state, Output);
         }
     }
 

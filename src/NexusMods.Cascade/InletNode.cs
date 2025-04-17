@@ -25,25 +25,26 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
         {
             lock (Topology.Lock)
             {
-                OutputSet.Clear();
-                OutputSet.MergeInInverted(_state);
+                Output.Clear();
+                Output.AddInverted(_state);
                 _state.Clear();
                 _state.MergeIn(value, 1);
-                OutputSet.MergeIn(value, 1);
+                Output.Add(value, 1);
                 Topology.FlowFrom(this);
-                OutputSet.Clear();
+                Output.Clear();
             }
         }
     }
 
 
-    public override void Accept<TIn>(int idx, DiffSet<TIn> diffSet)
+    public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
     {
         throw new NotSupportedException("Inlet nodes do not accept data.");
     }
 
     public override void Prime()
     {
-        OutputSet.SetTo(_state);
+        Output.Clear();
+        Output.Add(_state);
     }
 }

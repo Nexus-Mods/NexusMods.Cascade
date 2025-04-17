@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -60,6 +61,7 @@ public sealed class Topology
     /// </summary>
     private void FlowData()
     {
+        var sw = Stopwatch.StartNew();
         foreach (var node in _processOrder)
         {
             node.EndEpoch();
@@ -80,6 +82,7 @@ public sealed class Topology
             node.ResetOutput();
         }
         _dirtyNodes.Clear();
+        Debug.WriteLine($"Flow took {sw.ElapsedMilliseconds}ms");
     }
 
     private Node Intern(Flow flow)
@@ -122,7 +125,7 @@ public sealed class Topology
             upstream.Subscribers.Add((outletNode, 0));
 
             upstream.Prime();
-            outletNode.Accept(0, upstream.OutputSet);
+            outletNode.Accept(0, upstream.Output);
             upstream.ResetOutput();
 
             _outletNodes[flow.Id] = outletNode;

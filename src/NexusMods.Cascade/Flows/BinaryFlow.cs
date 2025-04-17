@@ -11,9 +11,9 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
 {
     public required Func<TState> StateFactory { get; init; }
 
-    public required Action<DiffSet<TLeft>, TState, DiffSet<TResult>> StepLeftFn { get; init; }
-    public required Action<DiffSet<TRight>, TState, DiffSet<TResult>> StepRightFn { get; init; }
-    public required Action<TState, DiffSet<TResult>> PrimeFn { get; init; }
+    public required Action<IToDiffSpan<TLeft>, TState, DiffList<TResult>> StepLeftFn { get; init; }
+    public required Action<IToDiffSpan<TRight>, TState, DiffList<TResult>> StepRightFn { get; init; }
+    public required Action<TState, DiffList<TResult>> PrimeFn { get; init; }
 
     public override Node CreateNode(Topology topology)
     {
@@ -25,7 +25,7 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
     {
         private readonly TState _state = flow.StateFactory();
 
-        public override void Accept<TIn>(int idx, DiffSet<TIn> diffSet)
+        public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
         {
             if (idx == 0)
                 AcceptLeft(diffSet);
@@ -35,28 +35,28 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
                 throw new ArgumentOutOfRangeException(nameof(idx), "Binary node only has two inlets.");
         }
 
-        private void AcceptLeft<TIn>(DiffSet<TIn> diffSet) where TIn : notnull
+        private void AcceptLeft<TIn>(IToDiffSpan<TIn> diffSet) where TIn : notnull
         {
-            var casted = (DiffSet<TLeft>)(object)diffSet;
-            flow.StepLeftFn(casted, _state, OutputSet);
+            var casted = (IToDiffSpan<TLeft>)diffSet;
+            flow.StepLeftFn(casted, _state, Output);
         }
 
-        private void AcceptRight<TIn>(DiffSet<TIn> diffSet) where TIn : notnull
+        private void AcceptRight<TIn>(IToDiffSpan<TIn> diffSet) where TIn : notnull
         {
-            var casted = (DiffSet<TRight>)(object)diffSet;
-            flow.StepRightFn(casted, _state, OutputSet);
+            var casted = (IToDiffSpan<TRight>)(object)diffSet;
+            flow.StepRightFn(casted, _state, Output);
         }
 
         public override void Prime()
         {
             var leftCasted = (Node<TLeft>)Upstream[0];
             var rightCasted = (Node<TRight>)Upstream[1];
-            OutputSet.Clear();
+            Output.Clear();
             leftCasted.ResetOutput();
             leftCasted.Prime();
             if (leftCasted.HasOutputData())
             {
-                flow.StepLeftFn(leftCasted.OutputSet, _state, OutputSet);
+                flow.StepLeftFn(leftCasted.Output, _state, Output);
                 leftCasted.ResetOutput();
             }
 
@@ -64,7 +64,7 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
             rightCasted.Prime();
             if (rightCasted.HasOutputData())
             {
-                flow.StepRightFn(rightCasted.OutputSet, _state, OutputSet);
+                flow.StepRightFn(rightCasted.Output, _state, Output);
                 rightCasted.ResetOutput();
             }
         }

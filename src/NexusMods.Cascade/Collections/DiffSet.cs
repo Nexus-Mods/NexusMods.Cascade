@@ -15,6 +15,16 @@ public class DiffSet<T> : Dictionary<T, int> where T : notnull
         }
     }
 
+    public void MergeIn(IToDiffSpan<T> items)
+    {
+        foreach (var (value, delta) in items.ToDiffSpan())
+        {
+            ref var currentDelta = ref CollectionsMarshal.GetValueRefOrAddDefault(this, value, out var exists);
+            currentDelta += delta;
+            if (currentDelta == 0) Remove(value);
+        }
+    }
+
     public void MergeInInverted<TEnum>(TEnum items) where TEnum : IEnumerable<KeyValuePair<T, int>>
     {
         foreach (var (value, delta) in items)

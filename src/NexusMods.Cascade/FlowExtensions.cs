@@ -34,7 +34,8 @@ public static class FlowExtensions
             Upstream = [flow],
             StepFn = (inlet, outlet) =>
             {
-                foreach (var (value, delta) in inlet) outlet.Update(fn(value), delta);
+                foreach (var (value, delta) in inlet.ToDiffSpan())
+                    outlet.Add(fn(value), delta);
             }
         };
     }
@@ -63,9 +64,9 @@ public static class FlowExtensions
             Upstream = [flow],
             StepFn = (inlet, outlet) =>
             {
-                foreach (var (value, delta) in inlet)
+                foreach (var (value, delta) in inlet.ToDiffSpan())
                     if (predicate(value))
-                        outlet.Update(value, delta);
+                        outlet.Add(value, delta);
             }
         };
     }
@@ -95,8 +96,8 @@ public static class FlowExtensions
             Upstream = [flow],
             StepFn = (inlet, outlet) =>
             {
-                foreach (var (value, delta) in inlet)
-                    outlet.Update(new KeyedValue<TKey, TValue>(fn(value), value), delta);
+                foreach (var (value, delta) in inlet.ToDiffSpan())
+                    outlet.Add(new KeyedValue<TKey, TValue>(fn(value), value), delta);
             }
         };
     }
@@ -123,11 +124,11 @@ public static class FlowExtensions
             StepLeftFn = (input, state, output) =>
             {
                 var (lefts, rights) = state;
-                foreach (var (value, delta) in input)
+                foreach (var (value, delta) in input.ToDiffSpan())
                 {
                     foreach (var right in rights[value.Key])
                     {
-                        output.Update(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (value.Value, right.Key)), delta * right.Value);
+                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (value.Value, right.Key)), delta * right.Value);
                     }
                 }
                 lefts.MergeIn(input);
@@ -135,11 +136,11 @@ public static class FlowExtensions
             StepRightFn = (input, state, output) =>
             {
                 var (lefts, rights) = state;
-                foreach (var (value, delta) in input)
+                foreach (var (value, delta) in input.ToDiffSpan())
                 {
                     foreach (var left in lefts[value.Key])
                     {
-                        output.Update(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (left.Key, value.Value)), delta * left.Value);
+                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (left.Key, value.Value)), delta * left.Value);
                     }
                 }
                 rights.MergeIn(input);
@@ -151,7 +152,7 @@ public static class FlowExtensions
                 {
                     foreach (var right in rights[leftPair.Key])
                     {
-                        output.Update(new KeyedValue<TKey, (TLeft, TRight)>(leftPair.Key, (leftPair.Value, right.Key)), leftDelta * right.Value);
+                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(leftPair.Key, (leftPair.Value, right.Key)), leftDelta * right.Value);
                     }
                 }
             }
@@ -191,18 +192,18 @@ public static class FlowExtensions
             StepLeftFn = (input, state, output) =>
             {
                 var (lefts, rights) = state;
-                foreach (var (leftKv, delta) in input)
+                foreach (var (leftKv, delta) in input.ToDiffSpan())
                 {
                     var matchFound = false;
                     foreach (var rightKv in rights[leftKv.Key])
                     {
-                        output.Update((leftKv.Key, (leftKv.Value, rightKv.Key)), delta * rightKv.Value);
+                        output.Add((leftKv.Key, (leftKv.Value, rightKv.Key)), delta * rightKv.Value);
                         matchFound = true;
                     }
                     if (!matchFound)
                     {
                         // Emit pairing with default(TRight) when no matching right record exists.
-                        output.Update((leftKv.Key, (leftKv.Value, default!)), delta);
+                        output.Add((leftKv.Key, (leftKv.Value, default!)), delta);
                     }
                 }
                 lefts.MergeIn(input);
@@ -212,7 +213,7 @@ public static class FlowExtensions
             StepRightFn = (input, state, output) =>
             {
                 var (lefts, rights) = state;
-                foreach (var (rightKv, delta) in input)
+                foreach (var (rightKv, delta) in input.ToDiffSpan())
                 {
                     // When a right record arrives (or changes), join with all left entries.
                     foreach (var (leftValue, leftDelta) in lefts[rightKv.Key])
@@ -220,10 +221,10 @@ public static class FlowExtensions
                         if (!rights.Contains(rightKv.Key))
                         {
                             // Emit pairing with default(TLeft) when no matching left record exists.
-                            output.Update((rightKv.Key, (leftValue, default!)), -leftDelta);
+                            output.Add((rightKv.Key, (leftValue, default!)), -leftDelta);
                         }
                         // Note: It is expected that any previous default join output will be canceled by a negative delta.
-                        output.Update((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
+                        output.Add((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
                     }
                 }
                 rights.MergeIn(input);
@@ -240,12 +241,12 @@ public static class FlowExtensions
                     {
                         foreach (var (rightValue, rightDelta) in rightRecords)
                         {
-                            output.Update((leftKv.Key, (leftKv.Value, rightValue)), leftDelta * rightDelta);
+                            output.Add((leftKv.Key, (leftKv.Value, rightValue)), leftDelta * rightDelta);
                         }
                     }
                     else
                     {
-                        output.Update((leftKv.Key, (leftKv.Value, default!)), leftDelta);
+                        output.Add((leftKv.Key, (leftKv.Value, default!)), leftDelta);
                     }
                 }
             }
@@ -310,7 +311,7 @@ public static class FlowExtensions
                 {
                     if (newState.ContainsKey(pair))
                         continue;
-                    output.Update(pair, -delta);
+                    output.Add(pair, -delta);
                 }
 
                 // Add all pairs that are present in the new state.
@@ -318,7 +319,7 @@ public static class FlowExtensions
                 {
                     if (oldState.ContainsKey(pair))
                         continue;
-                    output.Update(pair, delta);
+                    output.Add(pair, delta);
                 }
             }
         };
