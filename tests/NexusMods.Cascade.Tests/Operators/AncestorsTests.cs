@@ -34,11 +34,14 @@ namespace NexusMods.Cascade.Tests.Operators
             // Assert:
             // Although the internal DiffSet tracks "counts" (e.g. (2,1) appears twice),
             // the OutletNode exposes the set of unique KeyedValue<int,int> pairs.
-            var expected = new[]
+            var expected = new KeyedValue<int, int>[]
             {
-                new KeyedValue<int, int>(2, 1),
-                new KeyedValue<int, int>(1, 0),
-                new KeyedValue<int, int>(3, 2)
+                (1, 0),
+                (2, 1),
+                (2, 0),
+                (3, 2),
+                (3, 1),
+                (3, 0)
             };
 
             outlet.Values.Should().BeEquivalentTo(expected);
@@ -63,12 +66,14 @@ namespace NexusMods.Cascade.Tests.Operators
             var ancestorsFlow = inlet.Ancestors();
             var outlet = topology.Outlet(ancestorsFlow);
 
-            var expected = new[]
+            var expected = new KeyedValue<int, int>[]
             {
-                new KeyedValue<int, int>(2, 1),
-                new KeyedValue<int, int>(1, 0),
-                new KeyedValue<int, int>(4, 3),
-                new KeyedValue<int, int>(3, 0)
+                (1, 0),
+                (2, 1),
+                (2, 0),
+                (3, 0),
+                (4, 3),
+                (4, 0)
             };
 
             outlet.Values.Should().BeEquivalentTo(expected);
