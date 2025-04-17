@@ -54,13 +54,19 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
             OutputSet.Clear();
             leftCasted.ResetOutput();
             leftCasted.Prime();
-            flow.StepLeftFn(leftCasted.OutputSet, _state, OutputSet);
-            leftCasted.ResetOutput();
+            if (leftCasted.HasOutputData())
+            {
+                flow.StepLeftFn(leftCasted.OutputSet, _state, OutputSet);
+                leftCasted.ResetOutput();
+            }
 
             rightCasted.ResetOutput();
             rightCasted.Prime();
-            flow.StepRightFn(rightCasted.OutputSet, _state, OutputSet);
-            rightCasted.ResetOutput();
+            if (rightCasted.HasOutputData())
+            {
+                flow.StepRightFn(rightCasted.OutputSet, _state, OutputSet);
+                rightCasted.ResetOutput();
+            }
         }
     }
 }

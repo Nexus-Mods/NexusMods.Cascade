@@ -59,7 +59,7 @@ public sealed class Topology
     /// <summary>
     ///     Flows data from any inlets through the topology to all graph nodes.
     /// </summary>
-    public void FlowData()
+    private void FlowData()
     {
         foreach (var node in _processOrder)
         {

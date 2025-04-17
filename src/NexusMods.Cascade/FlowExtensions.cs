@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Structures;
@@ -98,7 +99,7 @@ public static class FlowExtensions
         };
     }
 
-    public static Flow<KeyedValue<TKey, (TLeft, TRight)>> Join<TLeft, TRight, TKey>(this Flow<KeyedValue<TKey, TLeft>> leftFlow,
+    public static Flow<KeyedValue<TKey, (TLeft, TRight)>> LeftInnerJoin<TLeft, TRight, TKey>(this Flow<KeyedValue<TKey, TLeft>> leftFlow,
         Flow<KeyedValue<TKey, TRight>> rightFlow,
         [CallerFilePath] string? filePath = null,
         [CallerLineNumber] int lineNumber = 0)
@@ -154,6 +155,97 @@ public static class FlowExtensions
             }
         };
     }
+
+    /// <summary>
+    /// Much like the LeftInnerJoin, but the right flow is not required to have a value for each key in the left flow.
+    /// Any missing values will be replaced with default(TRight).
+    /// </summary>
+    public static Flow<KeyedValue<TKey, (TLeft, TRight)>> LeftOuterJoin<TLeft, TRight, TKey>(
+        this Flow<KeyedValue<TKey, TLeft>> leftFlow,
+        Flow<KeyedValue<TKey, TRight>> rightFlow,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
+    {
+        return new BinaryFlow<
+            KeyedValue<TKey, TLeft>,
+            KeyedValue<TKey, TRight>,
+            KeyedValue<TKey, (TLeft, TRight)>,
+            (KeyedDiffSet<TKey, TLeft> Left, KeyedDiffSet<TKey, TRight> Right)>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "LeftOuterJoin",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [leftFlow, rightFlow],
+            StateFactory = () => (new KeyedDiffSet<TKey, TLeft>(), new KeyedDiffSet<TKey, TRight>()),
+
+            // Process left-side changes.
+            StepLeftFn = (input, state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (leftKv, delta) in input)
+                {
+                    var matchFound = false;
+                    foreach (var rightKv in rights[leftKv.Key])
+                    {
+                        output.Update((leftKv.Key, (leftKv.Value, rightKv.Key)), delta * rightKv.Value);
+                        matchFound = true;
+                    }
+                    if (!matchFound)
+                    {
+                        // Emit pairing with default(TRight) when no matching right record exists.
+                        output.Update((leftKv.Key, (leftKv.Value, default!)),
+                            delta);
+                    }
+                }
+                lefts.MergeIn(input);
+            },
+
+            // Process right-side changes.
+            StepRightFn = (input, state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (rightKv, delta) in input)
+                {
+                    // When a right record arrives (or changes), join with all left entries.
+                    foreach (var (leftValue, leftDelta) in lefts[rightKv.Key])
+                    {
+                        // Note: It is expected that any previous default join output will be canceled by a negative delta.
+                        output.Update((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
+                    }
+                }
+                rights.MergeIn(input);
+            },
+
+            // Prime the join using current states.
+            PrimeFn = (state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (leftKv, leftDelta) in lefts)
+                {
+                    var rightRecords = rights[leftKv.Key];
+                    if (rightRecords.Any())
+                    {
+                        foreach (var (rightValue, rightDelta) in rightRecords)
+                        {
+                            output.Update((leftKv.Key, (leftKv.Value, rightValue)), leftDelta * rightDelta);
+                        }
+                    }
+                    else
+                    {
+                        output.Update((leftKv.Key, (leftKv.Value, default!)), leftDelta);
+                    }
+                }
+            }
+        };
+    }
+
 
     public static Flow<KeyedValue<TKey, int>> Count<TKey, TValue>(this Flow<KeyedValue<TKey, TValue>> flow,
         [CallerFilePath] string? filePath = null,

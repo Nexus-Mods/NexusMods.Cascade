@@ -28,7 +28,7 @@ public class LeftJoinTests
         var rightRekeyed = rightInlet.Rekey(x => x % 2);
 
         // Act: Join the keyed flows.
-        var joinFlow = leftRekeyed.Join(rightRekeyed);
+        var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
         var outlet = topology.Outlet(joinFlow);
 
         // Expected pairs for key 0:
@@ -64,7 +64,7 @@ public class LeftJoinTests
         var rightRekeyed = rightInlet.Rekey(x => x % 3);
 
         // Create join outlet BEFORE any data is added.
-        var joinFlow = leftRekeyed.Join(rightRekeyed);
+        var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
         var outlet = topology.Outlet(joinFlow);
 
         // Act: add data after the outlet has been created.
@@ -103,7 +103,7 @@ public class LeftJoinTests
         var leftRekeyed = leftInlet.Rekey(x => x);
         var rightRekeyed = rightInlet.Rekey(x => x);
 
-        var joinFlow = leftRekeyed.Join(rightRekeyed);
+        var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
         var outlet = topology.Outlet(joinFlow);
 
         // Assert: No matching pairs since left is empty.
@@ -128,7 +128,7 @@ public class LeftJoinTests
         var leftRekeyed = leftInlet.Rekey(x => x / 10); // keys: 1,2,3.
         var rightRekeyed = rightInlet.Rekey(x => x / 10); // empty
 
-        var joinFlow = leftRekeyed.Join(rightRekeyed);
+        var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
         var outlet = topology.Outlet(joinFlow);
 
         // Assert: No join output because no matching in right.
@@ -154,7 +154,7 @@ public class LeftJoinTests
         // Chain a Where operator on the left to filter only numbers greater than 10.
         var filteredLeft = leftRekeyed.Where(kv => kv.Value > 10);
         // Join the filtered left with right.
-        var joinFlow = filteredLeft.Join(rightRekeyed);
+        var joinFlow = filteredLeft.LeftInnerJoin(rightRekeyed);
 
         // Finally, use Select to transform the join output.
         // For example, multiply both parts of the tuple by 2.

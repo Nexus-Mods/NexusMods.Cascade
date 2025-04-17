@@ -22,4 +22,20 @@ public readonly struct KeyedValue<TKey, TValue> : IComparable<KeyedValue<TKey, T
             return cmp;
         return GlobalCompare.Compare(Value, other.Value);
     }
+
+    /// <summary>
+    /// Implicitly converts a KeyedValue to a tuple of (TKey, TValue).
+    /// </summary>
+    public static implicit operator (TKey, TValue)(KeyedValue<TKey, TValue> value) => (value.Key, value.Value);
+
+    /// <summary>
+    /// Implicitly converts a tuple of (TKey, TValue) to a KeyedValue.
+    /// </summary>
+    public static implicit operator KeyedValue<TKey, TValue>((TKey, TValue) value) => new(value.Item1, value.Item2);
+
+    /// <inheritdoc />
+    public override string ToString()
+    {
+        return $"{Key} -> {Value}";
+    }
 }
