@@ -1,0 +1,133 @@
+﻿using FluentAssertions;
+using NexusMods.Cascade.Structures;
+
+namespace NexusMods.Cascade.Tests.Operators
+{
+    public class AncestorsFlowTests
+    {
+        [Fact]
+        public void AncestorsFlow_SimpleChain_ReturnsExpectedResults()
+        {
+            // Arrange:
+            // Build a chain where child 2 points to 1 and child 3 points to 2.
+            // For child 2, we expect the chain:
+            //      (2,1) → then since 1 has no parent, (1,default) where default for int is 0.
+            // For child 3, we expect:
+            //      (3,2) → from 2: (2,1) → then (1,0).
+            // Overall, the unique ancestor relationships (ignoring delta counts) are:
+            //      (2,1), (1,0), and (3,2).
+            var topology = new Topology();
+            var inlet = new Inlet<KeyedValue<int, int>>();
+            var inletNode = topology.Intern(inlet);
+            inletNode.Values = new[]
+            {
+                new KeyedValue<int, int>(2, 1),
+                new KeyedValue<int, int>(3, 2)
+            };
+
+            // Create the Ancestors flow. (It uses the ComputeAncestorPairs function internally.)
+            var ancestorsFlow = inlet.Ancestors();
+
+            // Create and prime the outlet.
+            var outlet = topology.Outlet(ancestorsFlow);
+
+            // Assert:
+            // Although the internal DiffSet tracks "counts" (e.g. (2,1) appears twice),
+            // the OutletNode exposes the set of unique KeyedValue<int,int> pairs.
+            var expected = new[]
+            {
+                new KeyedValue<int, int>(2, 1),
+                new KeyedValue<int, int>(1, 0),
+                new KeyedValue<int, int>(3, 2)
+            };
+
+            outlet.Values.Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void AncestorsFlow_MultipleChains_ReturnsExpectedResults()
+        {
+            // Arrange:
+            // Create two independent chains:
+            // Chain 1: 2 -> 1, which emits: (2,1) and (1,0).
+            // Chain 2: 4 -> 3, which emits: (4,3) and (3,0).
+            var topology = new Topology();
+            var inlet = new Inlet<KeyedValue<int, int>>();
+            var inletNode = topology.Intern(inlet);
+            inletNode.Values = new[]
+            {
+                new KeyedValue<int, int>(2, 1),
+                new KeyedValue<int, int>(4, 3)
+            };
+
+            var ancestorsFlow = inlet.Ancestors();
+            var outlet = topology.Outlet(ancestorsFlow);
+
+            var expected = new[]
+            {
+                new KeyedValue<int, int>(2, 1),
+                new KeyedValue<int, int>(1, 0),
+                new KeyedValue<int, int>(4, 3),
+                new KeyedValue<int, int>(3, 0)
+            };
+
+            outlet.Values.Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void AncestorsFlow_UpdateData_ReflectsChangesInOutput()
+        {
+            // Arrange:
+            // Initially supply a chain: 2 -> 1 and 3 -> 2.
+            var topology = new Topology();
+            var inlet = new Inlet<KeyedValue<int, int>>();
+            var inletNode = topology.Intern(inlet);
+            inletNode.Values =
+            [
+                new KeyedValue<int, int>(2, 1),
+                new KeyedValue<int, int>(3, 2)
+            ];
+
+            var ancestorsFlow = inlet.Ancestors();
+            var outlet = topology.Outlet(ancestorsFlow);
+
+            // Expected (unique set):
+            //   For child 2: (2,1) and (1,0);
+            //   For child 3: (3,2) plus (2,1) and (1,0) (i.e. (2,1) and (1,0) already present).
+            var expectedInitial = new[]
+            {
+                new KeyedValue<int, int>(1, 0),
+                new KeyedValue<int, int>(2, 1),
+                new KeyedValue<int, int>(2, 0),
+                new KeyedValue<int, int>(3, 2),
+                new KeyedValue<int, int>(3, 1),
+                new KeyedValue<int, int>(3, 0),
+            };
+
+            outlet.Values.Should().BeEquivalentTo(expectedInitial, options => options.WithoutStrictOrdering());
+
+            // Act:
+            // Update the inlet to supply a different chain:
+            //   5 -> 4 and 6 -> 5.
+            // For child 5: expect (5,4) then (4,0).
+            // For child 6: expect (6,5) then (5,4) then (4,0).
+            inletNode.Values = new[]
+            {
+                new KeyedValue<int, int>(5, 4),
+                new KeyedValue<int, int>(6, 5)
+            };
+
+            var expectedUpdated = new[]
+            {
+                new KeyedValue<int, int>(5, 4),
+                new KeyedValue<int, int>(5, 0),
+                new KeyedValue<int, int>(4, 0),
+                new KeyedValue<int, int>(6, 5),
+                new KeyedValue<int, int>(6, 4),
+                new KeyedValue<int, int>(6, 0)
+            };
+
+            outlet.Values.Should().BeEquivalentTo(expectedUpdated, options => options.WithoutStrictOrdering());
+        }
+    }
+}

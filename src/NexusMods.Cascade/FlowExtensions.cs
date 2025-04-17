@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Collections;
@@ -277,6 +278,85 @@ public static class FlowExtensions
         {
             state += delta;
             delete = state == 0;
+        }
+    }
+
+    /// <summary>
+    /// Takes a flow of child->parent relationships in the form of KeyedValue<T, T> where the key is the child and the value is the parent.
+    /// Produces a flow of every child->ancestor relationship in the form of KeyedValue<T, T> where the key is the child and the value is the ancestor.
+    ///
+    /// This is useful for finding a value in any ancestor of a given child, as the relationships are updated, the flow will update to reflect the new relationships.
+    /// </summary>
+    public static Flow<KeyedValue<T, T>> Ancestors<T>(this Flow<KeyedValue<T, T>> relations,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where T : notnull
+    {
+        return new DiffFlow<KeyedValue<T, T>, KeyedValue<T, T>, DiffSet<KeyedValue<T, T>>>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Ancestors",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [relations],
+            StateFactory = static pairs => ComputeAncestorPairs(pairs, default!),
+            DiffFn = static (oldState, newState, output) =>
+            {
+                // Remove all pairs that are no longer present in the new state.
+                foreach (var (pair, delta) in oldState)
+                {
+                    if (newState.ContainsKey(pair))
+                        continue;
+                    output.Update(pair, -delta);
+                }
+
+                // Add all pairs that are present in the new state.
+                foreach (var (pair, delta) in newState)
+                {
+                    if (oldState.ContainsKey(pair))
+                        continue;
+                    output.Update(pair, delta);
+                }
+            }
+        };
+
+        static DiffSet<KeyedValue<T, T>> ComputeAncestorPairs(DiffSet<KeyedValue<T, T>> pairs, T defaultParent)
+        {
+            var output = new DiffSet<KeyedValue<T, T>>();
+            var dictMapping = new Dictionary<T, T>();
+            foreach (var (pair, delta) in pairs)
+            {
+                dictMapping[pair.Key] = pair.Value;
+            }
+
+            foreach (var (currentChild, directParent) in dictMapping)
+            {
+                var child = currentChild;
+
+                // Top level items have no parent, so we need to add them to the output.
+                if (!dictMapping.TryGetValue(directParent, out _))
+                {
+                    output.Update(new KeyedValue<T, T>(directParent, defaultParent), 1);
+                }
+
+                // Traverse up the tree to find all ancestors.
+                while (true)
+                {
+                    if (!dictMapping.TryGetValue(child, out var parent))
+                    {
+                        // If we reach the root or a node with no parent, break.
+                        output.Update(new KeyedValue<T, T>(currentChild, default!), 1);
+                        break;
+                    }
+
+                    output.Update(new KeyedValue<T, T>(currentChild, parent), 1);
+                    child = parent;
+                }
+            }
+            return output;
         }
     }
 }
