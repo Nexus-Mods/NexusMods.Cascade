@@ -154,4 +154,32 @@ public static class FlowExtensions
             }
         };
     }
+
+    public static Flow<KeyedValue<TKey, int>> Count<TKey, TValue>(this Flow<KeyedValue<TKey, TValue>> flow,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TKey : notnull
+        where TValue : notnull
+    {
+        return new AggregationFlow<TKey, TValue, int, int>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Count",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [flow],
+            StateFactory = () => 0,
+            ResultFn = state => state,
+            StepFn = StepFn,
+        };
+
+        static void StepFn(ref int state, TValue input, int delta, out bool delete)
+        {
+            state += delta;
+            delete = state == 0;
+        }
+    }
 }

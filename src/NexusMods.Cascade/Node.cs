@@ -75,6 +75,11 @@ public abstract class Node
     public virtual void EndEpoch()
     {
     }
+
+    public virtual void Created()
+    {
+
+    }
 }
 
 /// <summary>

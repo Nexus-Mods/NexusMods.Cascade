@@ -98,6 +98,7 @@ public sealed class Topology
                 node.LastSeenIds[idx] = upstream.RevsionId;
                 node.ResetOutput();
             }
+            node.Created();
 
             _nodes[flow.Id] = node;
             return node;
