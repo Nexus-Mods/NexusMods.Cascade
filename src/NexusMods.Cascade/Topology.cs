@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
+using Clarp.Concurrency;
 
 namespace NexusMods.Cascade;
 
@@ -31,85 +33,130 @@ public sealed class Topology
     private readonly Dictionary<int, Node> _nodes = new();
     private readonly Dictionary<int, Node> _outletNodes = new();
 
-
     /// <summary>
-    ///     The global lock for the topology, only one thread can be in the topology at a time.
+    /// Runner queue, used to run the topology in a single thread.
     /// </summary>
-    internal readonly Lock Lock = new();
+    private readonly Agent<int> _primaryRunner = new();
 
     private readonly Queue<Node> _queue = new();
 
 
     public InletNode<T> Intern<T>(Inlet<T> inlet) where T : notnull
     {
-        lock (Lock)
+        return InternAsync(inlet).Result;
+    }
+
+    public Task<InletNode<T>> InternAsync<T>(Inlet<T> inlet) where T : notnull
+    {
+        return RunInMainThread(() =>
         {
-            if (_nodes.TryGetValue(inlet.Id, out var node)) return (InletNode<T>)node;
+            if (_nodes.TryGetValue(inlet.Id, out var node))
+                return (InletNode<T>)node;
 
             var inletNode = new InletNode<T>(this, inlet);
             _nodes[inlet.Id] = inletNode;
             _inlets.Add(inletNode);
 
             SortNodes();
-
             return inletNode;
-        }
+        });
+    }
+
+    private Task<T> RunInMainThread<T>(Func<T> func)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        _primaryRunner.Send(_ =>
+        {
+            try
+            {
+                var result = func();
+                tcs.SetResult(result);
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+                return 0;
+            }
+        });
+
+        return tcs.Task;
+    }
+
+    private Task RunInMainThread(Action func)
+    {
+        var tcs = new TaskCompletionSource();
+        _primaryRunner.Send(_ =>
+        {
+            try
+            {
+                func();
+                tcs.SetResult();
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+                return 0;
+            }
+        });
+
+        return tcs.Task;
     }
 
     /// <summary>
     ///     Flows data from any inlets through the topology to all graph nodes.
     /// </summary>
-    private void FlowData()
+    public Task FlowDataAsync()
     {
-        var sw = Stopwatch.StartNew();
-        foreach (var node in _processOrder)
+        return RunInMainThread(() =>
         {
-            node.EndEpoch();
-
-            if (!node.HasOutputData())
-                continue;
-
-            _dirtyNodes.Add(node);
-
-            foreach (var (subscriber, tag) in node.Subscribers)
+            foreach (var node in _processOrder)
             {
-                node.FlowOut(subscriber, tag);
-            }
-        }
+                node.EndEpoch();
 
-        foreach (var node in _dirtyNodes)
-        {
-            node.ResetOutput();
-        }
-        _dirtyNodes.Clear();
-        Debug.WriteLine($"Flow took {sw.ElapsedMilliseconds}ms");
+                if (!node.HasOutputData())
+                    continue;
+
+                _dirtyNodes.Add(node);
+
+                foreach (var (subscriber, tag) in node.Subscribers)
+                {
+                    node.FlowOut(subscriber, tag);
+                }
+            }
+
+            foreach (var node in _dirtyNodes)
+            {
+                node.ResetOutput();
+            }
+
+            _dirtyNodes.Clear();
+        });
     }
 
     private Node Intern(Flow flow)
     {
-        lock (Lock)
+        if (_nodes.TryGetValue(flow.Id, out var node)) return node;
+
+        node = flow.CreateNode(this);
+        for (var idx = 0; idx < flow.Upstream.Length; idx++)
         {
-            if (_nodes.TryGetValue(flow.Id, out var node)) return node;
-
-            node = flow.CreateNode(this);
-            for (var idx = 0; idx < flow.Upstream.Length; idx++)
-            {
-                var upstream = Intern(flow.Upstream[idx]);
-                upstream.Subscribers.Add((node, idx));
-                node.Upstream[idx] = upstream;
-                node.LastSeenIds[idx] = upstream.RevsionId;
-                node.ResetOutput();
-            }
-            node.Created();
-
-            _nodes[flow.Id] = node;
-            return node;
+            var upstream = Intern(flow.Upstream[idx]);
+            upstream.Subscribers.Add((node, idx));
+            node.Upstream[idx] = upstream;
+            node.LastSeenIds[idx] = upstream.RevsionId;
+            node.ResetOutput();
         }
+        node.Created();
+
+        _nodes[flow.Id] = node;
+        return node;
     }
 
-    public OutletNode<T> Outlet<T>(Flow<T> flow) where T : notnull
+    public Task<OutletNode<T>> OutletAsync<T>(Flow<T> flow) where T : notnull
     {
-        lock (Lock)
+        return RunInMainThread(() =>
         {
             if (_outletNodes.TryGetValue(flow.Id, out var node)) return (OutletNode<T>)node;
 
@@ -133,12 +180,12 @@ public sealed class Topology
             SortNodes();
 
             return outletNode;
-        }
+        });
     }
 
-    public void FlowFrom<T>(InletNode<T> inletNode) where T : notnull
+    public OutletNode<T> Outlet<T>(Flow<T> flow) where T : notnull
     {
-        FlowData();
+        return OutletAsync(flow).Result;
     }
 
     private void SortNodes()

@@ -7,32 +7,20 @@ namespace NexusMods.Cascade;
 public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology, inlet, 0)
     where T : notnull
 {
-    private readonly DiffSet<T> _state = new();
+    private T[] _values = [];
 
     /// <summary>
     ///     A somewhat slow way to get and set the values of an inlet, used mostly for testing.
     /// </summary>
     public T[] Values
     {
-        get
-        {
-            lock (Topology.Lock)
-            {
-                return Values.ToArray();
-            }
-        }
         set
         {
-            lock (Topology.Lock)
-            {
-                Output.Clear();
-                Output.AddInverted(_state);
-                _state.Clear();
-                _state.MergeIn(value, 1);
-                Output.Add(value, 1);
-                Topology.FlowFrom(this);
-                Output.Clear();
-            }
+            Output.Clear();
+            Output.Add(_values, -1);
+            Output.Add(value, 1);
+            _values = value;
+            Topology.FlowDataAsync().Wait();
         }
     }
 
@@ -45,6 +33,6 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     public override void Prime()
     {
         Output.Clear();
-        Output.Add(_state);
+        Output.Add(_values, 1);
     }
 }
