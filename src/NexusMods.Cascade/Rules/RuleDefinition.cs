@@ -52,6 +52,7 @@ public class RuleDefinition
         return (Flow<(T1, T2)>)Compiler.Compile(this);
     }
 
+
     public Flow<T2> Return<T1, T2>(T1 v1, T2 v2)
     {
         throw new NotImplementedException();

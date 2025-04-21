@@ -8,4 +8,5 @@ public static class Rule
     {
         return new RuleDefinition();
     }
+
 }
