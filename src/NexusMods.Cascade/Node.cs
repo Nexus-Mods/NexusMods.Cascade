@@ -25,7 +25,7 @@ public abstract class Node
     /// <summary>
     ///     The downstream nodes that depend on this node. This is set by the topology.
     /// </summary>
-    public readonly List<(Node Node, int Index)> Subscribers = [];
+    public readonly List<(Node Node, int Tag)> Subscribers = [];
 
     /// <summary>
     ///     The topology that this node is part of. This is set by the topology.

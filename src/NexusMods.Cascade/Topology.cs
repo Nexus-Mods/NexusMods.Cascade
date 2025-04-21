@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Clarp.Concurrency;
@@ -226,5 +227,40 @@ public sealed class Topology
         {
             throw new InvalidOperationException("Cycle detected in the dependency graph.");
         }
+    }
+
+    /// <summary>
+    /// Return the current topology as a mermaid diagram.
+    /// </summary>
+    /// <returns></returns>
+    public string Diagram()
+    {
+        return RunInMainThread(() =>
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("graph TD");
+
+
+            foreach (var node in _nodes)
+            {
+                var nodeName = node.Value.Flow.DebugInfo?.Name ?? "<unknown>";
+                if (nodeName == "Join")
+                {
+                    sb.AppendLine($"  id{node.Key}[\\{nodeName}/]");
+                }
+                else
+                {
+                    sb.AppendLine($"  id{node.Key}[{nodeName}]");
+                }
+
+                foreach (var subscriber in node.Value.Subscribers)
+                {
+                    sb.AppendLine($"  id{node.Key} --> |{subscriber.Tag}|id{subscriber.Node.Flow.Id}");
+                }
+            }
+
+
+            return sb.ToString();
+        }).Result;
     }
 }

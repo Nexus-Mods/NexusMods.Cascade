@@ -387,4 +387,63 @@ public static class FlowExtensions
             return output;
         }
     }
+
+    /// <summary>
+    /// Joins three flows together, where the first flow is the main flow and the other two are secondary flows. The first flow
+    /// is considered the full set of data, and the other two flows are considered to be optional sources of data.
+    /// </summary>
+    public static Flow<KeyedValue<TKey, (T1, T2, T3)>> LeftOuterJoin<TKey, T1, T2, T3>(this Flow<KeyedValue<TKey, T1>> mainFlow,
+        Flow<KeyedValue<TKey, T2>> secondaryFlow, Flow<KeyedValue<TKey, T3>> thirdFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+    {
+        return mainFlow.LeftOuterJoin(mainFlow, secondaryFlow)
+            .LeftOuterJoin(thirdFlow)
+            .Select(row =>
+                new KeyedValue<TKey, (T1, T2, T3)>(row.Key,
+                    (row.Value.Item1.Item2, row.Value.Item1.Item3, row.Value.Item2)));
+    }
+
+    /// <summary>
+    /// Joins three flows together, where the first flow is the main flow and the other two are secondary flows. The first flow
+    /// is considered the full set of data, and the other two flows are considered to be optional sources of data.
+    /// </summary>
+    public static Flow<KeyedValue<TKey, (T1, T2, T3, T4)>> LeftOuterJoin<TKey, T1, T2, T3, T4>(this Flow<KeyedValue<TKey, T1>> mainFlow,
+        Flow<KeyedValue<TKey, T2>> secondaryFlow,
+        Flow<KeyedValue<TKey, T3>> thirdFlow,
+        Flow<KeyedValue<TKey, T4>> fourthFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+    {
+        return mainFlow.LeftOuterJoin(mainFlow, secondaryFlow)
+            .LeftOuterJoin(thirdFlow)
+            .LeftOuterJoin(fourthFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2, T3, T4)>(row.Key,
+                (row.Value.Item1.Item1.Item2, row.Value.Item1.Item1.Item3, row.Value.Item1.Item2, row.Value.Item2)));
+    }
+
+
+    public static Flow<TResult> Join<TLeft, TRight, TKey, TResult>(this Flow<TLeft> leftFlow,
+        Flow<TRight> rightFlow,
+        Func<TLeft, TKey> leftKeySelector,
+        Func<TRight, TKey> rightKeySelector,
+        Func<TLeft, TRight, TResult> resultSelector)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
+        where TResult : notnull
+    {
+        var leftKey = leftFlow.Rekey(leftKeySelector);
+        var rightKey = rightFlow.Rekey(rightKeySelector);
+        var joined = leftKey.LeftInnerJoin(rightKey);
+        var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
+        return result;
+    }
+
+
 }
