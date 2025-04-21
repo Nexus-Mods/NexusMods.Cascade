@@ -3,70 +3,75 @@ using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using NexusMods.Cascade.Collections;
 
+using System;
+using System.Collections.Generic;
+using BenchmarkDotNet.Attributes;
+using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Structures;
+
 namespace NexusMods.Cascade.Benchmarks;
 
 [MemoryDiagnoser]
 public class BPlusTreeBenchmarks
 {
-    private int[] keys = [];
+    // Array of KeyedValue<int,int> where both components are set from a random number.
+    private KeyedValue<int, int>[] keys = [];
 
     // Number of elements to test.
     [Params(1000, 10000)] public int N;
 
-    private BPlusTree<int, string> populatedBPlusTree = null!;
+    private BPlusTree<KeyedValue<int, int>, int> populatedBPlusTree = null!;
 
-    private Dictionary<int, string> populatedDictionary = null!;
-    private string[] values = [];
+    private Dictionary<KeyedValue<int, int>, int> populatedDictionary = null!;
 
-    // Generates random unique keys and corresponding string values.
     [GlobalSetup]
     public void Setup()
     {
         var rnd = new Random(42);
-        var set = new HashSet<int>();
-        keys = new int[N];
-        values = new string[N];
+        var uniqueNumbers = new HashSet<int>();
+        keys = new KeyedValue<int, int>[N];
 
+        // Generate random unique numbers and create KeyedValue entries.
         for (int i = 0; i < N; i++)
         {
-            int key;
+            int num;
             do
             {
-                key = rnd.Next();
-            } while (!set.Add(key));
+                num = rnd.Next();
+            } while (!uniqueNumbers.Add(num));
 
-            keys[i] = key;
-            values[i] = key.ToString();
+            keys[i] = new KeyedValue<int, int>(num, num);
         }
 
         // Prepopulate Dictionary and BPlusTree for lookup benchmarks.
-        populatedDictionary = new Dictionary<int, string>(N);
-        populatedBPlusTree = new BPlusTree<int, string>(32);
+        populatedDictionary = new Dictionary<KeyedValue<int, int>, int>(N);
+        populatedBPlusTree = new BPlusTree<KeyedValue<int, int>, int>(32);
 
         for (int i = 0; i < N; i++)
         {
-            populatedDictionary.Add(keys[i], values[i]);
-            populatedBPlusTree.Insert(keys[i], values[i]);
+            // In this test, we simply use the inner int (from the KeyedValue) as the value.
+            populatedDictionary.Add(keys[i], keys[i].Key);
+            populatedBPlusTree.Insert(keys[i], keys[i].Key);
         }
     }
 
     [Benchmark]
     public void Dictionary_Insertion()
     {
-        var dict = new Dictionary<int, string>(N);
+        var dict = new Dictionary<KeyedValue<int, int>, int>(N);
         for (int i = 0; i < N; i++)
         {
-            dict.Add(keys[i], values[i]);
+            dict.Add(keys[i], keys[i].Key);
         }
     }
 
     [Benchmark]
     public void BPlusTree_Insertion()
     {
-        var tree = new BPlusTree<int, string>(32);
+        var tree = new BPlusTree<KeyedValue<int, int>, int>(32);
         for (int i = 0; i < N; i++)
         {
-            tree.Insert(keys[i], values[i]);
+            tree.Insert(keys[i], keys[i].Key);
         }
     }
 

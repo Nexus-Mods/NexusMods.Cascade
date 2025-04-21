@@ -282,6 +282,33 @@ public static class FlowExtensions
         }
     }
 
+    public static Flow<KeyedValue<TKey, TValue>> MaxBy<TKey, TValue, TCompare>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TCompare> selector)
+        where TKey : notnull
+        where TValue : notnull
+        where TCompare : IComparable<TCompare>
+    {
+        return new AggregationFlow<TKey, TValue, DiffSet<TValue>, TValue>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "MaxBy",
+                Expression = "",
+                FilePath = string.Empty,
+                LineNumber = 0
+            },
+            Upstream = [flow],
+            StateFactory = () => new DiffSet<TValue>(),
+            ResultFn = state => state.Keys.MaxBy(selector)!,
+            StepFn = StepFn,
+        };
+
+        void StepFn(ref DiffSet<TValue> state, TValue input, int delta, out bool delete)
+        {
+            state.Update(input, delta);
+            delete = state.Count == 0;
+        }
+    }
+
     /// <summary>
     /// Takes a flow of child->parent relationships in the form of KeyedValue<T, T> where the key is the child and the value is the parent.
     /// Produces a flow of every child->ancestor relationship in the form of KeyedValue<T, T> where the key is the child and the value is the ancestor.
