@@ -135,20 +135,28 @@ public record Pattern
         }
 
 
+        Flow finalAggFlow;
 
-        var method = typeof(FlowExtensions)
-            .GetMethods(BindingFlags.Static | BindingFlags.Public)
-            .First(f => f.Name == nameof(FlowExtensions.LeftInnerJoinFlatten) && f.IsGenericMethodDefinition &&
-                        f.GetParameters().Length == aggFlows.Count);
+        if (aggFlows.Count > 1)
+        {
+            var method = typeof(FlowExtensions)
+                .GetMethods(BindingFlags.Static | BindingFlags.Public)
+                .First(f => f.Name == nameof(FlowExtensions.LeftInnerJoinFlatten) && f.IsGenericMethodDefinition &&
+                            f.GetParameters().Length == aggFlows.Count);
 
-        var genericArgs =
-            new[] {keyType}.Concat(
-            aggFlows.Select(f => f.OutputType.GetGenericArguments()[1]))
-            .ToArray();
+            var genericArgs =
+                new[] { keyType }.Concat(
+                        aggFlows.Select(f => f.OutputType.GetGenericArguments()[1]))
+                    .ToArray();
 
-        var finalMethod = method.MakeGenericMethod(genericArgs);
+            var finalMethod = method.MakeGenericMethod(genericArgs);
 
-        var finalAggFlow = (Flow)finalMethod.Invoke(null, aggFlows.ToArray())!;
+            finalAggFlow = (Flow)finalMethod.Invoke(null, aggFlows.ToArray())!;
+        }
+        else
+        {
+            finalAggFlow = aggFlows[0];
+        }
 
         // Now flatten the keyed results into a final tuple
         var finalResultTypes = outputOrder.Select(o => o.Type).ToArray();

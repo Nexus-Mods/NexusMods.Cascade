@@ -84,6 +84,9 @@ public static class TupleHelpers
             }
         }
 
+        if (idx == 0)
+            return baseType;
+
         throw new NotSupportedException($"Type {baseType.Name} is not supported.");
     }
 
@@ -106,6 +109,8 @@ public static class TupleHelpers
                 }
             }
         }
+        if (index == 0)
+            return src;
         throw new NotSupportedException($"Type {baseType.Name} is not supported.");
     }
 
