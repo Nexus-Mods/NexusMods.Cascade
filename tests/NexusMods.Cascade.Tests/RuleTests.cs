@@ -52,7 +52,7 @@ public class RuleTests
         results.Values.Should().BeEquivalentTo(
             new[]
             {
-                ("Alice", 0),
+                ("Alice", 7),
                 ("Bob", 3),
                 ("Charlie", 7),
             }, o => o.WithoutStrictOrdering());

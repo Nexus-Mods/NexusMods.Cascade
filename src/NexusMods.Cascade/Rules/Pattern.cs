@@ -67,36 +67,144 @@ public record Pattern
         var keyVars = retVals.OfType<LVar>().ToArray();
         var aggregates = retVals.OfType<IAggregate>().ToArray();
 
-        return CompileAggregate(keyVars, aggregates);
+        return CompileAggregate(keyVars, aggregates, retVals);
     }
 
-    private Flow CompileAggregate(LVar[] keyVars, IAggregate[] aggregates)
+    private Flow CompileAggregate(LVar[] keyVars, IAggregate[] aggregates, IReturnValue[] outputOrder)
     {
+        // Generate the key information.
         var keyIdxes = keyVars.Select(lvar => _mappings[lvar]).ToArray();
         var keyType = TupleHelpers.TupleTypeFor(keyVars.Select(lvar => lvar.Type).ToArray());
         var keyFn = TupleHelpers.Selector(_flow!.OutputType, keyIdxes);
 
+        // Re-key the initial flow based on the key variables.
         var rekeyed = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Rekey))
             ?.MakeGenericMethod(_flow.OutputType, keyType)
-            .Invoke(null, [_flow, keyFn, "<unknown>", "", 0])!;
+            .Invoke(null, new object[] { _flow, keyFn, "<unknown>", "", 0 })!;
 
+        // Process each aggregate separately.
         List<Flow> aggFlows = new List<Flow>();
         foreach (var agg in aggregates)
         {
-            var aggIdx = Array.IndexOf(keyVars, agg.Source);
-            var getter = TupleHelpers.AggGetterFn(rekeyed.OutputType, _mappings[agg.Source]);
-            var aggFlow = agg.Constructor
-                .MakeGenericMethod(rekeyed.OutputType,
+            var mapping = _mappings[agg.Source];
+            var getter = TupleHelpers.AggGetterFn(_flow.OutputType, mapping);
+            Flow aggFlow;
+
+            // Assume AggregateType is an enum indicating which aggregation to perform.
+            if (agg.AggregateType == IAggregate.AggregateTypes.Count)
+            {
+                aggFlow = (Flow)typeof(FlowExtensions)
+                    .GetMethod(nameof(FlowExtensions.Count))
+                    ?.MakeGenericMethod(rekeyed.OutputType)
+                    .Invoke(null, new object[] { rekeyed, getter })!;
+            }
+            else if (agg.AggregateType == IAggregate.AggregateTypes.Max)
+            {
+                aggFlow = (Flow)typeof(FlowExtensions)
+                    .GetMethod(nameof(FlowExtensions.MaxBy))
+                    ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
+                    .Invoke(null, new object[] { rekeyed, getter })!;
+            }
+            else
+            {
+                throw new NotSupportedException($"Aggregate type '{agg.AggregateType}' is not supported.");
+            }
+            aggFlows.Add(aggFlow);
         }
 
-        var aggIdxes = aggregates.Select(agg => _mappings[agg.Source]).ToArray();
-        var aggStateTypes = aggregates.Select(agg => agg.StateType).ToArray();
-        var aggStateTuple = TupleHelpers.TupleTypeFor(aggStateTypes.ToArray());
+        // Combine the individual aggregate flows into one.
+        // Each aggregate flow is assumed to produce a tuple: (key, aggregateValue).
+        // We join them together on the key so that the final aggregate flow becomes:
+        // (key, agg1, agg2, ..., aggN)
+        Flow combinedAggFlow = aggFlows[0];
+        for (int i = 1; i < aggFlows.Count; i++)
+        {
+            var nextFlow = aggFlows[i];
 
+            // Both flows contain the key as their first element.
+            var joinKeySelectorLeft = TupleHelpers.Selector(combinedAggFlow.OutputType,
+                                                            Enumerable.Range(0, keyIdxes.Length).ToArray());
+            var joinKeySelectorRight = TupleHelpers.Selector(nextFlow.OutputType, new int[] { 0 });
 
+            // Build a result selector that keeps all columns from the left and
+            // appends the aggregate value (skipping the key) from the right.
+            var resultSelector = TupleHelpers.ResultSelector(
+                combinedAggFlow.OutputType,
+                nextFlow.OutputType,
+                new (bool Left, int idx)[]
+                {
+                    // Pass through the left tuple (which has key and prior aggregates)
+                    (true, 0),
+                    // Append the aggregate from the right (assumed to be at index 1)
+                    (false, 1)
+                });
 
-        throw new NotImplementedException();
+            // Determine the result tuple type by combining the types from the current left and new right.
+            // For simplicity, we assume that the left's OutputType has generic arguments starting
+            // with the key types followed by its aggregate(s), and that nextFlow's OutputType is (key, newAgg).
+            var leftTypes = combinedAggFlow.OutputType.GenericTypeArguments;
+            var rightTypes = nextFlow.OutputType.GenericTypeArguments.Skip(1).ToArray();
+            var joinedTypes = leftTypes.Concat(rightTypes).ToArray();
+            var resultTupleType = TupleHelpers.TupleTypeFor(joinedTypes);
+
+            combinedAggFlow = (Flow)typeof(FlowExtensions)
+                .GetMethod(nameof(FlowExtensions.Join))
+                ?.MakeGenericMethod(
+                    combinedAggFlow.OutputType,
+                    nextFlow.OutputType,
+                    keyType,
+                    resultTupleType)
+                .Invoke(null, new object[]
+                {
+                    combinedAggFlow,
+                    nextFlow,
+                    joinKeySelectorLeft,
+                    joinKeySelectorRight,
+                    resultSelector
+                })!;
+        }
+
+        // Now flatten the keyed results into a final tuple
+        var finalResultTypes = outputOrder.Select(o => o.Type).ToArray();
+        var finalResultType = TupleHelpers.TupleTypeFor(finalResultTypes);
+
+        var indices = outputOrder.Select(ret =>
+        {
+            if (ret is LVar lvar)
+            {
+                // For key variables, find their position in the combined flow
+                var keyIdx = Array.IndexOf(keyVars, lvar);
+                return (Left: true, keyIdx);
+            }
+            else if (ret is IAggregate agg)
+            {
+                // For aggregates, offset by number of key columns
+                var aggIdx = keyVars.Length + Array.IndexOf(aggregates, agg);
+                return (Left: false, aggIdx);
+            }
+            throw new ArgumentException($"Unknown return type: {ret.GetType()}");
+        }).ToArray();
+
+        var finalSelector = TupleHelpers.ResultKeyedSelector(
+            combinedAggFlow.OutputType,
+            indices);
+
+        var finalFlow = (Flow)typeof(FlowExtensions)
+            .GetMethod(nameof(FlowExtensions.Select))
+            ?.MakeGenericMethod(
+                combinedAggFlow.OutputType,
+                finalResultType)
+            .Invoke(null, new object[]
+            {
+                combinedAggFlow,
+                finalSelector,
+                "<unknown>",
+                "",
+                0
+            })!;
+
+        return finalFlow;
     }
 
     private Flow CompileDirectReturn(LVar[] lvars)

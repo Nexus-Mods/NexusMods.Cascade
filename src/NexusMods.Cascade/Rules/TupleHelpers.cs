@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Rules;
 
@@ -100,6 +101,39 @@ public static class TupleHelpers
         var param = Expression.Parameter(rekeyedOutputType, "input");
         var retVal = Getter(rekeyedOutputType, param, idx);
         var lambda = Expression.Lambda(retVal, param);
+        return lambda.Compile();
+    }
+
+    public static object ResultKeyedSelector(Type keyedType, (bool Left, int idx)[] selectors)
+    {
+        var outputTypes = new List<Type>();
+
+        var input1 = keyedType.GetGenericArguments()[0];
+        var input2 = keyedType.GetGenericArguments()[1];
+
+        var keyedInput = Expression.Parameter(typeof(KeyedValue<,>).MakeGenericType(input1, input2), "keyedInput");
+
+        var input1Param = Expression.PropertyOrField(keyedInput, "Key");
+        var input2Param = Expression.PropertyOrField(keyedInput, "Value");
+
+        for (var i = 0; i < selectors.Length; i++)
+        {
+            var inputType = selectors[i].Left ? input1 : input2;
+            outputTypes.Add(IndexType(inputType, selectors[i].idx));
+        }
+
+        var outputType = TupleTypeFor(outputTypes.ToArray());
+
+        var argExprs = new List<Expression>();
+
+        for (var i = 0; i < selectors.Length; i++)
+        {
+            var expr = Getter(selectors[i].Left ? input1 : input2, selectors[i].Left ? input1Param : input2Param, selectors[i].idx);
+            argExprs.Add(expr);
+        }
+
+        var tuple = Expression.New(outputType.GetConstructors().First(), argExprs);
+        var lambda = Expression.Lambda(tuple, keyedInput);
         return lambda.Compile();
     }
 }

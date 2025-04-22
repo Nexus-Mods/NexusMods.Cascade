@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade.Rules.AggregateOps;
@@ -11,5 +12,5 @@ public class Max<T>(LVar<T> srcLVar) : IAggregate<T, T, T> where T : IComparable
     public Type StateType => typeof(DiffSet<T>);
 
     public LVar Source => srcLVar;
-
+    public IAggregate.AggregateTypes AggregateType => IAggregate.AggregateTypes.Max;
 }
