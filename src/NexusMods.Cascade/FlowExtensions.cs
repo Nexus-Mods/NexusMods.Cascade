@@ -309,6 +309,33 @@ public static class FlowExtensions
         }
     }
 
+    public static Flow<KeyedValue<TKey, TCompare>> MaxOf<TKey, TValue, TCompare>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TCompare> selector)
+        where TKey : notnull
+        where TValue : notnull
+        where TCompare : IComparable<TCompare>
+    {
+        return new AggregationFlow<TKey, TValue, DiffSet<TCompare>, TCompare>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "MaxBy",
+                Expression = "",
+                FilePath = string.Empty,
+                LineNumber = 0
+            },
+            Upstream = [flow],
+            StateFactory = () => new DiffSet<TCompare>(),
+            ResultFn = state => state.Keys.Max()!,
+            StepFn = StepFn,
+        };
+
+        void StepFn(ref DiffSet<TCompare> state, TValue input, int delta, out bool delete)
+        {
+            state.Update(selector(input), delta);
+            delete = state.Count == 0;
+        }
+    }
+
     /// <summary>
     /// Takes a flow of child->parent relationships in the form of KeyedValue<T, T> where the key is the child and the value is the parent.
     /// Produces a flow of every child->ancestor relationship in the form of KeyedValue<T, T> where the key is the child and the value is the ancestor.
@@ -443,6 +470,47 @@ public static class FlowExtensions
         var joined = leftKey.LeftInnerJoin(rightKey);
         var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
         return result;
+    }
+
+    public static Flow<KeyedValue<TKey, (T1, T2)>> LeftInnerJoinFlatten<TKey, T1, T2>(this Flow<KeyedValue<TKey, T1>> leftFlow,
+        Flow<KeyedValue<TKey, T2>> rightFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+    {
+        return leftFlow.LeftInnerJoin(rightFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2)>(row.Key, (row.Value.Item1, row.Value.Item2)));
+    }
+
+    public static Flow<KeyedValue<TKey, (T1, T2, T3)>> LeftInnerJoinFlatten<TKey, T1, T2, T3>(this Flow<KeyedValue<TKey, T1>> leftFlow,
+        Flow<KeyedValue<TKey, T2>> rightFlow,
+        Flow<KeyedValue<TKey, T3>> thirdFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+    {
+        return leftFlow.LeftInnerJoin(rightFlow)
+            .LeftInnerJoin(thirdFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2, T3)>(row.Key,
+                (row.Value.Item1.Item1, row.Value.Item1.Item2, row.Value.Item2)));
+    }
+
+    public static Flow<KeyedValue<TKey, (T1, T2, T3, T4)>> LeftInnerJoinFlatten<TKey, T1, T2, T3, T4>(this Flow<KeyedValue<TKey, T1>> leftFlow,
+        Flow<KeyedValue<TKey, T2>> rightFlow,
+        Flow<KeyedValue<TKey, T3>> thirdFlow,
+        Flow<KeyedValue<TKey, T4>> fourthFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+    {
+        return leftFlow.LeftInnerJoin(rightFlow)
+            .LeftInnerJoin(thirdFlow)
+            .LeftInnerJoin(fourthFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2, T3, T4)>(row.Key,
+                (row.Value.Item1.Item1.Item1, row.Value.Item1.Item1.Item2, row.Value.Item1.Item2, row.Value.Item2)));
     }
 
 

@@ -72,6 +72,18 @@ public static class TupleHelpers
                 throw new ArgumentOutOfRangeException(nameof(idx), $"Index {idx} is out of range for type {baseType.Name}.");
             return genericArgs[idx];
         }
+
+        if (baseType.IsGenericType)
+        {
+            var genericType = baseType.GetGenericTypeDefinition();
+            if (genericType == typeof(KeyedValue<,>))
+            {
+                if (idx < 0 || idx >= 2)
+                    throw new ArgumentOutOfRangeException(nameof(idx), $"Index {idx} is out of range for type {baseType.Name}.");
+                return baseType.GenericTypeArguments[idx];
+            }
+        }
+
         throw new NotSupportedException($"Type {baseType.Name} is not supported.");
     }
 
@@ -79,6 +91,21 @@ public static class TupleHelpers
     {
         if (baseType.IsAssignableTo(typeof(ITuple)))
             return Expression.PropertyOrField(src, "Item" + (index + 1));
+        if (baseType.IsGenericType)
+        {
+            var types = baseType.GetGenericArguments();
+            if (baseType.GetGenericTypeDefinition() == typeof(KeyedValue<,>))
+            {
+                if (index == 0)
+                    return Expression.PropertyOrField(src, "Key");
+                if (index == 1)
+                    return Expression.PropertyOrField(src, "Value");
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index), $"Index {index} is out of range for type {baseType.Name}.");
+                }
+            }
+        }
         throw new NotSupportedException($"Type {baseType.Name} is not supported.");
     }
 

@@ -1,0 +1,11 @@
+﻿using System;
+
+namespace NexusMods.Cascade.Rules.AggregateOps;
+
+public class Count<T>(LVar<T> srcLVar) : IAggregate<T, int, int>
+{
+    public Type Type => typeof(int);
+    public Type SourceType => typeof(T);
+    public LVar Source => srcLVar;
+    public IAggregate.AggregateTypes AggregateType => IAggregate.AggregateTypes.Count;
+}

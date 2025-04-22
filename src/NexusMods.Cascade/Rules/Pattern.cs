@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Rules;
 
@@ -53,9 +54,29 @@ public record Pattern
         return Join(flow, lvar1, lvar2);
     }
 
+    public Pattern With<T1, T2>(Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
+        where T1 : notnull
+        where T2 : notnull
+    {
+        if (_flow is null)
+            return new Pattern
+            {
+                _inScope = _inScope.Add(lvar1).Add(lvar2),
+                _mappings = _mappings.Add(lvar1, 0).Add(lvar2, 1),
+                _flow = flow
+            };
+
+        return Join(flow, lvar1, lvar2);
+    }
+
     public Flow<(T1, T2)> Return<T1, T2>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2)
     {
         return (Flow<(T1, T2)>)CompileReturn(lvar1, lvar2);
+    }
+
+    public Flow<(T1, T2, T3)> Return<T1, T2, T3>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2, IReturnValue<T3> lvar3)
+    {
+        return (Flow<(T1, T2, T3)>)CompileReturn(lvar1, lvar2, lvar3);
     }
 
     private Flow CompileReturn(params IReturnValue[] retVals)
@@ -96,13 +117,13 @@ public record Pattern
             {
                 aggFlow = (Flow)typeof(FlowExtensions)
                     .GetMethod(nameof(FlowExtensions.Count))
-                    ?.MakeGenericMethod(rekeyed.OutputType)
-                    .Invoke(null, new object[] { rekeyed, getter })!;
+                    ?.MakeGenericMethod(keyType, _flow.OutputType)
+                    .Invoke(null, new object[] { rekeyed, "", 0 })!;
             }
             else if (agg.AggregateType == IAggregate.AggregateTypes.Max)
             {
                 aggFlow = (Flow)typeof(FlowExtensions)
-                    .GetMethod(nameof(FlowExtensions.MaxBy))
+                    .GetMethod(nameof(FlowExtensions.MaxOf))
                     ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
                     .Invoke(null, new object[] { rekeyed, getter })!;
             }
@@ -113,57 +134,21 @@ public record Pattern
             aggFlows.Add(aggFlow);
         }
 
-        // Combine the individual aggregate flows into one.
-        // Each aggregate flow is assumed to produce a tuple: (key, aggregateValue).
-        // We join them together on the key so that the final aggregate flow becomes:
-        // (key, agg1, agg2, ..., aggN)
-        Flow combinedAggFlow = aggFlows[0];
-        for (int i = 1; i < aggFlows.Count; i++)
-        {
-            var nextFlow = aggFlows[i];
 
-            // Both flows contain the key as their first element.
-            var joinKeySelectorLeft = TupleHelpers.Selector(combinedAggFlow.OutputType,
-                                                            Enumerable.Range(0, keyIdxes.Length).ToArray());
-            var joinKeySelectorRight = TupleHelpers.Selector(nextFlow.OutputType, new int[] { 0 });
 
-            // Build a result selector that keeps all columns from the left and
-            // appends the aggregate value (skipping the key) from the right.
-            var resultSelector = TupleHelpers.ResultSelector(
-                combinedAggFlow.OutputType,
-                nextFlow.OutputType,
-                new (bool Left, int idx)[]
-                {
-                    // Pass through the left tuple (which has key and prior aggregates)
-                    (true, 0),
-                    // Append the aggregate from the right (assumed to be at index 1)
-                    (false, 1)
-                });
+        var method = typeof(FlowExtensions)
+            .GetMethods(BindingFlags.Static | BindingFlags.Public)
+            .First(f => f.Name == nameof(FlowExtensions.LeftInnerJoinFlatten) && f.IsGenericMethodDefinition &&
+                        f.GetParameters().Length == aggFlows.Count);
 
-            // Determine the result tuple type by combining the types from the current left and new right.
-            // For simplicity, we assume that the left's OutputType has generic arguments starting
-            // with the key types followed by its aggregate(s), and that nextFlow's OutputType is (key, newAgg).
-            var leftTypes = combinedAggFlow.OutputType.GenericTypeArguments;
-            var rightTypes = nextFlow.OutputType.GenericTypeArguments.Skip(1).ToArray();
-            var joinedTypes = leftTypes.Concat(rightTypes).ToArray();
-            var resultTupleType = TupleHelpers.TupleTypeFor(joinedTypes);
+        var genericArgs =
+            new[] {keyType}.Concat(
+            aggFlows.Select(f => f.OutputType.GetGenericArguments()[1]))
+            .ToArray();
 
-            combinedAggFlow = (Flow)typeof(FlowExtensions)
-                .GetMethod(nameof(FlowExtensions.Join))
-                ?.MakeGenericMethod(
-                    combinedAggFlow.OutputType,
-                    nextFlow.OutputType,
-                    keyType,
-                    resultTupleType)
-                .Invoke(null, new object[]
-                {
-                    combinedAggFlow,
-                    nextFlow,
-                    joinKeySelectorLeft,
-                    joinKeySelectorRight,
-                    resultSelector
-                })!;
-        }
+        var finalMethod = method.MakeGenericMethod(genericArgs);
+
+        var finalAggFlow = (Flow)finalMethod.Invoke(null, aggFlows.ToArray())!;
 
         // Now flatten the keyed results into a final tuple
         var finalResultTypes = outputOrder.Select(o => o.Type).ToArray();
@@ -180,24 +165,24 @@ public record Pattern
             else if (ret is IAggregate agg)
             {
                 // For aggregates, offset by number of key columns
-                var aggIdx = keyVars.Length + Array.IndexOf(aggregates, agg);
+                var aggIdx = Array.IndexOf(aggregates, agg);
                 return (Left: false, aggIdx);
             }
             throw new ArgumentException($"Unknown return type: {ret.GetType()}");
         }).ToArray();
 
         var finalSelector = TupleHelpers.ResultKeyedSelector(
-            combinedAggFlow.OutputType,
+            finalAggFlow.OutputType,
             indices);
 
         var finalFlow = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Select))
             ?.MakeGenericMethod(
-                combinedAggFlow.OutputType,
+                finalAggFlow.OutputType,
                 finalResultType)
             .Invoke(null, new object[]
             {
-                combinedAggFlow,
+                finalAggFlow,
                 finalSelector,
                 "<unknown>",
                 "",
@@ -205,6 +190,7 @@ public record Pattern
             })!;
 
         return finalFlow;
+
     }
 
     private Flow CompileDirectReturn(LVar[] lvars)

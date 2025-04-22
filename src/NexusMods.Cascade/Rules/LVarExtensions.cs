@@ -10,4 +10,8 @@ public static class LVarExtensions
         return new Max<T>(srcLVar);
     }
 
+    public static Count<T> Count<T>(this LVar<T> srcLVar)
+    {
+        return new Count<T>(srcLVar);
+    }
 }

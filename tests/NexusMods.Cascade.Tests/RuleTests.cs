@@ -21,7 +21,7 @@ public class RuleTests
         var flow = Pattern.Create()
             .With(distances, city, distance)
             .With(friends, name, city)
-            .Return(name, distance.Max());
+            .Return(name, distance.Max(), distance.Count());
 
 
         var t = new Topology();
@@ -52,9 +52,9 @@ public class RuleTests
         results.Values.Should().BeEquivalentTo(
             new[]
             {
-                ("Alice", 7),
-                ("Bob", 3),
-                ("Charlie", 7),
+                ("Alice", 7, 2),
+                ("Bob", 3, 1),
+                ("Charlie", 7, 1),
             }, o => o.WithoutStrictOrdering());
 
     }
