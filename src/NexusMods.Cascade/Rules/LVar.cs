@@ -1,11 +1,12 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 
 namespace NexusMods.Cascade.Rules;
 
 /// <summary>
 /// An abstract logic variable that can be used to mark parts of a pattern
 /// </summary>
-public class LVar
+public abstract class LVar
 {
     private static int _nextId = 0;
     internal static int NextId() => Interlocked.Increment(ref _nextId);
@@ -40,6 +41,8 @@ public class LVar
         }
         return false;
     }
+
+    public abstract Type Type { get; }
 }
 
 public class LVar<T> : LVar
@@ -47,4 +50,16 @@ public class LVar<T> : LVar
     public LVar(string name) : base(name)
     {
     }
+
+    public static LVar<T> Create(string name)
+    {
+        var lastSpace = name.LastIndexOf(' ');
+        if (lastSpace != -1)
+        {
+            name = name[(lastSpace + 1)..];
+        }
+        return new LVar<T>(name);
+    }
+
+    public override Type Type => typeof(T);
 }

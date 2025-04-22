@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Data;
+using FluentAssertions;
 using NexusMods.Cascade.Rules;
 
 namespace NexusMods.Cascade.Tests;
@@ -12,10 +13,16 @@ public class RuleTests
         var distances = new Inlet<(string CityName, int Distance)>();
         var friends = new Inlet<(string Name, string CityName)>();
 
-        var flow = Rule.Create()
-            .With(distances, out var cityName, out var distance)
-            .With(friends, out var friendName, cityName)
-            .Return(friendName, distance);
+        var city = new LVar<string>("CityName");
+        var distance = new LVar<int>("Distance");
+        var name = new LVar<string>("Name");
+
+
+        var flow = Pattern.Create()
+            .With(distances, city, distance)
+            .With(friends, name, city)
+            .Return(name, distance);
+
 
         var t = new Topology();
 
