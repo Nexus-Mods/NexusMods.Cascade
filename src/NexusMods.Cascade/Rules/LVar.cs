@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Threading;
+using NexusMods.Cascade.Rules.AggregateOps;
 
 namespace NexusMods.Cascade.Rules;
 
 /// <summary>
 /// An abstract logic variable that can be used to mark parts of a pattern
 /// </summary>
-public abstract class LVar
+public abstract class LVar : IReturnValue
 {
     private static int _nextId = 0;
     internal static int NextId() => Interlocked.Increment(ref _nextId);
@@ -45,7 +46,7 @@ public abstract class LVar
     public abstract Type Type { get; }
 }
 
-public class LVar<T> : LVar
+public class LVar<T> : LVar, IReturnValue<T>
 {
     public LVar(string name) : base(name)
     {
@@ -62,4 +63,5 @@ public class LVar<T> : LVar
     }
 
     public override Type Type => typeof(T);
+
 }

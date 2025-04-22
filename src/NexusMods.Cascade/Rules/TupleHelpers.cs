@@ -94,4 +94,12 @@ public static class TupleHelpers
             _ => throw new NotImplementedException()
         };
     }
+
+    public static Delegate AggGetterFn(Type rekeyedOutputType, int idx)
+    {
+        var param = Expression.Parameter(rekeyedOutputType, "input");
+        var retVal = Getter(rekeyedOutputType, param, idx);
+        var lambda = Expression.Lambda(retVal, param);
+        return lambda.Compile();
+    }
 }

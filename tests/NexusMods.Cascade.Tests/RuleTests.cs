@@ -21,7 +21,7 @@ public class RuleTests
         var flow = Pattern.Create()
             .With(distances, city, distance)
             .With(friends, name, city)
-            .Return(name, distance);
+            .Return(name, distance.Max());
 
 
         var t = new Topology();
@@ -41,6 +41,7 @@ public class RuleTests
         friendsInlet.Values = new[]
         {
             ("Alice", "Seattle"),
+            ("Alice", "San Francisco"),
             ("Bob", "Portland"),
             ("Charlie", "San Francisco"),
         };

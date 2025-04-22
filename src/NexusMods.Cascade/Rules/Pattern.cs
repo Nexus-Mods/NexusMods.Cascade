@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace NexusMods.Cascade.Rules;
@@ -52,13 +53,59 @@ public record Pattern
         return Join(flow, lvar1, lvar2);
     }
 
-    public Flow<(T1, T2)> Return<T1, T2>(LVar<T1> lvar1, LVar<T2> lvar2)
+    public Flow<(T1, T2)> Return<T1, T2>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2)
     {
-        var retIdxes = new[] { _mappings[lvar1], _mappings[lvar2] };
-        var retFn = TupleHelpers.Selector(_flow!.OutputType, retIdxes);
-        var resultType = TupleHelpers.TupleTypeFor(new[] { lvar1.Type, lvar2.Type });
+        return (Flow<(T1, T2)>)CompileReturn(lvar1, lvar2);
+    }
 
-        var resultFlow = (Flow<(T1, T2)>)typeof(FlowExtensions)
+    private Flow CompileReturn(params IReturnValue[] retVals)
+    {
+        var lvars = retVals.OfType<LVar>().ToArray();
+        if (lvars.Length == retVals.Length)
+            return CompileDirectReturn(lvars);
+
+        var keyVars = retVals.OfType<LVar>().ToArray();
+        var aggregates = retVals.OfType<IAggregate>().ToArray();
+
+        return CompileAggregate(keyVars, aggregates);
+    }
+
+    private Flow CompileAggregate(LVar[] keyVars, IAggregate[] aggregates)
+    {
+        var keyIdxes = keyVars.Select(lvar => _mappings[lvar]).ToArray();
+        var keyType = TupleHelpers.TupleTypeFor(keyVars.Select(lvar => lvar.Type).ToArray());
+        var keyFn = TupleHelpers.Selector(_flow!.OutputType, keyIdxes);
+
+        var rekeyed = (Flow)typeof(FlowExtensions)
+            .GetMethod(nameof(FlowExtensions.Rekey))
+            ?.MakeGenericMethod(_flow.OutputType, keyType)
+            .Invoke(null, [_flow, keyFn, "<unknown>", "", 0])!;
+
+        List<Flow> aggFlows = new List<Flow>();
+        foreach (var agg in aggregates)
+        {
+            var aggIdx = Array.IndexOf(keyVars, agg.Source);
+            var getter = TupleHelpers.AggGetterFn(rekeyed.OutputType, _mappings[agg.Source]);
+            var aggFlow = agg.Constructor
+                .MakeGenericMethod(rekeyed.OutputType,
+        }
+
+        var aggIdxes = aggregates.Select(agg => _mappings[agg.Source]).ToArray();
+        var aggStateTypes = aggregates.Select(agg => agg.StateType).ToArray();
+        var aggStateTuple = TupleHelpers.TupleTypeFor(aggStateTypes.ToArray());
+
+
+
+        throw new NotImplementedException();
+    }
+
+    private Flow CompileDirectReturn(LVar[] lvars)
+    {
+        var retIdxes = lvars.Select(lvar => _mappings[lvar]).ToArray();
+        var retFn = TupleHelpers.Selector(_flow!.OutputType, retIdxes);
+        var resultType = TupleHelpers.TupleTypeFor(lvars.Select(lvar => lvar.Type).ToArray());
+
+        var resultFlow = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Select))
             ?.MakeGenericMethod(_flow.OutputType, resultType)
             .Invoke(null, [_flow, retFn, "<unknown>", "", 0])!;
