@@ -18,8 +18,9 @@ public class RuleTests
             .Define(out LVar<string> name)
             .Define(out LVar<int> distance)
             .With(distances, city, distance)
+            .Project(distance, d => d * 4, out var distance4)
             .With(friends, name, city)
-            .Return(name, distance.Max(), distance.Count());
+            .Return(name, distance4.Max(), distance.Count(), distance.Sum());
 
 
         var t = new Topology();

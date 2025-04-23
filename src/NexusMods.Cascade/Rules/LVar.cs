@@ -52,14 +52,14 @@ public class LVar<T> : LVar, IReturnValue<T>
     {
     }
 
-    public static LVar<T> Create(string name)
+    public static LVar<T> Create(string? name = "")
     {
-        var lastSpace = name.LastIndexOf(' ');
+        var lastSpace = name?.LastIndexOf(' ') ?? -1;
         if (lastSpace != -1)
         {
-            name = name[(lastSpace + 1)..];
+            name = name![(lastSpace + 1)..];
         }
-        return new LVar<T>(name);
+        return new LVar<T>(name!);
     }
 
     public override Type Type => typeof(T);

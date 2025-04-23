@@ -21,5 +21,6 @@ public record DebugInfo
         Trap_T,
         Trap_B,
         Document,
+        Lean_R,
     }
 }

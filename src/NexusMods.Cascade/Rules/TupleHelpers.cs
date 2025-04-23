@@ -36,6 +36,7 @@ public static class TupleHelpers
         return lambda.Compile();
     }
 
+
     public static Delegate ResultSelector(Type input1, Type input2, (bool Left, int idx)[] selectors)
     {
         var outputTypes = new List<Type>();
@@ -90,7 +91,7 @@ public static class TupleHelpers
         throw new NotSupportedException($"Type {baseType.Name} is not supported.");
     }
 
-    private static Expression Getter(Type baseType, Expression src, int index)
+    public static Expression Getter(Type baseType, Expression src, int index)
     {
         if (baseType.IsAssignableTo(typeof(ITuple)))
             return Expression.PropertyOrField(src, "Item" + (index + 1));
@@ -126,6 +127,30 @@ public static class TupleHelpers
             5 => typeof(ValueTuple<,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4]),
             _ => throw new NotImplementedException()
         };
+    }
+
+    /// <summary>
+    /// Makes a delegate that takes a tuple of the given type, and appends the value created by the xform to the end of the tuple.
+    /// Creating a new tuple of the output type
+    /// </summary>
+    public static Delegate TupleAppendFn(Type input, Type[] inputTypes, Type output, Delegate xform, int srcIdx)
+    {
+        var inputParam = Expression.Parameter(input, "input");
+
+        var getterExprs = new List<Expression>();
+
+        for (var i = 0; i < inputTypes.Length; i++)
+        {
+            var expr = Getter(input, inputParam, i);
+            getterExprs.Add(expr);
+        }
+
+        getterExprs.Add(Expression.Call(Expression.Constant(xform), "Invoke", [], Getter(input, inputParam, srcIdx)));
+
+        var tuple = Expression.New(output.GetConstructors().First(), getterExprs);
+
+        var lambda = Expression.Lambda(tuple, inputParam);
+        return lambda.Compile();
     }
 
     public static Delegate AggGetterFn(Type rekeyedOutputType, int idx)

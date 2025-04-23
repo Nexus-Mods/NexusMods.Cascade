@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace NexusMods.Cascade.Rules.AggregateOps;
 
-public class Sum<T>(LVar<T> lvar) : IAggregate<T> where T : IAdditiveIdentity<T, T>, IAdditionOperators<T, T, T>
+public class Sum<T>(LVar<T> lvar) : IAggregate<T> where T : IAdditiveIdentity<T, T>, IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
 {
     public Type Type => typeof(T);
     public Type SourceType => typeof(T);

@@ -270,7 +270,8 @@ public static class FlowExtensions
                 Name = "Count",
                 Expression = "",
                 FilePath = filePath ?? string.Empty,
-                LineNumber = lineNumber
+                LineNumber = lineNumber,
+                FlowShape = DebugInfo.Shape.Document
             },
             Upstream = [flow],
             StateFactory = () => 0,
@@ -324,7 +325,8 @@ public static class FlowExtensions
                 Name = "MaxOf",
                 Expression = expression ?? string.Empty,
                 FilePath = string.Empty,
-                LineNumber = 0
+                LineNumber = 0,
+                FlowShape = DebugInfo.Shape.Document
             },
             Upstream = [flow],
             StateFactory = () => new DiffSet<TCompare>(),
@@ -339,17 +341,17 @@ public static class FlowExtensions
         }
     }
 
-    public static Flow<KeyedValue<TKey, TResult>> Sum<TKey, TValue, TResult>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TResult> selector)
+    public static Flow<KeyedValue<TKey, TResult>> SumOf<TKey, TValue, TResult>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TResult> selector,  [CallerArgumentExpression(nameof(selector))] string? expression = null)
         where TKey : notnull
         where TValue : notnull
-        where TResult : IAdditiveIdentity<TResult, TResult>, IAdditionOperators<TResult, TResult, TResult>, IMultiplyOperators<TResult, int, TResult>, IEquatable<TResult>
+        where TResult : IAdditiveIdentity<TResult, TResult>, IAdditionOperators<TResult, TResult, TResult>, ISubtractionOperators<TResult, TResult, TResult>, IEquatable<TResult>
     {
         return new AggregationFlow<TKey, TValue, TResult, TResult>
         {
             DebugInfo = new DebugInfo
             {
-                Name = "Sum",
-                Expression = "",
+                Name = "SumOf",
+                Expression = expression ?? string.Empty,
                 FilePath = string.Empty,
                 LineNumber = 0,
                 FlowShape = DebugInfo.Shape.Document
@@ -362,7 +364,21 @@ public static class FlowExtensions
 
         void StepFn(ref TResult state, TValue input, int delta, out bool delete)
         {
-            state += selector(input) * delta;
+            if (delta > 0)
+            {
+                for (var i = 0; i < delta; i++)
+                {
+                    state += selector(input);
+                }
+            }
+            else
+            {
+                for (var i = 0; i < -delta; i++)
+                {
+                    state -= selector(input);
+                }
+            }
+
             delete = state.Equals(TResult.AdditiveIdentity);
         }
     }
@@ -499,6 +515,23 @@ public static class FlowExtensions
         var leftKey = leftFlow.Rekey(leftKeySelector);
         var rightKey = rightFlow.Rekey(rightKeySelector);
         var joined = leftKey.LeftInnerJoin(rightKey);
+        var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
+        return result;
+    }
+
+    public static Flow<TResult> OuterJoin<TLeft, TRight, TKey, TResult>(this Flow<TLeft> leftFlow,
+        Flow<TRight> rightFlow,
+        Func<TLeft, TKey> leftKeySelector,
+        Func<TRight, TKey> rightKeySelector,
+        Func<TLeft, TRight, TResult> resultSelector)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
+        where TResult : notnull
+    {
+        var leftKey = leftFlow.Rekey(leftKeySelector);
+        var rightKey = rightFlow.Rekey(rightKeySelector);
+        var joined = leftKey.LeftOuterJoin(rightKey);
         var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
         return result;
     }

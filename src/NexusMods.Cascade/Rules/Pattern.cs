@@ -15,11 +15,11 @@ public record Pattern
     /// </summary>
     public static Pattern Create() => new();
 
-    private ImmutableHashSet<LVar> _inScope = ImmutableHashSet<LVar>.Empty;
+    internal ImmutableHashSet<LVar> _inScope = ImmutableHashSet<LVar>.Empty;
 
-    private ImmutableDictionary<LVar, int> _mappings = ImmutableDictionary<LVar, int>.Empty;
+    internal ImmutableDictionary<LVar, int> _mappings = ImmutableDictionary<LVar, int>.Empty;
 
-    private Flow? _flow = null;
+    internal Flow? _flow = null;
 
     public Pattern Define<T>(out LVar<T> variable, [CallerArgumentExpression(nameof(variable))] string? name = null)
     {
@@ -38,7 +38,7 @@ public record Pattern
             };
 
 
-        return Join(flow, lvar);
+        return Join(flow, true, lvar);
     }
 
     public Pattern With<T1, T2>(Flow<(T1, T2)> flow, LVar<T1> lvar1, LVar<T2> lvar2)
@@ -51,13 +51,45 @@ public record Pattern
                 _flow = flow
             };
 
-        return Join(flow, lvar1, lvar2);
+        return Join(flow, true, lvar1, lvar2);
     }
 
-    public Pattern With<T1, T2>(Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
+
+    public Pattern Project<TIn, TOut>(LVar<TIn> lvar, Func<TIn, TOut> projector, out LVar<TOut> output,
+        [CallerArgumentExpression(nameof(output))] string? name = null,
+        [CallerArgumentExpression(nameof(output))] string? projecterExpr = null)
+    {
+        output = LVar<TOut>.Create(name ?? string.Empty);
+
+        var newInScope = _inScope.Add(output);
+        var newMappings = _mappings.Add(output, _mappings.Count);
+
+        var inputType = _flow!.OutputType;
+        var outputType = TupleHelpers.TupleTypeFor(newMappings.OrderBy(kv => kv.Value).Select(kv => kv.Key.Type).ToArray());
+        var srcIdx = _mappings[lvar];
+        var xform = TupleHelpers.TupleAppendFn(inputType, inputType.GetGenericArguments(), outputType, projector, srcIdx);
+
+        var flow = (Flow)typeof(FlowExtensions)
+            .GetMethod(nameof(FlowExtensions.Select))!
+            .MakeGenericMethod(inputType, outputType)
+            .Invoke(null, [_flow, xform, projecterExpr ?? "<unknown>", "", 0])!;
+
+        return new Pattern()
+        {
+            _inScope = newInScope,
+            _mappings = newMappings,
+            _flow = flow
+        };
+    }
+
+    public Pattern With<T1, T2>(Flow<KeyedValue<T1, T2>> flow, out LVar<T1> lvar1, out LVar<T2> lvar2,
+        [CallerArgumentExpression(nameof(lvar1))] string? name1 = null,
+        [CallerArgumentExpression(nameof(lvar2))] string? name2 = null)
         where T1 : notnull
         where T2 : notnull
     {
+        lvar1 = LVar<T1>.Create(name1 ?? string.Empty);
+        lvar2 = LVar<T2>.Create(name2 ?? string.Empty);
         if (_flow is null)
             return new Pattern
             {
@@ -66,7 +98,7 @@ public record Pattern
                 _flow = flow
             };
 
-        return Join(flow, lvar1, lvar2);
+        return Join(flow, true, lvar1, lvar2);
     }
 
     public Flow<(T1, T2)> Return<T1, T2>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2)
@@ -77,6 +109,11 @@ public record Pattern
     public Flow<(T1, T2, T3)> Return<T1, T2, T3>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2, IReturnValue<T3> lvar3)
     {
         return (Flow<(T1, T2, T3)>)CompileReturn(lvar1, lvar2, lvar3);
+    }
+
+    public Flow<(T1, T2, T3, T4)> Return<T1, T2, T3, T4>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2, IReturnValue<T3> lvar3, IReturnValue<T4> lvar4)
+    {
+        return (Flow<(T1, T2, T3, T4)>)CompileReturn(lvar1, lvar2, lvar3, lvar4);
     }
 
     private Flow CompileReturn(params IReturnValue[] retVals)
@@ -125,6 +162,13 @@ public record Pattern
             {
                 aggFlow = (Flow)typeof(FlowExtensions)
                     .GetMethod(nameof(FlowExtensions.MaxOf))
+                    ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
+                    .Invoke(null, new object[] { rekeyed, getter, agg.Source.ToString() })!;
+            }
+            else if (agg.AggregateType == IAggregate.AggregateTypes.Sum)
+            {
+                aggFlow = (Flow)typeof(FlowExtensions)
+                    .GetMethod(nameof(FlowExtensions.SumOf))
                     ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
                     .Invoke(null, new object[] { rekeyed, getter, agg.Source.ToString() })!;
             }
@@ -216,7 +260,7 @@ public record Pattern
         return resultFlow;
     }
 
-    public Pattern Join(Flow rightFlow, params ReadOnlySpan<LVar> lvars)
+    public Pattern Join(Flow rightFlow, bool innerJoin, params ReadOnlySpan<LVar> lvars)
     {
         var lvarsArray = lvars.ToArray();
         var newMappings = _mappings;
@@ -257,8 +301,10 @@ public record Pattern
         var resultSelector = TupleHelpers.ResultSelector(
             _flow.OutputType, rightFlow.OutputType, selectMappings.ToArray());
 
+        var methodName = innerJoin ? nameof(FlowExtensions.Join) : nameof(FlowExtensions.OuterJoin);
+
         var joinFlow = (Flow)typeof(FlowExtensions)
-            .GetMethod(nameof(FlowExtensions.Join))
+            .GetMethod(methodName)
             ?.MakeGenericMethod(new[]
             {
                 _flow.OutputType,
