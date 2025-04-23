@@ -61,19 +61,23 @@ public class LVarOverridesGenerator : IIncrementalGenerator
         var typeDecl = BuildContainingTypeChain(method.ContainingType);
         var returnType = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var methodName = method.Name;
+        var docComment = method.GetDocumentationCommentXml()?.Trim();
 
         // build generic parameter list if any
         var genericParams = method.TypeParameters.Length > 0
             ? $"<{string.Join(", ", method.TypeParameters.Select(t => t.Name))}>"
             : "";
         var genericConstraints = string.Join(" ", method.TypeParameters
-            .Where(t => t.ConstraintTypes.Length > 0 || t.HasReferenceTypeConstraint || t.HasValueTypeConstraint)
+            .Where(t => t.ConstraintTypes.Length > 0 || t.HasReferenceTypeConstraint || t.HasValueTypeConstraint || t.HasNotNullConstraint)
             .Select(t =>
             {
                 var constraints = new List<string>();
-                if (t.HasReferenceTypeConstraint) constraints.Add("class");
+                if (t.HasNotNullConstraint) constraints.Add("notnull");
+                if (t.HasReferenceTypeConstraint) constraints.Add($"class{(t.ReferenceTypeConstraintNullableAnnotation == NullableAnnotation.Annotated ? "?" : "")}");
                 if (t.HasValueTypeConstraint) constraints.Add("struct");
-                constraints.AddRange(t.ConstraintTypes.Select(c => c.ToDisplayString()));
+                if (t.HasUnmanagedTypeConstraint) constraints.Add("unmanaged");
+                constraints.AddRange(t.ConstraintTypes.Select(c => c.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+                if (t.HasConstructorConstraint) constraints.Add("new()");
                 return $"where {t.Name} : {string.Join(", ", constraints)}";
             }));
 
@@ -117,6 +121,16 @@ public class LVarOverridesGenerator : IIncrementalGenerator
         {
             idxT += 1;
             // method signature
+            if (!string.IsNullOrEmpty(docComment))
+            {
+                var start = docComment!.IndexOf("<summary>");
+                var end = docComment.IndexOf("</summary>") + 10;
+                if (start >= 0 && end > start)
+                {
+                    var summary = docComment.Substring(start, end - start).Trim();
+                    sb.AppendLine("        /// " + summary.Replace("\n", "\n        /// "));
+                }
+            }
             sb.Append("        public static ");
             sb.Append(returnType).Append(' ').Append(methodName).Append(idxT);
             if (!string.IsNullOrEmpty(genericParams))
@@ -126,6 +140,7 @@ public class LVarOverridesGenerator : IIncrementalGenerator
             // build signature parameters
             var parts = new List<string>();
             var exprParts = new List<string>();
+            var paramIdx = 0;
             foreach (var p in allParams)
             {
                 var found = lvarParams
@@ -135,15 +150,18 @@ public class LVarOverridesGenerator : IIncrementalGenerator
                 {
                     // out LVar<T> param
                     var tstr = p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    parts.Add($"out {tstr} {p.Name}");
+                    var thisPrefix = p.IsThis ? "this " : "";
+                    parts.Add($"{thisPrefix}out {tstr} {p.Name}");
                     exprParts.Add($"[global::System.Runtime.CompilerServices.CallerArgumentExpression(\"{p.Name}\")] string? {p.Name}__Expr = \"\"");
                 }
                 else
                 {
                     // keep original
                     var tstr = p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    parts.Add($"{tstr} {p.Name}");
+                    var thisPrefix = method.IsExtensionMethod && paramIdx == 0 ? "this " : "";
+                    parts.Add($"{thisPrefix}{tstr} {p.Name}");
                 }
+                paramIdx += 1;
             }
 
             sb.Append(string.Join(", ", parts.Concat(exprParts)));

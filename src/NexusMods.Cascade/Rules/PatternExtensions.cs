@@ -4,6 +4,9 @@ namespace NexusMods.Cascade.Rules;
 
 public static partial class PatternExtensions
 {
+    /// <summary>
+    /// Joins in the given KeyedValue flow, via a LeftInner join, to the current flow
+    /// </summary>
     [GenerateLVarOverrides]
     public static Pattern With<T1, T2>(this Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
         where T1 : notnull
