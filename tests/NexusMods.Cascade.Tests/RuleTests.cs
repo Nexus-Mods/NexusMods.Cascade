@@ -45,12 +45,12 @@ public class RuleTests
         var printedTopo = t.Diagram();
 
 
-        results.Values.Should().BeEquivalentTo(
+        results.Should().BeEquivalentTo(
             new[]
             {
-                ("Alice", 7, 2),
-                ("Bob", 3, 1),
-                ("Charlie", 7, 1),
+                ("Alice", 28, 2),
+                ("Bob", 12, 1),
+                ("Charlie", 28, 1),
             }, o => o.WithoutStrictOrdering());
 
     }

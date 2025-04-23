@@ -25,7 +25,7 @@ public class MaxByTests
         // Assert:
         // key 0: values 2 and 4 -> max = 4.
         // key 1: values 1, 3, 5 -> max = 5.
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 4),
             new KeyedValue<int, int>(1, 5)
@@ -53,7 +53,7 @@ public class MaxByTests
         //   Key 0: 3 and 6 -> max = 6
         //   Key 1: 4 and 7 -> max = 7
         //   Key 2: 5 and 8 -> max = 8
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 6),
             new KeyedValue<int, int>(1, 7),
@@ -79,7 +79,7 @@ public class MaxByTests
         // Expectation:
         //   Key 0: 10 and 12 -> max = 12
         //   Key 1: 11 and 13 -> max = 13
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 12),
             new KeyedValue<int, int>(1, 13)
@@ -90,7 +90,7 @@ public class MaxByTests
         // Expectation:
         //   Key 0: 20, 22, 24 -> max = 24
         //   Key 1: 21, 23    -> max = 23
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 24),
             new KeyedValue<int, int>(1, 23)
@@ -99,7 +99,7 @@ public class MaxByTests
         // Act: update to remove one group entirely (only odd numbers remain).
         inletNode.Values = [31, 33, 35];
         // Now only key 1 exists which should have max = 35.
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(1, 35)
         });
@@ -125,7 +125,7 @@ public class MaxByTests
         //   Key 1: 5, 9 -> max = 9
         //   Key 2: 6    -> max = 6
         //   Key 3: 7    -> max = 7
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 8),
             new KeyedValue<int, int>(1, 9),
@@ -136,13 +136,13 @@ public class MaxByTests
         // Act: remove one value to change key 1 (remove 5).
         inletNode.Values = [4, 6, 7, 8, 9];
         // Key 1 still exists with only 9.
-        outlet.Values.Should().Contain(new KeyedValue<int, int>(1, 9));
+        outlet.Should().Contain(new KeyedValue<int, int>(1, 9));
 
         // Act: update so that key 1 becomes empty.
         inletNode.Values = [4, 6, 7, 8];
         // Now key 1 should be absent.
-        outlet.Values.Should().NotContain(v => v.Key.Equals(1));
-        outlet.Values.Should().BeEquivalentTo(new[]
+        outlet.Should().NotContain(v => v.Key.Equals(1));
+        outlet.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 8),
             new KeyedValue<int, int>(2, 6),
@@ -151,7 +151,7 @@ public class MaxByTests
 
         // Finally remove all items.
         inletNode.Values = [];
-        outlet.Values.Should().BeEmpty();
+        outlet.Should().BeEmpty();
     }
 
     [Fact]
@@ -180,20 +180,20 @@ public class MaxByTests
             new KeyedValue<int, int>(0, 4),
             new KeyedValue<int, int>(1, 3)
         };
-        outlet1.Values.Should().BeEquivalentTo(expected);
-        outlet2.Values.Should().BeEquivalentTo(expected);
+        outlet1.Should().BeEquivalentTo(expected);
+        outlet2.Should().BeEquivalentTo(expected);
 
         // Act: update the inlet.
         inletNode.Values = [1, 2, 3, 4, 5];
         // Now:
         //   Key 0: 2,4 -> max = 4
         //   Key 1: 1,3,5 -> max = 5
-        outlet1.Values.Should().BeEquivalentTo(new[]
+        outlet1.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 4),
             new KeyedValue<int, int>(1, 5)
         });
-        outlet2.Values.Should().BeEquivalentTo(new[]
+        outlet2.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 4),
             new KeyedValue<int, int>(1, 5)
@@ -222,12 +222,12 @@ public class MaxByTests
         // Expectation:
         //   Key 0: 2,4 -> max = 4, transformed value = 40.
         //   Key 1: 1,3 -> max = 3, transformed value = 30.
-        outletMax.Values.Should().BeEquivalentTo(new[]
+        outletMax.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 4),
             new KeyedValue<int, int>(1, 3)
         });
-        outletSelected.Values.Should().BeEquivalentTo(new[]
+        outletSelected.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 40),
             new KeyedValue<int, int>(1, 30)
@@ -238,12 +238,12 @@ public class MaxByTests
         // Now:
         //   Key 0: 2,4,6 -> max = 6, transformed = 60.
         //   Key 1: 1,3,5 -> max = 5, transformed = 50.
-        outletMax.Values.Should().BeEquivalentTo(new[]
+        outletMax.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 6),
             new KeyedValue<int, int>(1, 5)
         });
-        outletSelected.Values.Should().BeEquivalentTo(new[]
+        outletSelected.Should().BeEquivalentTo(new[]
         {
             new KeyedValue<int, int>(0, 60),
             new KeyedValue<int, int>(1, 50)

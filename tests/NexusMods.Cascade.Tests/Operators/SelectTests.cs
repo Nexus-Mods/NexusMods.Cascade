@@ -20,7 +20,7 @@ public class SelectTests
         var outlet = topology.Outlet(selectFlow);
 
         // Assert that the outlet picked up the initial data.
-        outlet.Values.Should().BeEquivalentTo([2, 3, 4]);
+        outlet.Should().BeEquivalentTo([2, 3, 4]);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class SelectTests
         inletNode.Values = [7, 8, 9];
 
         // Assert that the outlet reflects the new transformed data.
-        outlet.Values.Should().BeEquivalentTo([8, 9, 10]);
+        outlet.Should().BeEquivalentTo([8, 9, 10]);
     }
 
     [Fact]
@@ -56,13 +56,13 @@ public class SelectTests
         var outlet = topology.Outlet(selectFlow);
 
         // Assert initial transformation.
-        outlet.Values.Should().BeEquivalentTo([20, 40, 60]);
+        outlet.Should().BeEquivalentTo([20, 40, 60]);
 
         // Act: update inlet with new data.
         inletNode.Values = [1, 2, 3, 4];
 
         // Assert outlet reflects the updated transformation.
-        outlet.Values.Should().BeEquivalentTo([2, 4, 6, 8]);
+        outlet.Should().BeEquivalentTo([2, 4, 6, 8]);
     }
 
     [Fact]
@@ -81,12 +81,12 @@ public class SelectTests
         var outlet = topology.Outlet(selectFlow);
 
         // Assert that no data flows through.
-        outlet.Values.Should().BeEmpty();
+        outlet.Should().BeEmpty();
 
         // Act: update inlet with data.
         inletNode.Values = new[] { 5, 15 };
 
         // Assert updated data is correctly transformed.
-        outlet.Values.Should().BeEquivalentTo([105, 115]);
+        outlet.Should().BeEquivalentTo([105, 115]);
     }
 }

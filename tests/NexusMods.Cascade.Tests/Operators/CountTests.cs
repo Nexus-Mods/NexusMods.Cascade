@@ -23,7 +23,7 @@ public class CountTests
         // Act: obtain the outlet (which primes the flow).
         var outlet = topology.Outlet(countFlow);
         // Assert: verify the count for each key.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 3)
         ]);
@@ -51,7 +51,7 @@ public class CountTests
         // 5 % 3 = 2, 8 % 3 = 2  -> count 2 for key 2.
 
         // Assert: outlet should reflect the new counts.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 2),
             new KeyedValue<int, int>(2, 2)
@@ -76,7 +76,7 @@ public class CountTests
         // Calculation:
         // Key 0: 10,12 => count 2; Key 1: 11,13 => count 2.
 
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 2)
         ]);
@@ -85,7 +85,7 @@ public class CountTests
         inletNode.Values = [20, 21, 22, 23, 24];
         // Expected:
         // Key 0: 20,22,24 => count 3; Key 1: 21,23 => count 2.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 3),
             new KeyedValue<int, int>(1, 2)
         ]);
@@ -94,7 +94,7 @@ public class CountTests
         inletNode.Values = [31, 33, 35]; // All odd numbers.
         // Expected:
         // Key 1: count 3, key 0 should be removed because its count becomes zero.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(1, 3)
         ]);
     }
@@ -120,7 +120,7 @@ public class CountTests
         // Group 3 (30-39): 33,37 => count 2.
         // Group 4 (40-49): 42,47 => count 2.
         // Group 5 (50-59): 52 => count 1.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(1, 2),
             new KeyedValue<int, int>(2, 2),
             new KeyedValue<int, int>(3, 2),
@@ -137,7 +137,7 @@ public class CountTests
         // Group 4: 40,45 => 2.
         // Group 5: 50,55 => 2.
         // Group 6: 60 => 1.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(1, 2),
             new KeyedValue<int, int>(2, 2),
             new KeyedValue<int, int>(3, 2),
@@ -167,7 +167,7 @@ public class CountTests
         // 5 % 4 = 1, 9 % 4 = 1   => key 1 count 2.
         // 6 % 4 = 2              => key 2 count 1.
         // 7 % 4 = 3              => key 3 count 1.
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 2),
             new KeyedValue<int, int>(2, 1),
@@ -182,13 +182,13 @@ public class CountTests
         // key 1: 9 gives 9 % 4 = 1 => count 1.
         // key 2: 6 => 1.
         // key 3: 7 => 1.
-        outlet.Values.Should().Contain(new KeyedValue<int, int>(1, 1));
+        outlet.Should().Contain(new KeyedValue<int, int>(1, 1));
 
         // Now update so that key 1 becomes empty.
         inletNode.Values = [4, 6, 7, 8];
         // key 0: 4,8 => 2; key 2: 6 => 1; key 3: 7 => 1; key 1 is now absent.
-        outlet.Values.Should().NotContain(v => v.Key.Equals(1));
-        outlet.Values.Should().BeEquivalentTo([
+        outlet.Should().NotContain(v => v.Key.Equals(1));
+        outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(2, 1),
             new KeyedValue<int, int>(3, 1)
@@ -196,7 +196,7 @@ public class CountTests
 
         // Finally remove all items.
         inletNode.Values = [];
-        outlet.Values.Should().BeEmpty();
+        outlet.Should().BeEmpty();
     }
 
     [Fact]
@@ -227,8 +227,8 @@ public class CountTests
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 2)
         };
-        outlet1.Values.Should().BeEquivalentTo(expected);
-        outlet2.Values.Should().BeEquivalentTo(expected);
+        outlet1.Should().BeEquivalentTo(expected);
+        outlet2.Should().BeEquivalentTo(expected);
 
         // Act: Update the inlet with new values.
         // New values: 1,2,3,4,5 results in:
@@ -236,11 +236,11 @@ public class CountTests
         inletNode.Values = [1, 2, 3, 4, 5];
 
         // Assert: Both outlets update accordingly.
-        outlet1.Values.Should().BeEquivalentTo([
+        outlet1.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 3)
         ]);
-        outlet2.Values.Should().BeEquivalentTo([
+        outlet2.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 3)
         ]);
@@ -272,11 +272,11 @@ public class CountTests
         inletNode.Values = [1, 2, 3, 4];
 
         // Assert: Both outlets produce expected outputs.
-        outletCount.Values.Should().BeEquivalentTo([
+        outletCount.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
             new KeyedValue<int, int>(1, 2)
         ]);
-        outletSelected.Values.Should().BeEquivalentTo([
+        outletSelected.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 20),
             new KeyedValue<int, int>(1, 20)
         ]);
@@ -288,11 +288,11 @@ public class CountTests
         inletNode.Values = [1, 2, 3, 4, 5, 6];
 
         // Assert: Both outlets update accordingly.
-        outletCount.Values.Should().BeEquivalentTo([
+        outletCount.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 3),
             new KeyedValue<int, int>(1, 3)
         ]);
-        outletSelected.Values.Should().BeEquivalentTo([
+        outletSelected.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 30),
             new KeyedValue<int, int>(1, 30)
         ]);

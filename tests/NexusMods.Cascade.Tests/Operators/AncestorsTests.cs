@@ -44,7 +44,7 @@ namespace NexusMods.Cascade.Tests.Operators
                 (3, 0)
             };
 
-            outlet.Values.Should().BeEquivalentTo(expected);
+            outlet.Should().BeEquivalentTo(expected);
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace NexusMods.Cascade.Tests.Operators
                 (4, 0)
             };
 
-            outlet.Values.Should().BeEquivalentTo(expected);
+            outlet.Should().BeEquivalentTo(expected);
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace NexusMods.Cascade.Tests.Operators
                 new KeyedValue<int, int>(3, 0),
             };
 
-            outlet.Values.Should().BeEquivalentTo(expectedInitial, options => options.WithoutStrictOrdering());
+            outlet.Should().BeEquivalentTo(expectedInitial, options => options.WithoutStrictOrdering());
 
             // Act:
             // Update the inlet to supply a different chain:
@@ -132,7 +132,7 @@ namespace NexusMods.Cascade.Tests.Operators
                 new KeyedValue<int, int>(6, 0)
             };
 
-            outlet.Values.Should().BeEquivalentTo(expectedUpdated, options => options.WithoutStrictOrdering());
+            outlet.Should().BeEquivalentTo(expectedUpdated, options => options.WithoutStrictOrdering());
         }
 
 
@@ -182,7 +182,7 @@ namespace NexusMods.Cascade.Tests.Operators
             //   Child 3: depth = 3
             //   Child 4: depth = 3
             //   Child 5: depth = 4
-            outlet.Values.Should().BeEquivalentTo(new KeyedValue<int, int>[]{
+            outlet.Should().BeEquivalentTo(new KeyedValue<int, int>[]{
                 (1, 1),
                 (2, 2),
                 (3, 3),

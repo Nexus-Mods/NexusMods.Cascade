@@ -20,7 +20,7 @@ public class WhereTests
         var outlet = topology.Outlet(whereFlow);
 
         // Assert: Only even numbers should pass.
-        outlet.Values.Should().BeEquivalentTo([2, 4]);
+        outlet.Should().BeEquivalentTo([2, 4]);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class WhereTests
         inletNode.Values = [5, 15, 25];
 
         // Assert: Only values greater than 10 should be available.
-        outlet.Values.Should().BeEquivalentTo([15, 25]);
+        outlet.Should().BeEquivalentTo([15, 25]);
     }
 
     [Fact]
@@ -58,13 +58,13 @@ public class WhereTests
         var outlet = topology.Outlet(whereFlow);
 
         // Assert initial condition.
-        outlet.Values.Should().BeEquivalentTo([6, 7, 9]);
+        outlet.Should().BeEquivalentTo([6, 7, 9]);
 
         // Act: update inlet data.
         inletNode.Values = [1, 3, 5, 7, 9, 11];
 
         // Assert that outlet reflects update.
-        outlet.Values.Should().BeEquivalentTo([7, 9, 11]);
+        outlet.Should().BeEquivalentTo([7, 9, 11]);
     }
 
     [Fact]
@@ -83,13 +83,13 @@ public class WhereTests
         var outlet = topology.Outlet(whereFlow);
 
         // Assert: outlet remains empty.
-        outlet.Values.Should().BeEmpty();
+        outlet.Should().BeEmpty();
 
         // Act: add data.
         inletNode.Values = [4, 8, 13];
 
         // Assert: only the odd value passes.
-        outlet.Values.Should().BeEquivalentTo([13]);
+        outlet.Should().BeEquivalentTo([13]);
     }
 
     [Fact]
@@ -109,12 +109,12 @@ public class WhereTests
         var outlet = topology.Outlet(selectFlow);
 
         // Assert that only even numbers passed and got transformed.
-        outlet.Values.Should().BeEquivalentTo([12, 14, 16]);
+        outlet.Should().BeEquivalentTo([12, 14, 16]);
 
         // Act: update inlet data for a new reflow.
         inletNode.Values = [7, 8, 9, 10];
 
         // Filtering evens: 8 and 10, then add 10.
-        outlet.Values.Should().BeEquivalentTo([18, 20]);
+        outlet.Should().BeEquivalentTo([18, 20]);
     }
 }

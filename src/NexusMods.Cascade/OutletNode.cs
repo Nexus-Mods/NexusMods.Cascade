@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using NexusMods.Cascade.Abstractions;
@@ -28,13 +29,13 @@ public class OutletFlow<T> : Flow
     public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
 }
 
-public class OutletNode<T> : Node where T : notnull
+public class OutletNode<T> : Node, IReadOnlyCollection<T>
+    where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
+    private int _count;
 
     public OutletNode(Topology topology, Flow flow) : base(topology, flow, 1) { }
-
-    public IEnumerable<T> Values => _state.Keys;
 
     internal override void FlowOut(Node subscriberNode, int tag)
     {
@@ -68,4 +69,16 @@ public class OutletNode<T> : Node where T : notnull
     {
         return false;
     }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        return _state.Keys.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public int Count => _state.Count;
 }

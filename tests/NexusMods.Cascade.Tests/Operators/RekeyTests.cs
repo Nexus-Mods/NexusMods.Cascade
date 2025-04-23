@@ -21,7 +21,7 @@ public class RekeyTests
         var outlet = topology.Outlet(rekeyFlow);
 
         // Act: extract keyed values from the outlet.
-        var result = outlet.Values.Cast<KeyedValue<int, int>>().OrderBy(kv => kv.Key).ToList();
+        var result = outlet.Cast<KeyedValue<int, int>>().OrderBy(kv => kv.Key).ToList();
 
         // Assert expected results:
         // 10 -> key 1, 20 -> key 2, 30 -> key 3.
@@ -46,7 +46,7 @@ public class RekeyTests
         // Act: add inlet data after outlet creation.
         inletNode.Values = ["apple", "avocado", "banana", "berry"];
 
-        var result = outlet.Values.OrderBy(kv => kv.Key).ToList();
+        var result = outlet.OrderBy(kv => kv.Key).ToList();
 
         // Assert: the outlet should contain keyed values grouped by first letter.
         // As our flow doesn't aggregate duplicates, each entry is separate.
@@ -76,16 +76,16 @@ public class RekeyTests
         var outlet = topology.Outlet(rekeyFlow);
 
         // Verify initial state.
-        var initial = outlet.Values.Cast<KeyedValue<int, int>>().ToList();
+        var initial = outlet.Cast<KeyedValue<int, int>>().ToList();
         initial.Select(kv => kv.Key).Should().AllBeEquivalentTo(3);
         initial.Select(kv => kv.Value).Should().BeEquivalentTo(new[] { 100, 200, 300 });
 
         // Act: update inlet with new values.
         inletNode.Values = new[] { 50, 500, 5000 };
 
-        var updated = outlet.Values.Cast<KeyedValue<int, int>>().ToList();
+        var updated = outlet.Cast<KeyedValue<int, int>>().ToList();
 
-        var result = outlet.Values.Cast<KeyedValue<int, int>>().ToList();
+        var result = outlet.Cast<KeyedValue<int, int>>().ToList();
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class RekeyTests
         var outlet = topology.Outlet(flow);
 
         // Act: The inlet produces 10 and 20.
-        var result = outlet.Values.OrderBy(kv => kv.Key).ToList();
+        var result = outlet.OrderBy(kv => kv.Key).ToList();
 
         // Assert: verify keys and transformed values.
         // 10 * 3 = 30, 20 * 3 = 60, keys "key-10" and "key-20".
@@ -120,7 +120,7 @@ public class RekeyTests
         // Filter: even numbers -> 8, 12, 14.
         // Rekey: keys "key-8", "key-12", "key-14".
         // Select multiplies values: 24, 36, 42.
-        result = outlet.Values.OrderBy(kv => kv.Key).ToList();
+        result = outlet.OrderBy(kv => kv.Key).ToList();
         result.Select(kv => kv.Key).Should().Equal("key-12", "key-14", "key-8");
         result.Select(kv => kv.Value).Should().Equal(36, 42, 24);
     }

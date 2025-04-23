@@ -33,7 +33,7 @@ public class LeftJoinTests
         // Expected pairs for key 0:
         // left: 2,4,6 and right: 2,4 => cartesian product:
         // (2,2), (2,4), (4,2), (4,4), (6,2), (6,4)
-        var results = outlet.Values.ToList();
+        var results = outlet.ToList();
         var expected = new[]
         {
             (2, 2), (2, 4),
@@ -73,7 +73,7 @@ public class LeftJoinTests
         // For key 0: left: 3,6 and right: 6 => pairs: (3,6) and (6,6)
         // For key 1: left: 4 and right: 7 => (4,7)
         // For key 2: left: 5 and right: 8 => (5,8)
-        var results = outlet.Values.ToList();
+        var results = outlet.ToList();
 
         // Group by keys for clarity.
         var pairsByKey = results.GroupBy(kv => kv.Key)
@@ -106,7 +106,7 @@ public class LeftJoinTests
         var outlet = topology.Outlet(joinFlow);
 
         // Assert: No matching pairs since left is empty.
-        outlet.Values.Should().BeEmpty();
+        outlet.Should().BeEmpty();
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class LeftJoinTests
         var outlet = topology.Outlet(joinFlow);
 
         // Assert: No join output because no matching in right.
-        outlet.Values.Should().BeEmpty();
+        outlet.Should().BeEmpty();
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class LeftJoinTests
         // Expected join pairs for key 5: (15,15), (15,25), (25,15), (25,25).
         // Then each number multiplied by 2.
         // final expected: (30,30), (30,50), (50,30), (50,50) with key 5.
-        var results = outlet.Values.ToList();
+        var results = outlet.ToList();
         results.Select(kv => kv.Key).Distinct().Should().Equal(5);
         results.Select(kv => kv.Value).Should().BeEquivalentTo([
             (30, 30), (30, 50), (50, 30), (50, 50)

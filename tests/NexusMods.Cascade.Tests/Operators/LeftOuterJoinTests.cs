@@ -29,7 +29,7 @@ namespace NexusMods.Cascade.Tests.Operators
             rightNode.Values = [];
 
             // Assert
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(1, (10, 0)),
                 new KeyedValue<int, (int, int)>(2, (21, 0)),
                 new KeyedValue<int, (int, int)>(3, (32, 0))
@@ -61,7 +61,7 @@ namespace NexusMods.Cascade.Tests.Operators
             rightNode.Values = [11, 22, 33];  // keys: 1, 2, 3
 
             // Assert
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(1, (10, 11)),
                 new KeyedValue<int, (int, int)>(2, (21, 22)),
                 new KeyedValue<int, (int, int)>(3, (32, 33))
@@ -98,7 +98,7 @@ namespace NexusMods.Cascade.Tests.Operators
             // Key 2: left 21 has no right value.
             // Key 3: left 32 joins with 33.
             // Key 4: left 43 has no right value.
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(1, (10, 11)),
                 new KeyedValue<int, (int, int)>(2, (21, 0)),
                 new KeyedValue<int, (int, int)>(3, (32, 33)),
@@ -130,7 +130,7 @@ namespace NexusMods.Cascade.Tests.Operators
             rightNode.Values = [];
 
             // Assert: initial join output with defaults.
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(1, (10, 0)),
                 new KeyedValue<int, (int, int)>(2, (21, 0))
             ]);
@@ -139,7 +139,7 @@ namespace NexusMods.Cascade.Tests.Operators
             rightNode.Values = [11];
 
             // Assert: key 1 now has a joined pair while key 2 remains with default.
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(1, (10, 11)),
                 new KeyedValue<int, (int, int)>(2, (21, 0))
             ]);
@@ -169,7 +169,7 @@ namespace NexusMods.Cascade.Tests.Operators
             rightNode.Values = [11];
 
             // Assert initial join output.
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(1, (10, 11))
             ]);
 
@@ -177,7 +177,7 @@ namespace NexusMods.Cascade.Tests.Operators
             leftNode.Values = [20];
 
             // Assert: The output reflects the updated left value while preserving the right value.
-            outlet.Values.Should().BeEquivalentTo([
+            outlet.Should().BeEquivalentTo([
                 new KeyedValue<int, (int, int)>(2, (20, 0))
             ]);
         }
