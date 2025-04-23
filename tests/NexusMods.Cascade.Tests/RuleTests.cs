@@ -13,12 +13,10 @@ public class RuleTests
         var distances = new Inlet<(string CityName, int Distance)>();
         var friends = new Inlet<(string Name, string CityName)>();
 
-        var city = new LVar<string>("CityName");
-        var distance = new LVar<int>("Distance");
-        var name = new LVar<string>("Name");
-
-
         var flow = Pattern.Create()
+            .Define(out LVar<string> city)
+            .Define(out LVar<string> name)
+            .Define(out LVar<int> distance)
             .With(distances, city, distance)
             .With(friends, name, city)
             .Return(name, distance.Max(), distance.Count());

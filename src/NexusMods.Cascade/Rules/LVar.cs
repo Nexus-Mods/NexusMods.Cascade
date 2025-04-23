@@ -26,7 +26,7 @@ public abstract class LVar : IReturnValue
 
     public override string ToString()
     {
-        return !string.IsNullOrEmpty(Name) ? $"?{Name}({Id}" : $"?({Id})";
+        return !string.IsNullOrEmpty(Name) ? $"?{Name}" : $"?({Id})";
     }
 
     public override int GetHashCode()

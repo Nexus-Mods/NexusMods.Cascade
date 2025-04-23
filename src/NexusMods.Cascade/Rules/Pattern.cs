@@ -98,11 +98,12 @@ public record Pattern
         var keyType = TupleHelpers.TupleTypeFor(keyVars.Select(lvar => lvar.Type).ToArray());
         var keyFn = TupleHelpers.Selector(_flow!.OutputType, keyIdxes);
 
+        var keyExpr = string.Join(", ", keyVars.Select(lvar => lvar.ToString()));
         // Re-key the initial flow based on the key variables.
         var rekeyed = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Rekey))
             ?.MakeGenericMethod(_flow.OutputType, keyType)
-            .Invoke(null, new object[] { _flow, keyFn, "<unknown>", "", 0 })!;
+            .Invoke(null, new object[] { _flow, keyFn, $"({keyExpr})", "", 0 })!;
 
         // Process each aggregate separately.
         List<Flow> aggFlows = new List<Flow>();
@@ -125,7 +126,7 @@ public record Pattern
                 aggFlow = (Flow)typeof(FlowExtensions)
                     .GetMethod(nameof(FlowExtensions.MaxOf))
                     ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
-                    .Invoke(null, new object[] { rekeyed, getter })!;
+                    .Invoke(null, new object[] { rekeyed, getter, agg.Source.ToString() })!;
             }
             else
             {

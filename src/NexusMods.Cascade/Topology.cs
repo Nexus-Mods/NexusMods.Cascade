@@ -163,7 +163,9 @@ public sealed class Topology
 
             var upstream = (Node<T>)Intern(flow);
 
-            var outletNode = new OutletNode<T>(this, flow)
+            var outletFlow = new OutletFlow<T>(flow);
+
+            var outletNode = new OutletNode<T>(this, outletFlow)
             {
                 Upstream =
                 {
@@ -241,24 +243,26 @@ public sealed class Topology
             sb.AppendLine("graph TD");
 
 
-            foreach (var node in _nodes)
+            foreach (var node in _nodes.Concat(_outletNodes))
             {
-                var nodeName = node.Value.Flow.DebugInfo?.Name ?? "<unknown>";
-                if (nodeName == "Join")
-                {
-                    sb.AppendLine($"  id{node.Key}[\\{nodeName}/]");
-                }
+                var debugInfo = node.Value.Flow.DebugInfo;
+                string nodeName;
+                if (debugInfo == null)
+                    nodeName = "Unknown";
                 else
                 {
-                    sb.AppendLine($"  id{node.Key}[{nodeName}]");
+                    nodeName = debugInfo.Name;
+                    nodeName += $" {debugInfo.Expression}";
                 }
+
+                var shape = (node.Value.Flow.DebugInfo?.FlowShape ?? DebugInfo.Shape.Rect).ToString().ToLowerInvariant().Replace("_", "-");
+                sb.AppendLine($"  id{node.Value.Flow.Id}@{{ shape: {shape}, label: \"{nodeName}\" }}");
 
                 foreach (var subscriber in node.Value.Subscribers)
                 {
-                    sb.AppendLine($"  id{node.Key} --> |{subscriber.Tag}|id{subscriber.Node.Flow.Id}");
+                    sb.AppendLine($"  id{node.Value.Flow.Id} --> |{subscriber.Tag}|id{subscriber.Node.Flow.Id}");
                 }
             }
-
 
             return sb.ToString();
         }).Result;

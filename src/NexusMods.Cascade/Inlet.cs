@@ -1,4 +1,6 @@
-﻿namespace NexusMods.Cascade;
+﻿using NexusMods.Cascade.Abstractions;
+
+namespace NexusMods.Cascade;
 
 /// <summary>
 ///     A flow definition for a inlet.
@@ -8,9 +10,11 @@ public class Inlet<T> : Flow<T>
 {
     public Inlet()
     {
-        DebugInfo = new DebugInfo()
+        DebugInfo = new DebugInfo
         {
-            Name = "Inlet"
+            Name = "Inlet",
+            Expression = PrettyTypePrinter.CSharpTypeName(typeof(T)),
+            FlowShape = DebugInfo.Shape.Circle,
         };
     }
 

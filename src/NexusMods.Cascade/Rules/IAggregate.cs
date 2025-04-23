@@ -13,11 +13,12 @@ public interface IAggregate : IReturnValue
     enum AggregateTypes
     {
         Count,
-        Max
+        Max,
+        Sum
     }
 }
 
-public interface IAggregate<TInput, TState, TResult> : IAggregate, IReturnValue<TResult>
+public interface IAggregate<TResult> : IAggregate, IReturnValue<TResult>
 {
 
 }

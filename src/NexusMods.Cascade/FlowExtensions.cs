@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Flows;
@@ -91,7 +92,8 @@ public static class FlowExtensions
                 Name = "Rekey",
                 Expression = expression ?? string.Empty,
                 FilePath = filePath ?? string.Empty,
-                LineNumber = lineNumber
+                LineNumber = lineNumber,
+                FlowShape = DebugInfo.Shape.Processes,
             },
             Upstream = [flow],
             StepFn = (inlet, outlet) =>
@@ -117,7 +119,8 @@ public static class FlowExtensions
                 Name = "Join",
                 Expression = "",
                 FilePath = filePath ?? string.Empty,
-                LineNumber = lineNumber
+                LineNumber = lineNumber,
+                FlowShape = DebugInfo.Shape.Trap_T
             },
             Upstream = [leftFlow, rightFlow],
             StateFactory = () => (new KeyedDiffSet<TKey, TLeft>(), new KeyedDiffSet<TKey, TRight>()),
@@ -309,7 +312,7 @@ public static class FlowExtensions
         }
     }
 
-    public static Flow<KeyedValue<TKey, TCompare>> MaxOf<TKey, TValue, TCompare>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TCompare> selector)
+    public static Flow<KeyedValue<TKey, TCompare>> MaxOf<TKey, TValue, TCompare>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TCompare> selector, [CallerArgumentExpression(nameof(selector))] string? expression = null)
         where TKey : notnull
         where TValue : notnull
         where TCompare : IComparable<TCompare>
@@ -318,8 +321,8 @@ public static class FlowExtensions
         {
             DebugInfo = new DebugInfo
             {
-                Name = "MaxBy",
-                Expression = "",
+                Name = "MaxOf",
+                Expression = expression ?? string.Empty,
                 FilePath = string.Empty,
                 LineNumber = 0
             },
@@ -333,6 +336,34 @@ public static class FlowExtensions
         {
             state.Update(selector(input), delta);
             delete = state.Count == 0;
+        }
+    }
+
+    public static Flow<KeyedValue<TKey, TResult>> Sum<TKey, TValue, TResult>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TResult> selector)
+        where TKey : notnull
+        where TValue : notnull
+        where TResult : IAdditiveIdentity<TResult, TResult>, IAdditionOperators<TResult, TResult, TResult>, IMultiplyOperators<TResult, int, TResult>, IEquatable<TResult>
+    {
+        return new AggregationFlow<TKey, TValue, TResult, TResult>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Sum",
+                Expression = "",
+                FilePath = string.Empty,
+                LineNumber = 0,
+                FlowShape = DebugInfo.Shape.Document
+            },
+            Upstream = [flow],
+            StateFactory = static () => TResult.AdditiveIdentity,
+            ResultFn = static state => state,
+            StepFn = StepFn,
+        };
+
+        void StepFn(ref TResult state, TValue input, int delta, out bool delete)
+        {
+            state += selector(input) * delta;
+            delete = state.Equals(TResult.AdditiveIdentity);
         }
     }
 

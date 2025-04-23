@@ -1,9 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;
+
+public class OutletFlow<T> : Flow
+    where T : notnull
+{
+    public OutletFlow(Flow<T> upstream)
+    {
+        Upstream = new[] { upstream };
+        DebugInfo = new DebugInfo
+        {
+            Name = "Outlet",
+            Expression = PrettyTypePrinter.CSharpTypeName(typeof(T)),
+            FlowShape = DebugInfo.Shape.Dbl_Circ,
+        };
+    }
+
+    public override Node CreateNode(Topology topology)
+    {
+        return new OutletNode<T>(topology, this);
+    }
+
+    public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
+}
 
 public class OutletNode<T> : Node where T : notnull
 {
