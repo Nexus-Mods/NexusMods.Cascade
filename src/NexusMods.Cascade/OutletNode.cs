@@ -2,6 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Abstractions;
 using NexusMods.Cascade.Collections;
 
@@ -29,7 +32,7 @@ public class OutletFlow<T> : Flow
     public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
 }
 
-public class OutletNode<T> : Node, IReadOnlyCollection<T>
+public class OutletNode<T> : Node, IReadOnlyCollection<T>, INotifyCollectionChanged, INotifyPropertyChanged
     where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
@@ -44,7 +47,9 @@ public class OutletNode<T> : Node, IReadOnlyCollection<T>
 
     public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
     {
+        var keysToCheck = new HashSet<T>();
         var casted = (IToDiffSpan<T>)diffSet;
+        var oldState = _state;
         var builder = _state.ToBuilder();
 
         foreach (var (value, delta) in casted.ToDiffSpan())
@@ -54,14 +59,55 @@ public class OutletNode<T> : Node, IReadOnlyCollection<T>
                 if (newDelta != 0)
                     builder[value] = newDelta;
                 else
+                {
+                    keysToCheck.Add(value);
                     builder.Remove(value);
+                }
             }
             else
             {
+                keysToCheck.Add(value);
                 builder[value] = delta;
             }
 
         _state = builder.ToImmutable();
+
+        ProcessEffects(oldState, _state, keysToCheck);
+
+    }
+
+    private static readonly PropertyChangedEventArgs CountChangedEventArgs = new(nameof(Count));
+
+    private void ProcessEffects(ImmutableDictionary<T, int> oldState, ImmutableDictionary<T, int> newState, HashSet<T> keysToCheck)
+    {
+        Topology.EnqueueEffect(() => {
+            if (oldState.Count == newState.Count)
+            {
+                PropertyChanged?.Invoke(this, CountChangedEventArgs);
+            }
+
+            // Early exit if there are no changes
+            if (CollectionChanged == null)
+                return;
+
+            var added = new List<T>();
+            var removed = new List<T>();
+
+            foreach (var key in keysToCheck)
+            {
+                if (!oldState.ContainsKey(key) && newState.ContainsKey(key))
+                {
+                    added.Add(key);
+                }
+                else if (oldState.ContainsKey(key) && !newState.ContainsKey(key))
+                {
+                    removed.Add(key);
+                }
+            }
+
+            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, added));
+            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removed));
+        });
     }
 
     internal override void ResetOutput() { }
@@ -81,4 +127,6 @@ public class OutletNode<T> : Node, IReadOnlyCollection<T>
     }
 
     public int Count => _state.Count;
+    public event NotifyCollectionChangedEventHandler? CollectionChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 }

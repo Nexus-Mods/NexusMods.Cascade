@@ -39,6 +39,11 @@ public sealed class Topology
     /// </summary>
     private readonly Agent<int> _primaryRunner = new();
 
+    /// <summary>
+    /// A queue used to execute effects (change notifications)
+    /// </summary>
+    private readonly Agent<int> _effectQueue = new();
+
     private readonly Queue<Node> _queue = new();
 
 
@@ -104,6 +109,31 @@ public sealed class Topology
 
         return tcs.Task;
     }
+
+    public void EnqueueEffect(Action a)
+    {
+        _effectQueue.Send(_ =>
+        {
+            a();
+            return 0;
+        });
+    }
+
+    /// <summary>
+    /// Enqueues an empty effect to the effect queue, once this task completes, all effects
+    /// up to this point will have been executed.
+    /// </summary>
+    public Task FlushEffectsAsync()
+    {
+        var tcs = new TaskCompletionSource();
+        _effectQueue.Send(_ =>
+        {
+            tcs.SetResult();
+            return 0;
+        });
+        return tcs.Task;
+    }
+
 
     /// <summary>
     ///     Flows data from any inlets through the topology to all graph nodes.
