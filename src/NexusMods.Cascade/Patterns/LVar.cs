@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading;
-using NexusMods.Cascade.Rules.AggregateOps;
 
-namespace NexusMods.Cascade.Rules;
+namespace NexusMods.Cascade.Pattern;
 
 /// <summary>
 /// An abstract logic variable that can be used to mark parts of a pattern

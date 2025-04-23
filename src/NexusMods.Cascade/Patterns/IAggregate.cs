@@ -1,8 +1,10 @@
 ﻿using System;
-using System.Reflection;
 
-namespace NexusMods.Cascade.Rules;
+namespace NexusMods.Cascade.Pattern;
 
+/// <summary>
+/// Interface for aggregates
+/// </summary>
 public interface IAggregate : IReturnValue
 {
     public Type SourceType { get; }
@@ -18,6 +20,10 @@ public interface IAggregate : IReturnValue
     }
 }
 
+/// <summary>
+/// Typed interface for aggregates
+/// </summary>
+/// <typeparam name="TResult"></typeparam>
 public interface IAggregate<TResult> : IAggregate, IReturnValue<TResult>
 {
 

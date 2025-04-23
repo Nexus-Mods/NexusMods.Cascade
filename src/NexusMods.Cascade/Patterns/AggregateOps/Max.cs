@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Linq;
-using System.Reflection;
 using NexusMods.Cascade.Collections;
 
-namespace NexusMods.Cascade.Rules.AggregateOps;
+namespace NexusMods.Cascade.Pattern.AggregateOps;
 
 public class Max<T>(LVar<T> srcLVar) : IAggregate<T> where T : IComparable<T>
 {

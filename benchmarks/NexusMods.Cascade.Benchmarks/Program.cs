@@ -2,6 +2,7 @@
 
 
 using BenchmarkDotNet.Running;
+using JetBrains.Profiler.Api;
 using NexusMods.Cascade.Benchmarks;
 
 #if DEBUG

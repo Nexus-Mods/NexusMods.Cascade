@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NexusMods.Cascade.Rules.AggregateOps;
+namespace NexusMods.Cascade.Pattern.AggregateOps;
 
 public class Count<T>(LVar<T> srcLVar) : IAggregate<int>
 {

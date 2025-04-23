@@ -42,12 +42,14 @@ public class LVarOverridesGenerator : IIncrementalGenerator
         // 2) For each collected method, emit a partial file with all the overloads.
         context.RegisterSourceOutput(candidates, (spc, methods) =>
         {
+            int idx = 0;
             foreach (var methodSym in methods!)
             {
                 var src = GenerateOverrides((IMethodSymbol)methodSym!);
                 // name it uniquely per method
-                var hint = $"{methodSym!.ContainingType.Name}_{methodSym.Name}_LVarOverrides.g.cs";
+                var hint = $"{methodSym!.ContainingType.Name}_{methodSym.Name}_{idx}_LVarOverrides.g.cs";
                 spc.AddSource(hint, SourceText.From(src, Encoding.UTF8));
+                idx += 1;
             }
         });
     }
@@ -116,10 +118,8 @@ public class LVarOverridesGenerator : IIncrementalGenerator
         }
         // generate one overload per non-empty subset of lvarParams
         var subsets = GetNonEmptySubsets(Enumerable.Range(0, lvarParams.Length).ToArray());
-        var idxT = 0;
         foreach (var subset in subsets)
         {
-            idxT += 1;
             // method signature
             if (!string.IsNullOrEmpty(docComment))
             {
@@ -132,7 +132,7 @@ public class LVarOverridesGenerator : IIncrementalGenerator
                 }
             }
             sb.Append("        public static ");
-            sb.Append(returnType).Append(' ').Append(methodName).Append(idxT);
+            sb.Append(returnType).Append(' ').Append(methodName);
             if (!string.IsNullOrEmpty(genericParams))
                 sb.Append(genericParams);
             sb.Append('(');

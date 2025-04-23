@@ -4,10 +4,14 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using NexusMods.Cascade.Structures;
 
-namespace NexusMods.Cascade.Rules;
+namespace NexusMods.Cascade.Pattern;
 
+/// <summary>
+/// A pattern is a DSL for generating logic queries for Cascade. It works something like a statically typed datalog
+/// where LVars are created to represent unknown values in the pattern, and these are use to create constraints between
+/// the various clauses. This pattern is then converted to a Flow whenever Return is called.
+/// </summary>
 public record Pattern
 {
     /// <summary>
@@ -15,53 +19,55 @@ public record Pattern
     /// </summary>
     public static Pattern Create() => new();
 
-    internal ImmutableHashSet<LVar> _inScope = ImmutableHashSet<LVar>.Empty;
-
     internal ImmutableDictionary<LVar, int> _mappings = ImmutableDictionary<LVar, int>.Empty;
 
     internal Flow? _flow = null;
 
+    /// <summary>
+    /// Define a LVar for use later on in the pattern
+    /// </summary>
     public Pattern Define<T>(out LVar<T> variable, [CallerArgumentExpression(nameof(variable))] string? name = null)
     {
         variable = LVar<T>.Create(name ?? string.Empty);
         return this;
     }
 
-    public Pattern With<T>(Flow<T> flow, LVar<T> lvar)
+    /// <summary>
+    /// Adds a given join to the pattern
+    /// </summary>
+    internal Pattern With<T>(Flow<T> flow, params ReadOnlySpan<LVar> lvars)
     {
         if (_flow is null)
+        {
+            var newmappings = _mappings;
+            foreach (var lvar in lvars)
+            {
+                if (!newmappings.ContainsKey(lvar))
+                {
+                    newmappings = newmappings.Add(lvar, newmappings.Count);
+                }
+            }
             return new Pattern()
             {
-                _inScope = _inScope.Add(lvar),
-                _mappings = _mappings.Add(lvar, 0),
+                _mappings = newmappings,
                 _flow = flow
             };
+        }
 
 
-        return Join(flow, true, lvar);
+        return Join(flow, true, lvars);
     }
 
-    public Pattern With<T1, T2>(Flow<(T1, T2)> flow, LVar<T1> lvar1, LVar<T2> lvar2)
-    {
-        if (_flow is null)
-            return new Pattern
-            {
-                _inScope = _inScope.Add(lvar1).Add(lvar2),
-                _mappings = _mappings.Add(lvar1, 0).Add(lvar2, 1),
-                _flow = flow
-            };
-
-        return Join(flow, true, lvar1, lvar2);
-    }
-
-
+    /// <summary>
+    /// A logical "select" or "map", the given lvar is pulled from the environment and handed to the projector for transforming
+    /// the transformed value is bound to the output lvar
+    /// </summary>
     public Pattern Project<TIn, TOut>(LVar<TIn> lvar, Func<TIn, TOut> projector, out LVar<TOut> output,
         [CallerArgumentExpression(nameof(output))] string? name = null,
         [CallerArgumentExpression(nameof(output))] string? projecterExpr = null)
     {
         output = LVar<TOut>.Create(name ?? string.Empty);
 
-        var newInScope = _inScope.Add(output);
         var newMappings = _mappings.Add(output, _mappings.Count);
 
         var inputType = _flow!.OutputType;
@@ -74,49 +80,15 @@ public record Pattern
             .MakeGenericMethod(inputType, outputType)
             .Invoke(null, [_flow, xform, projecterExpr ?? "<unknown>", "", 0])!;
 
-        return new Pattern()
+        return new Pattern
         {
-            _inScope = newInScope,
             _mappings = newMappings,
             _flow = flow
         };
     }
 
-    public Pattern With<T1, T2>(Flow<KeyedValue<T1, T2>> flow, out LVar<T1> lvar1, out LVar<T2> lvar2,
-        [CallerArgumentExpression(nameof(lvar1))] string? name1 = null,
-        [CallerArgumentExpression(nameof(lvar2))] string? name2 = null)
-        where T1 : notnull
-        where T2 : notnull
-    {
-        lvar1 = LVar<T1>.Create(name1 ?? string.Empty);
-        lvar2 = LVar<T2>.Create(name2 ?? string.Empty);
-        if (_flow is null)
-            return new Pattern
-            {
-                _inScope = _inScope.Add(lvar1).Add(lvar2),
-                _mappings = _mappings.Add(lvar1, 0).Add(lvar2, 1),
-                _flow = flow
-            };
 
-        return Join(flow, true, lvar1, lvar2);
-    }
-
-    public Flow<(T1, T2)> Return<T1, T2>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2)
-    {
-        return (Flow<(T1, T2)>)CompileReturn(lvar1, lvar2);
-    }
-
-    public Flow<(T1, T2, T3)> Return<T1, T2, T3>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2, IReturnValue<T3> lvar3)
-    {
-        return (Flow<(T1, T2, T3)>)CompileReturn(lvar1, lvar2, lvar3);
-    }
-
-    public Flow<(T1, T2, T3, T4)> Return<T1, T2, T3, T4>(IReturnValue<T1> lvar1, IReturnValue<T2> lvar2, IReturnValue<T3> lvar3, IReturnValue<T4> lvar4)
-    {
-        return (Flow<(T1, T2, T3, T4)>)CompileReturn(lvar1, lvar2, lvar3, lvar4);
-    }
-
-    private Flow CompileReturn(params IReturnValue[] retVals)
+    internal Flow CompileReturn(params IReturnValue[] retVals)
     {
         var lvars = retVals.OfType<LVar>().ToArray();
         if (lvars.Length == retVals.Length)
@@ -128,6 +100,9 @@ public record Pattern
         return CompileAggregate(keyVars, aggregates, retVals);
     }
 
+    /// <summary>
+    /// Compiles an aggregate
+    /// </summary>
     private Flow CompileAggregate(LVar[] keyVars, IAggregate[] aggregates, IReturnValue[] outputOrder)
     {
         // Generate the key information.
@@ -140,10 +115,10 @@ public record Pattern
         var rekeyed = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Rekey))
             ?.MakeGenericMethod(_flow.OutputType, keyType)
-            .Invoke(null, new object[] { _flow, keyFn, $"({keyExpr})", "", 0 })!;
+            .Invoke(null, [_flow, keyFn, $"({keyExpr})", "", 0])!;
 
         // Process each aggregate separately.
-        List<Flow> aggFlows = new List<Flow>();
+        List<Flow> aggFlows = [];
         foreach (var agg in aggregates)
         {
             var mapping = _mappings[agg.Source];
@@ -156,21 +131,21 @@ public record Pattern
                 aggFlow = (Flow)typeof(FlowExtensions)
                     .GetMethod(nameof(FlowExtensions.Count))
                     ?.MakeGenericMethod(keyType, _flow.OutputType)
-                    .Invoke(null, new object[] { rekeyed, "", 0 })!;
+                    .Invoke(null, [rekeyed, "", 0])!;
             }
             else if (agg.AggregateType == IAggregate.AggregateTypes.Max)
             {
                 aggFlow = (Flow)typeof(FlowExtensions)
                     .GetMethod(nameof(FlowExtensions.MaxOf))
                     ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
-                    .Invoke(null, new object[] { rekeyed, getter, agg.Source.ToString() })!;
+                    .Invoke(null, [rekeyed, getter, agg.Source.ToString()])!;
             }
             else if (agg.AggregateType == IAggregate.AggregateTypes.Sum)
             {
                 aggFlow = (Flow)typeof(FlowExtensions)
                     .GetMethod(nameof(FlowExtensions.SumOf))
                     ?.MakeGenericMethod(keyType, _flow.OutputType, agg.SourceType)
-                    .Invoke(null, new object[] { rekeyed, getter, agg.Source.ToString() })!;
+                    .Invoke(null, [rekeyed, getter, agg.Source.ToString()])!;
             }
             else
             {
@@ -180,6 +155,7 @@ public record Pattern
         }
 
 
+        // Combine all the flows into a single join
         Flow finalAggFlow;
 
         if (aggFlows.Count > 1)
@@ -233,19 +209,21 @@ public record Pattern
             ?.MakeGenericMethod(
                 finalAggFlow.OutputType,
                 finalResultType)
-            .Invoke(null, new object[]
-            {
+            .Invoke(null, [
                 finalAggFlow,
                 finalSelector,
                 "<unknown>",
                 "",
                 0
-            })!;
+            ])!;
 
         return finalFlow;
 
     }
 
+    /// <summary>
+    /// Compiles a return with no aggregates
+    /// </summary>
     private Flow CompileDirectReturn(LVar[] lvars)
     {
         var retIdxes = lvars.Select(lvar => _mappings[lvar]).ToArray();
@@ -260,6 +238,9 @@ public record Pattern
         return resultFlow;
     }
 
+    /// <summary>
+    /// Performs a join between two flows
+    /// </summary>
     public Pattern Join(Flow rightFlow, bool innerJoin, params ReadOnlySpan<LVar> lvars)
     {
         var lvarsArray = lvars.ToArray();
@@ -316,7 +297,6 @@ public record Pattern
 
         return new Pattern
         {
-            _inScope = _inScope.Union(lvarsArray),
             _mappings = newMappings,
             _flow = joinFlow
         };
