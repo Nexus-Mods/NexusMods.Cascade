@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NexusMods.Cascade.Pattern;
+namespace NexusMods.Cascade.Patterns;
 
 /// <summary>
 /// A return value that can either be a LVar or an aggregate.

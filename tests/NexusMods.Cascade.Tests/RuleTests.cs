@@ -1,6 +1,6 @@
 ﻿using System.Data;
 using FluentAssertions;
-using NexusMods.Cascade.Pattern;
+using NexusMods.Cascade.Patterns;
 
 namespace NexusMods.Cascade.Tests;
 
@@ -13,7 +13,7 @@ public class RuleTests
         var distances = new Inlet<(string CityName, int Distance)>();
         var friends = new Inlet<(string Name, string CityName)>();
 
-        var flow = Pattern.Pattern.Create()
+        var flow = Patterns.Pattern.Create()
             .With(distances, out var city, out var distance)
             .Project(distance, d => d * 4, out var distance4)
             .With(friends, out var name, city)

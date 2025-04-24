@@ -13,8 +13,8 @@ using global::System.Collections;
 using global::System.Collections.Generic;
 using global::R3;
 using global::NexusMods.Cascade.Abstractions;
-using global::NexusMods.Cascade.Abstractions.Diffs;
 using global::Clarp.Concurrency;
+using global::NexusMods.Cascade.Patterns;
 
 public partial record struct {{= model.Name}} : IRowDefinition<{{= model.PrimaryKey.Type}}>, IComparable<{{= model.Name}}>
 {
@@ -47,7 +47,7 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
     }
 
 
-    public sealed class Active : global::NexusMods.Cascade.Abstractions.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
+    public sealed class Active : global::NexusMods.Cascade.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
     {
        private readonly Ref<({{= model.Name}} Base, int Delta)> _data;
 
@@ -83,10 +83,14 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
 }
 
 
-public static class {{= model.Name}}Extensions_Autogen
+public static class Row{{= model.Name}}Extensions_AutoGen
 {
-    public static IDiffFlow<{{= model.Name}}.Active> ToActive(this IDiffFlow<{{= model.Name}}> inputFlow)
+    public static Flow<{{= model.Name}}> Return{{= model.Name}}(this Pattern pattern, LVar<{{= model.PrimaryKey.Type}}> id, {{= string.Join(", ", model.Members.Select(m => $"IReturnValue<{m.Type}> {m.Name.ToLower()}"))}})
     {
-        return inputFlow.ToActive<{{= model.Name}}.Active, {{= model.Name}}, {{= model.PrimaryKey.Type}}>();
+        return (Flow<{{= model.Name}}>)pattern.CompileReturn(
+            typeof({{= model.Name}}),
+            id,
+            {{= string.Join(", ", model.Members.Select(m => m.Name.ToLower()))}}
+        );
     }
 }

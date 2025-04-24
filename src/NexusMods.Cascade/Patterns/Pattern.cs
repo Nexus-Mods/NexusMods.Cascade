@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace NexusMods.Cascade.Pattern;
+namespace NexusMods.Cascade.Patterns;
 
 /// <summary>
 /// A pattern is a DSL for generating logic queries for Cascade. It works something like a statically typed datalog
@@ -88,22 +88,22 @@ public record Pattern
     }
 
 
-    internal Flow CompileReturn(params IReturnValue[] retVals)
+    public Flow CompileReturn(Type? returnType, params IReturnValue[] retVals)
     {
         var lvars = retVals.OfType<LVar>().ToArray();
         if (lvars.Length == retVals.Length)
-            return CompileDirectReturn(lvars);
+            return CompileDirectReturn(returnType, lvars);
 
         var keyVars = retVals.OfType<LVar>().ToArray();
         var aggregates = retVals.OfType<IAggregate>().ToArray();
 
-        return CompileAggregate(keyVars, aggregates, retVals);
+        return CompileAggregate(keyVars, aggregates, retVals, returnType);
     }
 
     /// <summary>
     /// Compiles an aggregate
     /// </summary>
-    private Flow CompileAggregate(LVar[] keyVars, IAggregate[] aggregates, IReturnValue[] outputOrder)
+    private Flow CompileAggregate(LVar[] keyVars, IAggregate[] aggregates, IReturnValue[] outputOrder, Type? finalResultType)
     {
         // Generate the key information.
         var keyIdxes = keyVars.Select(lvar => _mappings[lvar]).ToArray();
@@ -181,7 +181,7 @@ public record Pattern
 
         // Now flatten the keyed results into a final tuple
         var finalResultTypes = outputOrder.Select(o => o.Type).ToArray();
-        var finalResultType = TupleHelpers.TupleTypeFor(finalResultTypes);
+        finalResultType ??= TupleHelpers.TupleTypeFor(finalResultTypes);
 
         var indices = outputOrder.Select(ret =>
         {
@@ -202,7 +202,8 @@ public record Pattern
 
         var finalSelector = TupleHelpers.ResultKeyedSelector(
             finalAggFlow.OutputType,
-            indices);
+            indices,
+            finalResultType);
 
         var finalFlow = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Select))
@@ -224,15 +225,15 @@ public record Pattern
     /// <summary>
     /// Compiles a return with no aggregates
     /// </summary>
-    private Flow CompileDirectReturn(LVar[] lvars)
+    private Flow CompileDirectReturn(Type? returnType, LVar[] lvars)
     {
         var retIdxes = lvars.Select(lvar => _mappings[lvar]).ToArray();
-        var retFn = TupleHelpers.Selector(_flow!.OutputType, retIdxes);
-        var resultType = TupleHelpers.TupleTypeFor(lvars.Select(lvar => lvar.Type).ToArray());
+        returnType ??= TupleHelpers.TupleTypeFor(lvars.Select(lvar => lvar.Type).ToArray());
+        var retFn = TupleHelpers.Selector(_flow!.OutputType, retIdxes, returnType);
 
         var resultFlow = (Flow)typeof(FlowExtensions)
             .GetMethod(nameof(FlowExtensions.Select))
-            ?.MakeGenericMethod(_flow.OutputType, resultType)
+            ?.MakeGenericMethod(_flow.OutputType, returnType)
             .Invoke(null, [_flow, retFn, "<unknown>", "", 0])!;
 
         return resultFlow;

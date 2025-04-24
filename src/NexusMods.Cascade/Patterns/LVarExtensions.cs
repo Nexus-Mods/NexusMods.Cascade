@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Numerics;
-using NexusMods.Cascade.Pattern.AggregateOps;
+using NexusMods.Cascade.Patterns.AggregateOps;
 
-namespace NexusMods.Cascade.Pattern;
+namespace NexusMods.Cascade.Patterns;
 
 /// <summary>
 /// Aggregate extensions on LVars

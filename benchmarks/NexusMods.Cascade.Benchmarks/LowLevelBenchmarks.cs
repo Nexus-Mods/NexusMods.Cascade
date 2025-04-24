@@ -25,6 +25,6 @@ public class LowLevelBenchmarks
     public int Minimalist()
     {
         _inlet.Values = [1];
-        return _outlet.Values.FirstOrDefault();
+        return _outlet.FirstOrDefault();
     }
 }

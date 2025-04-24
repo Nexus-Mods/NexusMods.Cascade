@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace NexusMods.Cascade.Pattern.AggregateOps;
+namespace NexusMods.Cascade.Patterns.AggregateOps;
 
 public class Sum<T>(LVar<T> lvar) : IAggregate<T> where T : IAdditiveIdentity<T, T>, IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
 {

@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Structures;
 
-namespace NexusMods.Cascade.Pattern;
+namespace NexusMods.Cascade.Patterns;
 
 public static class TupleHelpers
 {
@@ -13,7 +13,7 @@ public static class TupleHelpers
     /// <summary>
     /// Makes a tuple to tuple function that selects only the given indexes from the input tuple.
     /// </summary>
-    public static Delegate Selector(Type input, int[] indexes)
+    public static Delegate Selector(Type input, int[] indexes, Type? outputType = null)
     {
         var outputTypes = new List<Type>();
 
@@ -22,7 +22,7 @@ public static class TupleHelpers
             outputTypes.Add(IndexType(input, indexes[i]));
         }
 
-        var outputType = TupleTypeFor(outputTypes.ToArray());
+        outputType ??= TupleTypeFor(outputTypes.ToArray());
 
         var argExprs = new List<Expression>();
 
@@ -187,7 +187,7 @@ public static class TupleHelpers
     /// The selectors are given in a left-to-right order, so the first selector gets the first item in the tuple. Another
     /// way to think of this is creating a "swizzle" function that shufles the values in a tuple of two tuples.
     /// </summary>
-    public static object ResultKeyedSelector(Type keyedType, (bool Left, int idx)[] selectors)
+    public static object ResultKeyedSelector(Type keyedType, (bool Left, int idx)[] selectors, Type finalResultType)
     {
         var outputTypes = new List<Type>();
 
@@ -205,8 +205,6 @@ public static class TupleHelpers
             outputTypes.Add(IndexType(inputType, selectors[i].idx));
         }
 
-        var outputType = TupleTypeFor(outputTypes.ToArray());
-
         var argExprs = new List<Expression>();
 
         for (var i = 0; i < selectors.Length; i++)
@@ -215,7 +213,7 @@ public static class TupleHelpers
             argExprs.Add(expr);
         }
 
-        var tuple = Expression.New(outputType.GetConstructors().First(), argExprs);
+        var tuple = Expression.New(finalResultType.GetConstructors().First(), argExprs);
         var lambda = Expression.Lambda(tuple, keyedInput);
         return lambda.Compile();
     }

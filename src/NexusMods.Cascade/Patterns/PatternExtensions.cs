@@ -1,7 +1,7 @@
 ﻿using System;
 using NexusMods.Cascade.Structures;
 
-namespace NexusMods.Cascade.Pattern;
+namespace NexusMods.Cascade.Patterns;
 
 public static partial class PatternExtensions
 {
@@ -9,7 +9,7 @@ public static partial class PatternExtensions
     /// Joins in the given KeyedValue flow, via a LeftInner join, to the current flow
     /// </summary>
     [GenerateLVarOverrides]
-    public static Pattern With<T1, T2>(this Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
+    public static Patterns.Pattern With<T1, T2>(this Patterns.Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
         where T1 : notnull
         where T2 : notnull
     {
@@ -20,7 +20,7 @@ public static partial class PatternExtensions
     /// Joins in the given tuple flow, via a LeftInner join, to the current flow
     /// </summary>
     [GenerateLVarOverrides]
-    public static Pattern With<T1, T2>(this Pattern pattern, Flow<(T1, T2)> flow, LVar<T1> lvar1, LVar<T2> lvar2)
+    public static Patterns.Pattern With<T1, T2>(this Patterns.Pattern pattern, Flow<(T1, T2)> flow, LVar<T1> lvar1, LVar<T2> lvar2)
         where T1 : notnull
         where T2 : notnull
     {
@@ -31,7 +31,7 @@ public static partial class PatternExtensions
     /// Joins in the given tuple flow, via a LeftInner join, to the current flow
     /// </summary>
     [GenerateLVarOverrides]
-    public static Pattern With<T1, T2, T3>(this Pattern pattern, Flow<(T1, T2, T3)> flow, LVar<T1> lvar1, LVar<T2> lvar2, LVar<T3> lvar3)
+    public static Patterns.Pattern With<T1, T2, T3>(this Patterns.Pattern pattern, Flow<(T1, T2, T3)> flow, LVar<T1> lvar1, LVar<T2> lvar2, LVar<T3> lvar3)
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -44,7 +44,7 @@ public static partial class PatternExtensions
     /// Joins in the given tuple flow, via a LeftInner join, to the current flow
     /// </summary>
     [GenerateLVarOverrides]
-    public static Pattern With<T1, T2, T3, T4>(this Pattern pattern, Flow<(T1, T2, T3, T4)> flow, LVar<T1> lvar1, LVar<T2> lvar2, LVar<T3> lvar3, LVar<T4> lvar4)
+    public static Patterns.Pattern With<T1, T2, T3, T4>(this Patterns.Pattern pattern, Flow<(T1, T2, T3, T4)> flow, LVar<T1> lvar1, LVar<T2> lvar2, LVar<T3> lvar3, LVar<T4> lvar4)
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -57,7 +57,7 @@ public static partial class PatternExtensions
     /// Joins in the given tuple flow, via a LeftInner join, to the current flow
     /// </summary>
     [GenerateLVarOverrides]
-    public static Pattern With<T1, T2, T3, T4, T5>(this Pattern pattern, Flow<(T1, T2, T3, T4, T5)> flow, LVar<T1> lvar1, LVar<T2> lvar2, LVar<T3> lvar3, LVar<T4> lvar4, LVar<T5> lvar5)
+    public static Patterns.Pattern With<T1, T2, T3, T4, T5>(this Patterns.Pattern pattern, Flow<(T1, T2, T3, T4, T5)> flow, LVar<T1> lvar1, LVar<T2> lvar2, LVar<T3> lvar3, LVar<T4> lvar4, LVar<T5> lvar5)
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -71,7 +71,7 @@ public static partial class PatternExtensions
     /// Joins in the given KeyedValue flow, via a LeftOuter join, to the current flow. Any missing joins will be filled with the default value of the type.
     /// </summary>
     [GenerateLVarOverrides]
-    public static Pattern WithDefault<T1, T2>(this Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
+    public static Patterns.Pattern WithDefault<T1, T2>(this Patterns.Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
         where T1 : notnull
         where T2 : notnull
     {

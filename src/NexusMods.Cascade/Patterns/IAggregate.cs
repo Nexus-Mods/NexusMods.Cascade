@@ -1,6 +1,7 @@
 ﻿using System;
+using NexusMods.Cascade.Patterns;
 
-namespace NexusMods.Cascade.Pattern;
+namespace NexusMods.Cascade.Patterns;
 
 /// <summary>
 /// Interface for aggregates
