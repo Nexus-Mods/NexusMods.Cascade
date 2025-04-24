@@ -114,3 +114,37 @@ Here we see all the main parts:
 In a full program it is recommended that Inlets, Flows be defined as static members on a class. This
 way any part of the application can expand on and reference these primitives. Topologies can then be
 created on a per-page, per-module or per-app basis.
+
+## Detailed Overview
+Now that the basics of the library are defined, let's go over the design constraints listed above and
+discuss how each is handled in Cascade.
+
+### Ad-hoc queries
+Since each Topology has a single thread of control, nodes can be attached without concern of the graph updating
+while a new subset of the graph is being initialized. Each node in Cascade has a `.Prime()` method that is used
+to backflow information into the node. Attaching a new flow to the topology, creates the nodes for the flow first,
+then backflows data into the new nodes.
+
+### Node reuse
+Since flows are defined at a static level, `ReferenceEquals` can be used to determine if a flow has already
+been added to the graph. Each time a new outlet is attached (which requires passing in a flow to attach to the outlet)
+the flow it is attached to is compared against the nodes already in the topology, any existing nodes are reused.
+
+### Active and static queries
+Since the graph only ever updates when new data is pushed in, and since flows can be added at any time, it is easy
+to support both query types by restricting when data updates. This is most clearly seen in MnenmonicDB which automatically
+creates a new Topology for every Connection and DB revision. Whenever the database is updated, the topology on the new instance
+of IDb is handed the matching DB value, also the new IDb is pushed into the Connection's topology and the old IDb
+value is removed. Thanks to some efficient diffing code in MnemonicDB this results in only the changed datoms being pushed
+through the Topology.
+
+Back on topic: in MnemonicDB if you want a static query, use `db.Topology` if you want an active query go against
+`conn.Topology`.
+
+### Clean interop with existing UI systems
+Cascade includes a source generator for `Rows` which are named tuples. On a flow of `Flow<MyRow>` one can call
+`.ToActive()` and get back a flow of `Flow<MyRo
+w.Active>` which compacts the results together based on a primary
+key. These `.Active` rows express their values as a `R3` `BindableReactiveProperty` allowing for binding of data when the
+row updates. Outlets themselves are collections and implement `INotifyCollectionChanged` allowing for easy binding to
+a outlet in a UI application.
