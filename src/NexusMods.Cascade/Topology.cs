@@ -46,7 +46,6 @@ public sealed class Topology
 
     private readonly Queue<Node> _queue = new();
 
-
     public InletNode<T> Intern<T>(Inlet<T> inlet) where T : notnull
     {
         return InternAsync(inlet).Result;
@@ -68,7 +67,7 @@ public sealed class Topology
         });
     }
 
-    private Task<T> RunInMainThread<T>(Func<T> func)
+    internal Task<T> RunInMainThread<T>(Func<T> func)
     {
         var tcs = new TaskCompletionSource<T>();
         _primaryRunner.Send(_ =>
@@ -89,7 +88,7 @@ public sealed class Topology
         return tcs.Task;
     }
 
-    private Task RunInMainThread(Action func)
+    internal Task RunInMainThread(Action func)
     {
         var tcs = new TaskCompletionSource();
         _primaryRunner.Send(_ =>
@@ -140,30 +139,32 @@ public sealed class Topology
     /// </summary>
     public Task FlowDataAsync()
     {
-        return RunInMainThread(() =>
+        return RunInMainThread(FlowData);
+    }
+
+    internal void FlowData()
+    {
+        foreach (var node in _processOrder)
         {
-            foreach (var node in _processOrder)
+            node.EndEpoch();
+
+            if (!node.HasOutputData())
+                continue;
+
+            _dirtyNodes.Add(node);
+
+            foreach (var (subscriber, tag) in node.Subscribers)
             {
-                node.EndEpoch();
-
-                if (!node.HasOutputData())
-                    continue;
-
-                _dirtyNodes.Add(node);
-
-                foreach (var (subscriber, tag) in node.Subscribers)
-                {
-                    node.FlowOut(subscriber, tag);
-                }
+                node.FlowOut(subscriber, tag);
             }
+        }
 
-            foreach (var node in _dirtyNodes)
-            {
-                node.ResetOutput();
-            }
+        foreach (var node in _dirtyNodes)
+        {
+            node.ResetOutput();
+        }
 
-            _dirtyNodes.Clear();
-        });
+        _dirtyNodes.Clear();
     }
 
     private Node Intern(Flow flow)

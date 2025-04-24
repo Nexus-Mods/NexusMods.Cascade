@@ -49,12 +49,17 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
 
     public sealed class Active : global::NexusMods.Cascade.IActiveRow<{{=model.Name}}, {{=model.PrimaryKey.Type}}>, IDisposable
     {
-       private readonly Ref<({{= model.Name}} Base, int Delta)> _data;
+       private {{= model.Name}} _nextData;
+       private int _delta;
+       private int _nextDelta;
 
        private Active({{= model.Name}} seedData, int initialDelta)
        {
-          _data = new Ref<({{= model.Name}} Base, int Delta)>((seedData, initialDelta));
+          _delta = initialDelta;
+          _nextDelta = initialDelta;
+          _nextData = seedData;
           RowId = seedData.{{= model.PrimaryKey.Name}};
+          ApplyUpdates();
        }
 
        public static IActiveRow<{{= model.Name}}, {{= model.PrimaryKey.Type}}> Create({{= model.Name}} seedData, int initialDelta)
@@ -64,20 +69,32 @@ public partial record struct {{= model.Name}} : IRowDefinition<{{= model.Primary
 
        public {{= model.PrimaryKey.Type}} RowId { get; }
 
-       public int _Delta => _data.Value.Delta;
+       public int NextDelta => _nextDelta;
 
-       public void Update(in {{= model.Name}} newData, int delta)
+       public void SetUpdate({{= model.Name}} newData, int delta)
        {
-         _data.Value = (newData, _data.Value.Delta + delta);
+            if (delta > 0)
+                _nextData = newData;
+            _nextDelta += delta;
        }
+
+       public void ApplyUpdates()
+       {
+           _delta = _nextDelta;
+           {{each member in model.Members}}
+           {{= member.Name}}.Value = _nextData.{{= member.Name}};
+           {{/each}}
+       }
+
+       public BindableReactiveProperty<bool> IsDisposed { get; private set; } = new();
 
        public void Dispose()
        {
-
+           IsDisposed.Value = true;
        }
 
        {{each member in model.Members}}
-        public {{= member.Type}} {{= member.Name}} => _data.Value.Base.{{= member.Name}};
+        public BindableReactiveProperty<{{= member.Type}}> {{= member.Name}} = new();
        {{/each}}
     }
 }
@@ -92,5 +109,10 @@ public static class Row{{= model.Name}}Extensions_AutoGen
             id,
             {{= string.Join(", ", model.Members.Select(m => m.Name.ToLower()))}}
         );
+    }
+
+    public static Flow<{{= model.Name}}.Active> ToActive(this Flow<{{= model.Name}}> baseFlow)
+    {
+        return baseFlow.ToActive<{{= model.Name}}, {{= model.PrimaryKey.Type}}, {{= model.Name}}.Active>();
     }
 }

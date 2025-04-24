@@ -14,9 +14,9 @@ public class RuleTests
         var friends = new Inlet<(string Name, string CityName)>();
 
         var flow = Patterns.Pattern.Create()
-            .With(distances, out var city, out var distance)
+            .Match(distances, out var city, out var distance)
             .Project(distance, d => d * 4, out var distance4)
-            .With(friends, out var name, city)
+            .Match(friends, out var name, city)
             .Return(name, distance4.Max(), distance.Count(), distance.Sum());
 
 

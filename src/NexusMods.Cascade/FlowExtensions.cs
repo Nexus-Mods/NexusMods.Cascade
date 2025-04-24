@@ -577,5 +577,19 @@ public static class FlowExtensions
                 (row.Value.Item1.Item1.Item1, row.Value.Item1.Item1.Item2, row.Value.Item1.Item2, row.Value.Item2)));
     }
 
+    public static Flow<TActive> ToActive<TBase, TKey, TActive>(this Flow<TBase> upstream)
+        where TBase : IRowDefinition<TKey>
+        where TKey : notnull
+        where TActive : IActiveRow<TBase, TKey>
+    {
+        return new ActiveRowFlow<TBase, TKey, TActive>
+        {
+            Upstream = [upstream],
+            DebugInfo = new DebugInfo
+            {
+                Name = "ToActive",
+            },
+        };
 
+    }
 }

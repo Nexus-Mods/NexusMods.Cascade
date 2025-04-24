@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;
@@ -16,11 +18,14 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     {
         set
         {
-            Output.Clear();
-            Output.Add(_values, -1);
-            Output.Add(value, 1);
-            _values = value;
-            Topology.FlowDataAsync().Wait();
+            Topology.RunInMainThread(() =>
+            {
+                Output.Clear();
+                Output.Add(_values, -1);
+                Output.Add(value, 1);
+                _values = value;
+                Topology.FlowData();
+            }).Wait();
         }
     }
 
@@ -35,4 +40,31 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
         Output.Clear();
         Output.Add(_values, 1);
     }
+
+    /// <summary>
+    /// Updates the values of the inlet node, assuming the delta is 1.
+    /// </summary>
+    public async Task Add(params T[] values)
+    {
+        await Topology.RunInMainThread(() =>
+        {
+            Output.Add(values, 1);
+            Topology.FlowData();
+        });
+    }
+
+    /// <summary>
+    /// Updates the values of the inlet node, assuming the delta is -1.
+    /// </summary>
+    public async Task Remove(params T[] values)
+    {
+        await Topology.RunInMainThread(() =>
+        {
+            Output.Add(values, -1);
+            Topology.FlowData();
+        });
+    }
+
+
+
 }
