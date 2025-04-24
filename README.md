@@ -148,3 +148,32 @@ w.Active>` which compacts the results together based on a primary
 key. These `.Active` rows express their values as a `R3` `BindableReactiveProperty` allowing for binding of data when the
 row updates. Outlets themselves are collections and implement `INotifyCollectionChanged` allowing for easy binding to
 a outlet in a UI application.
+
+
+## Complex operators
+Beyond the simple `Where` and `Select` operators, Cascade also includes a number of more complex operators. These include:
+Joins and Aggregates, both of these work first off the concept of `Rekey`ing.
+
+### Rekeying
+Rekeying is the process of tagging a value with a key. For example if one were to join student scores and student ages,
+you may wish to key the data based on the student id. Joins take two keyed sources and return a matching of the data based on
+keys that match in the two input sets. Aggregates work in a similar way, and that will be discussed later
+
+### Join types
+Currently Cascade implements two join types: LeftInnerJoin and LeftOuterJoin. The main difference between the two is what
+happens when values are missing from the right side of the Join. LeftInnerJoin will only return values that exist in both
+sides of the join, while LeftOuterJoin will return all values from the left side of the join, and any values missing from the
+right side will be replaced with a default value.
+
+### Aggregates
+One would think that an aggregate is a simple as summing or counting the values in a set. But this is not the case, because most
+of the time what people want is a group aggregate. They want to know the max score of students in a clas, not the max score of all
+students. Therefore most aggregates require a keying of some sort as input. One could imagine that the max score of students by
+class would then look like:
+
+```csharp
+
+Flow<(int ClassId, int MaxScore)> flow = studentScores
+    .Rekey(x => x.Class)
+    .MaxOf(x => x.Score);
+```
