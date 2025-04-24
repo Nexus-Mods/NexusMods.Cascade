@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using Microsoft.CodeAnalysis;
 
@@ -33,7 +32,5 @@ public class RowGenerator : ISourceGenerator
             var full = rowAnalyzer.Namespace.ToDisplayString().Replace(".", "_") + "_" + rowAnalyzer.Name;
             context.AddSource($"{full}.Generated.cs", writer.ToString());
         }
-
-
     }
 }

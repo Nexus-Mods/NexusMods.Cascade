@@ -1,244 +1,595 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NexusMods.Cascade.Abstractions;
-using NexusMods.Cascade.Abstractions.Diffs;
-using NexusMods.Cascade.Implementation.Diffs;
-using NexusMods.Cascade.TransactionalConnections;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Flows;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade;
 
 public static class FlowExtensions
 {
-    public static IFlow<TOut> Select<TIn, TOut>(this IFlow<TIn> upstream, Func<TIn, TOut> selector)
+    /// <summary>
+    ///     Creates a new flow that applies the given function to each element of the upstream flow.
+    /// </summary>
+    public static Flow<TOut> Select<TIn, TOut>(
+        this Flow<TIn> flow,
+        Func<TIn, TOut> fn,
+        [CallerArgumentExpression(nameof(fn))] string? expression = null,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TIn : notnull
+        where TOut : notnull
     {
-        return Flow.Create<TIn, TOut>(upstream, SelectImpl);
-
-        bool SelectImpl(in TIn input, out TOut output)
+        return new UnaryFlow<TIn, TOut>
         {
-            output = selector(input);
-            return true;
-        }
-    }
-
-    public static IDiffFlow<TOut> Select<TIn, TOut>(this IDiffFlow<TIn> upstream, Func<TIn, TOut> selector)
-    {
-        return DiffFlow.Create<TIn, TOut>(upstream, SelectImpl);
-
-        void SelectImpl(in DiffSet<TIn> input, in DiffSetWriter<TOut> output)
-        {
-            foreach (var (value, delta) in input.AsSpan())
+            DebugInfo = new DebugInfo
             {
-                var selected = selector(value);
-                output.Add(selected, delta);
+                Name = "Select",
+                Expression = expression ?? string.Empty,
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [flow],
+            StepFn = (inlet, outlet) =>
+            {
+                foreach (var (value, delta) in inlet.ToDiffSpan())
+                    outlet.Add(fn(value), delta);
             }
-        }
+        };
     }
 
-    public static IFlow<T> Where<T>(this IFlow<T> upstream, Func<T, bool> predicate)
+    /// <summary>
+    ///     Creates a new flow that includes only elements from the upstream flow that satisfy the given predicate.
+    /// </summary>
+    public static Flow<T> Where<T>(
+        this Flow<T> flow,
+        Func<T, bool> predicate,
+        [CallerArgumentExpression(nameof(predicate))]
+        string? expression = null,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where T : notnull
     {
-        return Flow.Create<T, T>(upstream, WhereImpl);
-
-        bool WhereImpl(in T input, out T output)
+        return new UnaryFlow<T, T>
         {
-            if (predicate(input))
+            DebugInfo = new DebugInfo
             {
-                output = input;
-                return true;
+                Name = "Where",
+                Expression = expression ?? string.Empty,
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [flow],
+            StepFn = (inlet, outlet) =>
+            {
+                foreach (var (value, delta) in inlet.ToDiffSpan())
+                    if (predicate(value))
+                        outlet.Add(value, delta);
             }
-
-            output = default!;
-            return false;
-        }
+        };
     }
 
-    public static IDiffFlow<T> Where<T>(this IDiffFlow<T> upstream, Func<T, bool> selector)
-    {
-        return DiffFlow.Create<T, T>(upstream, SelectImpl);
 
-        void SelectImpl(in DiffSet<T> input, in DiffSetWriter<T> output)
+    /// <summary>
+    ///     Creates a new flow that adds a key to each element of the upstream flow.
+    /// </summary>
+    public static Flow<KeyedValue<TKey, TValue>> Rekey<TValue, TKey>(
+        this Flow<TValue> flow,
+        Func<TValue, TKey> fn,
+        [CallerArgumentExpression(nameof(fn))] string? expression = null,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TValue : notnull
+        where TKey : notnull
+    {
+        return new UnaryFlow<TValue, KeyedValue<TKey, TValue>>
         {
-            foreach (var (value, delta) in input.AsSpan())
+            DebugInfo = new DebugInfo
             {
-                if (!selector(value))
-                    continue;
-                output.Add(value, delta);
+                Name = "Rekey",
+                Expression = expression ?? string.Empty,
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber,
+                FlowShape = DebugInfo.Shape.Processes,
+            },
+            Upstream = [flow],
+            StepFn = (inlet, outlet) =>
+            {
+                foreach (var (value, delta) in inlet.ToDiffSpan())
+                    outlet.Add(new KeyedValue<TKey, TValue>(fn(value), value), delta);
             }
-        }
+        };
     }
 
-    public static IDiffFlow<IGrouping<TKey, T>> GroupBy<T, TKey>(this IDiffFlow<T> upstream, Func<T, TKey> keySelector)
+    public static Flow<KeyedValue<TKey, (TLeft, TRight)>> LeftInnerJoin<TLeft, TRight, TKey>(this Flow<KeyedValue<TKey, TLeft>> leftFlow,
+        Flow<KeyedValue<TKey, TRight>> rightFlow,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
     {
-        return DiffFlow.Create<T, IGrouping<TKey, T>>(upstream, src =>
+        return new BinaryFlow<KeyedValue<TKey, TLeft>, KeyedValue<TKey, TRight>, KeyedValue<TKey, (TLeft, TRight)>, (KeyedDiffSet<TKey, TLeft> Left, KeyedDiffSet<TKey, TRight> Right)>
         {
-            var groups = new IndexedResultSet<TKey, T>();
-
-            return DiffFlow.CreateUnary<T, IGrouping<TKey, T>>(src, GroupImpl);
-
-            void GroupImpl(in DiffSet<T> input, in DiffSetWriter<IGrouping<TKey, T>> output)
+            DebugInfo = new DebugInfo
             {
-                var toEmit = new HashSet<TKey>();
-                var keyed = new List<KeyedDiff<TKey, T>>();
-
-                foreach (var (value, delta) in input.AsSpan())
+                Name = "Join",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber,
+                FlowShape = DebugInfo.Shape.Trap_T
+            },
+            Upstream = [leftFlow, rightFlow],
+            StateFactory = () => (new KeyedDiffSet<TKey, TLeft>(), new KeyedDiffSet<TKey, TRight>()),
+            StepLeftFn = (input, state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (value, delta) in input.ToDiffSpan())
                 {
-                    var key = keySelector(value);
-                    keyed.Add(new KeyedDiff<TKey, T>(key, new Diff<T>(value, delta)));
-
-                    // Mark this group as needing to be emitted when  we're done.
-                    toEmit.Add(key);
-
-                    var existingGroup = groups[key];
-                    if (existingGroup.Length != 0)
+                    foreach (var right in rights[value.Key])
                     {
-                        // Remove the previous group
-                        output.Add(new Grouping<TKey, T>(key, existingGroup.ToArray()), -1);
+                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (value.Value, right.Key)), delta * right.Value);
                     }
                 }
-
-                groups.Merge(keyed);
-
-                // Emit all the new groups
-                foreach (var key in toEmit)
+                lefts.MergeIn(input);
+            },
+            StepRightFn = (input, state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (value, delta) in input.ToDiffSpan())
                 {
-                    var group = groups[key];
-                    output.Add(new Grouping<TKey, T>(key, group.ToArray()), 1);
+                    foreach (var left in lefts[value.Key])
+                    {
+                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (left.Key, value.Value)), delta * left.Value);
+                    }
+                }
+                rights.MergeIn(input);
+            },
+            PrimeFn = (state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (leftPair, leftDelta) in lefts)
+                {
+                    foreach (var right in rights[leftPair.Key])
+                    {
+                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(leftPair.Key, (leftPair.Value, right.Key)), leftDelta * right.Value);
+                    }
                 }
             }
-        });
+        };
     }
 
-    public static IDiffFlow<TActive> ToActive<TActive, TBase, TKey>(this IDiffFlow<TBase> upstream)
-      where TActive : IActiveRow<TBase, TKey>
-      where TBase : IRowDefinition<TKey>
-      where TKey : notnull
+    /// <summary>
+    /// Much like the LeftInnerJoin, but the right flow is not required to have a value for each key in the left flow.
+    /// Any missing values will be replaced with default(TRight).
+    /// </summary>
+    public static Flow<KeyedValue<TKey, (TLeft, TRight)>> LeftOuterJoin<TLeft, TRight, TKey>(
+        this Flow<KeyedValue<TKey, TLeft>> leftFlow,
+        Flow<KeyedValue<TKey, TRight>> rightFlow,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
     {
-        return DiffFlow.Create<TBase, TActive>(upstream, src =>
+        return new BinaryFlow<
+            KeyedValue<TKey, TLeft>,
+            KeyedValue<TKey, TRight>,
+            KeyedValue<TKey, (TLeft, TRight)>,
+            (KeyedDiffSet<TKey, TLeft> Left, KeyedDiffSet<TKey, TRight> Right)>
         {
-            var state = new TxDictionary<TKey, TActive>();
-
-            return DiffFlow.CreateUnary<TBase, TActive>(src, ToActiveImpl);
-
-            void ToActiveImpl(in DiffSet<TBase> input, in DiffSetWriter<TActive> output)
+            DebugInfo = new DebugInfo
             {
-                var toCheck = new HashSet<TActive>();
+                Name = "LeftOuterJoin",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [leftFlow, rightFlow],
+            StateFactory = () => (new KeyedDiffSet<TKey, TLeft>(), new KeyedDiffSet<TKey, TRight>()),
 
-                foreach (var (value, delta) in input.AsSpan())
+            // Process left-side changes.
+            StepLeftFn = (input, state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (leftKv, delta) in input.ToDiffSpan())
                 {
-                    if (state.TryGetValue(value.RowId, out var active))
+                    var matchFound = false;
+                    foreach (var rightKv in rights[leftKv.Key])
                     {
-                        active.Update(value, delta);
+                        output.Add((leftKv.Key, (leftKv.Value, rightKv.Key)), delta * rightKv.Value);
+                        matchFound = true;
+                    }
+                    if (!matchFound)
+                    {
+                        // Emit pairing with default(TRight) when no matching right record exists.
+                        output.Add((leftKv.Key, (leftKv.Value, default!)), delta);
+                    }
+                }
+                lefts.MergeIn(input);
+            },
+
+            // Process right-side changes.
+            StepRightFn = (input, state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (rightKv, delta) in input.ToDiffSpan())
+                {
+                    // When a right record arrives (or changes), join with all left entries.
+                    foreach (var (leftValue, leftDelta) in lefts[rightKv.Key])
+                    {
+                        if (!rights.Contains(rightKv.Key))
+                        {
+                            // Emit pairing with default(TLeft) when no matching left record exists.
+                            output.Add((rightKv.Key, (leftValue, default!)), -leftDelta);
+                        }
+                        // Note: It is expected that any previous default join output will be canceled by a negative delta.
+                        output.Add((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
+                    }
+                }
+                rights.MergeIn(input);
+            },
+
+            // Prime the join using current states.
+            PrimeFn = (state, output) =>
+            {
+                var (lefts, rights) = state;
+                foreach (var (leftKv, leftDelta) in lefts)
+                {
+                    var rightRecords = rights[leftKv.Key];
+                    if (rightRecords.Any())
+                    {
+                        foreach (var (rightValue, rightDelta) in rightRecords)
+                        {
+                            output.Add((leftKv.Key, (leftKv.Value, rightValue)), leftDelta * rightDelta);
+                        }
                     }
                     else
                     {
-                        active = (TActive)TActive.Create(value, delta);
-                        output.Add(active, 1);
-                        state.Add(active.RowId, active);
-                        toCheck.Add(active);
-                    }
-                }
-
-                foreach (var row in toCheck)
-                {
-                    // TODO: do a ToComplete on the row
-                    if (row._Delta == 0)
-                    {
-                        state.Remove(row.RowId);
-                        output.Add(row, -1);
+                        output.Add((leftKv.Key, (leftKv.Value, default!)), leftDelta);
                     }
                 }
             }
-        });
+        };
     }
 
-    public static IIndexedDiffFlow<TKey, TValue> IndexedBy<TValue, TKey>(this IDiffFlow<TValue> upstream,
-        Func<TValue, TKey> keySelector) where TKey : notnull
+
+    public static Flow<KeyedValue<TKey, int>> Count<TKey, TValue>(this Flow<KeyedValue<TKey, TValue>> flow,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TKey : notnull
+        where TValue : notnull
     {
-        return new IndexedDiffFlow<TKey, TValue>(upstream, keySelector);
-    }
-
-    #region Join
-
-
-    public static IDiffFlow<TResult> Join<TLeft, TRight, TKey, TResult>(this IDiffFlow<TLeft> leftFlow, IDiffFlow<TRight> rightFlow, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector,
-        Func<TLeft, TRight, TResult> resultSelector)
-    {
-        return DiffFlow.Create<TLeft, TRight, TResult>(leftFlow, rightFlow,
-            (left, right) =>
+        return new AggregationFlow<TKey, TValue, int, int>
+        {
+            DebugInfo = new DebugInfo
             {
-                var leftState = new IndexedResultSet<TKey, TLeft>();
-                leftState.Merge(left.Current.AsSpan(), leftKeySelector);
-                var rightState = new IndexedResultSet<TKey, TRight>();
-                rightState.Merge(right.Current.AsSpan(), rightKeySelector);
+                Name = "Count",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber,
+                FlowShape = DebugInfo.Shape.Document
+            },
+            Upstream = [flow],
+            StateFactory = () => 0,
+            ResultFn = state => state,
+            StepFn = StepFn,
+        };
 
-                return DiffFlow.CreateJoin<TLeft, TRight, TResult>(left, right, LeftImpl, RightImpl, InitializeImpl);
-
-                void LeftImpl(in DiffSet<TLeft> input, in DiffSetWriter<TResult> writer)
-                {
-                    var leftWriter = new KeyedDiffSetWriter<TKey, TLeft>();
-                    var rightWriter = new KeyedDiffSetWriter<TKey, TRight>();
-
-                    foreach (var (value, delta) in input.AsSpan())
-                    {
-                        var key = leftKeySelector(value);
-                        leftWriter.Add(key, value, delta);
-
-                        foreach (var (_, valRight, deltaRight) in rightState[key])
-                        {
-                            var result = resultSelector(value, valRight);
-                            writer.Add(result, delta * deltaRight);
-                            rightWriter.Add(key, valRight, deltaRight);
-                        }
-                    }
-
-                    if (leftWriter.Build(out var leftSet))
-                        leftState.Merge(leftSet);
-
-                    if (rightWriter.Build(out var rightSet))
-                        rightState.Merge(rightSet);
-                }
-
-                void RightImpl(in DiffSet<TRight> input, in DiffSetWriter<TResult> writer)
-                {
-                    var leftWriter = new KeyedDiffSetWriter<TKey, TLeft>();
-                    var rightWriter = new KeyedDiffSetWriter<TKey, TRight>();
-
-                    foreach (var (value, delta) in input.AsSpan())
-                    {
-                        var key = rightKeySelector(value);
-                        rightWriter.Add(key, value, delta);
-
-                        foreach (var (_, valLeft, deltaLeft) in leftState[key])
-                        {
-                            var result = resultSelector(valLeft, value);
-                            writer.Add(result, delta * deltaLeft);
-                            leftWriter.Add(key, valLeft, deltaLeft);
-                        }
-                    }
-
-                    if (leftWriter.Build(out var leftSet))
-                        leftState.Merge(leftSet);
-
-                    if (rightWriter.Build(out var rightSet))
-                        rightState.Merge(rightSet);
-                }
-
-                void InitializeImpl(in DiffSetWriter<TResult> writer)
-                {
-                    foreach (var (key, left) in leftState.AsSpan())
-                    {
-                        foreach (var (_, right, deltaRight) in rightState[key])
-                        {
-                            var result = resultSelector(left.Value, right);
-                            writer.Add(result, left.Delta * deltaRight);
-                        }
-                    }
-                }
-
-            });
+        static void StepFn(ref int state, TValue input, int delta, out bool delete)
+        {
+            state += delta;
+            delete = state == 0;
+        }
     }
 
-    #endregion
+    public static Flow<KeyedValue<TKey, TValue>> MaxBy<TKey, TValue, TCompare>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TCompare> selector)
+        where TKey : notnull
+        where TValue : notnull
+        where TCompare : IComparable<TCompare>
+    {
+        return new AggregationFlow<TKey, TValue, DiffSet<TValue>, TValue>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "MaxBy",
+                Expression = "",
+                FilePath = string.Empty,
+                LineNumber = 0
+            },
+            Upstream = [flow],
+            StateFactory = () => new DiffSet<TValue>(),
+            ResultFn = state => state.Keys.MaxBy(selector)!,
+            StepFn = StepFn,
+        };
+
+        void StepFn(ref DiffSet<TValue> state, TValue input, int delta, out bool delete)
+        {
+            state.Update(input, delta);
+            delete = state.Count == 0;
+        }
+    }
+
+    public static Flow<KeyedValue<TKey, TCompare>> MaxOf<TKey, TValue, TCompare>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TCompare> selector, [CallerArgumentExpression(nameof(selector))] string? expression = null)
+        where TKey : notnull
+        where TValue : notnull
+        where TCompare : IComparable<TCompare>
+    {
+        return new AggregationFlow<TKey, TValue, DiffSet<TCompare>, TCompare>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "MaxOf",
+                Expression = expression ?? string.Empty,
+                FilePath = string.Empty,
+                LineNumber = 0,
+                FlowShape = DebugInfo.Shape.Document
+            },
+            Upstream = [flow],
+            StateFactory = () => new DiffSet<TCompare>(),
+            ResultFn = state => state.Keys.Max()!,
+            StepFn = StepFn,
+        };
+
+        void StepFn(ref DiffSet<TCompare> state, TValue input, int delta, out bool delete)
+        {
+            state.Update(selector(input), delta);
+            delete = state.Count == 0;
+        }
+    }
+
+    public static Flow<KeyedValue<TKey, TResult>> SumOf<TKey, TValue, TResult>(this Flow<KeyedValue<TKey, TValue>> flow, Func<TValue, TResult> selector,  [CallerArgumentExpression(nameof(selector))] string? expression = null)
+        where TKey : notnull
+        where TValue : notnull
+        where TResult : IAdditiveIdentity<TResult, TResult>, IAdditionOperators<TResult, TResult, TResult>, ISubtractionOperators<TResult, TResult, TResult>, IEquatable<TResult>
+    {
+        return new AggregationFlow<TKey, TValue, TResult, TResult>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "SumOf",
+                Expression = expression ?? string.Empty,
+                FilePath = string.Empty,
+                LineNumber = 0,
+                FlowShape = DebugInfo.Shape.Document
+            },
+            Upstream = [flow],
+            StateFactory = static () => TResult.AdditiveIdentity,
+            ResultFn = static state => state,
+            StepFn = StepFn,
+        };
+
+        void StepFn(ref TResult state, TValue input, int delta, out bool delete)
+        {
+            if (delta > 0)
+            {
+                for (var i = 0; i < delta; i++)
+                {
+                    state += selector(input);
+                }
+            }
+            else
+            {
+                for (var i = 0; i < -delta; i++)
+                {
+                    state -= selector(input);
+                }
+            }
+
+            delete = state.Equals(TResult.AdditiveIdentity);
+        }
+    }
+
+    /// <summary>
+    /// Takes a flow of child->parent relationships in the form of KeyedValue<T, T> where the key is the child and the value is the parent.
+    /// Produces a flow of every child->ancestor relationship in the form of KeyedValue<T, T> where the key is the child and the value is the ancestor.
+    ///
+    /// This is useful for finding a value in any ancestor of a given child, as the relationships are updated, the flow will update to reflect the new relationships.
+    /// </summary>
+    public static Flow<KeyedValue<T, T>> Ancestors<T>(this Flow<KeyedValue<T, T>> relations,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where T : notnull
+    {
+        return new DiffFlow<KeyedValue<T, T>, KeyedValue<T, T>, DiffSet<KeyedValue<T, T>>>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Ancestors",
+                Expression = "",
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [relations],
+            StateFactory = static pairs => ComputeAncestorPairs(pairs, default!),
+            DiffFn = static (oldState, newState, output) =>
+            {
+                // Remove all pairs that are no longer present in the new state.
+                foreach (var (pair, delta) in oldState)
+                {
+                    if (newState.ContainsKey(pair))
+                        continue;
+                    output.Add(pair, -delta);
+                }
+
+                // Add all pairs that are present in the new state.
+                foreach (var (pair, delta) in newState)
+                {
+                    if (oldState.ContainsKey(pair))
+                        continue;
+                    output.Add(pair, delta);
+                }
+            }
+        };
+
+        static DiffSet<KeyedValue<T, T>> ComputeAncestorPairs(DiffSet<KeyedValue<T, T>> pairs, T defaultParent)
+        {
+            var output = new DiffSet<KeyedValue<T, T>>();
+            var dictMapping = new Dictionary<T, T>();
+            foreach (var (pair, delta) in pairs)
+            {
+                dictMapping[pair.Key] = pair.Value;
+            }
+
+            foreach (var (currentChild, directParent) in dictMapping)
+            {
+                var child = currentChild;
+
+                // Top level items have no parent, so we need to add them to the output.
+                if (!dictMapping.TryGetValue(directParent, out _))
+                {
+                    output.Update(new KeyedValue<T, T>(directParent, defaultParent), 1);
+                }
+
+                // Traverse up the tree to find all ancestors.
+                while (true)
+                {
+                    if (!dictMapping.TryGetValue(child, out var parent))
+                    {
+                        // If we reach the root or a node with no parent, break.
+                        output.Update(new KeyedValue<T, T>(currentChild, default!), 1);
+                        break;
+                    }
+
+                    output.Update(new KeyedValue<T, T>(currentChild, parent), 1);
+                    child = parent;
+                }
+            }
+            return output;
+        }
+    }
+
+    /// <summary>
+    /// Joins three flows together, where the first flow is the main flow and the other two are secondary flows. The first flow
+    /// is considered the full set of data, and the other two flows are considered to be optional sources of data.
+    /// </summary>
+    public static Flow<KeyedValue<TKey, (T1, T2, T3)>> LeftOuterJoin<TKey, T1, T2, T3>(this Flow<KeyedValue<TKey, T1>> mainFlow,
+        Flow<KeyedValue<TKey, T2>> secondaryFlow, Flow<KeyedValue<TKey, T3>> thirdFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+    {
+        return mainFlow.LeftOuterJoin(mainFlow, secondaryFlow)
+            .LeftOuterJoin(thirdFlow)
+            .Select(row =>
+                new KeyedValue<TKey, (T1, T2, T3)>(row.Key,
+                    (row.Value.Item1.Item2, row.Value.Item1.Item3, row.Value.Item2)));
+    }
+
+    /// <summary>
+    /// Joins three flows together, where the first flow is the main flow and the other two are secondary flows. The first flow
+    /// is considered the full set of data, and the other two flows are considered to be optional sources of data.
+    /// </summary>
+    public static Flow<KeyedValue<TKey, (T1, T2, T3, T4)>> LeftOuterJoin<TKey, T1, T2, T3, T4>(this Flow<KeyedValue<TKey, T1>> mainFlow,
+        Flow<KeyedValue<TKey, T2>> secondaryFlow,
+        Flow<KeyedValue<TKey, T3>> thirdFlow,
+        Flow<KeyedValue<TKey, T4>> fourthFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+    {
+        return mainFlow.LeftOuterJoin(mainFlow, secondaryFlow)
+            .LeftOuterJoin(thirdFlow)
+            .LeftOuterJoin(fourthFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2, T3, T4)>(row.Key,
+                (row.Value.Item1.Item1.Item2, row.Value.Item1.Item1.Item3, row.Value.Item1.Item2, row.Value.Item2)));
+    }
 
 
+    public static Flow<TResult> Join<TLeft, TRight, TKey, TResult>(this Flow<TLeft> leftFlow,
+        Flow<TRight> rightFlow,
+        Func<TLeft, TKey> leftKeySelector,
+        Func<TRight, TKey> rightKeySelector,
+        Func<TLeft, TRight, TResult> resultSelector)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
+        where TResult : notnull
+    {
+        var leftKey = leftFlow.Rekey(leftKeySelector);
+        var rightKey = rightFlow.Rekey(rightKeySelector);
+        var joined = leftKey.LeftInnerJoin(rightKey);
+        var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
+        return result;
+    }
+
+    public static Flow<TResult> OuterJoin<TLeft, TRight, TKey, TResult>(this Flow<TLeft> leftFlow,
+        Flow<TRight> rightFlow,
+        Func<TLeft, TKey> leftKeySelector,
+        Func<TRight, TKey> rightKeySelector,
+        Func<TLeft, TRight, TResult> resultSelector)
+        where TLeft : notnull
+        where TRight : notnull
+        where TKey : notnull
+        where TResult : notnull
+    {
+        var leftKey = leftFlow.Rekey(leftKeySelector);
+        var rightKey = rightFlow.Rekey(rightKeySelector);
+        var joined = leftKey.LeftOuterJoin(rightKey);
+        var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
+        return result;
+    }
+
+    public static Flow<KeyedValue<TKey, (T1, T2)>> LeftInnerJoinFlatten<TKey, T1, T2>(this Flow<KeyedValue<TKey, T1>> leftFlow,
+        Flow<KeyedValue<TKey, T2>> rightFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+    {
+        return leftFlow.LeftInnerJoin(rightFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2)>(row.Key, (row.Value.Item1, row.Value.Item2)));
+    }
+
+    public static Flow<KeyedValue<TKey, (T1, T2, T3)>> LeftInnerJoinFlatten<TKey, T1, T2, T3>(this Flow<KeyedValue<TKey, T1>> leftFlow,
+        Flow<KeyedValue<TKey, T2>> rightFlow,
+        Flow<KeyedValue<TKey, T3>> thirdFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+    {
+        return leftFlow.LeftInnerJoin(rightFlow)
+            .LeftInnerJoin(thirdFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2, T3)>(row.Key,
+                (row.Value.Item1.Item1, row.Value.Item1.Item2, row.Value.Item2)));
+    }
+
+    public static Flow<KeyedValue<TKey, (T1, T2, T3, T4)>> LeftInnerJoinFlatten<TKey, T1, T2, T3, T4>(this Flow<KeyedValue<TKey, T1>> leftFlow,
+        Flow<KeyedValue<TKey, T2>> rightFlow,
+        Flow<KeyedValue<TKey, T3>> thirdFlow,
+        Flow<KeyedValue<TKey, T4>> fourthFlow)
+        where TKey : notnull
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+    {
+        return leftFlow.LeftInnerJoin(rightFlow)
+            .LeftInnerJoin(thirdFlow)
+            .LeftInnerJoin(fourthFlow)
+            .Select(row => new KeyedValue<TKey, (T1, T2, T3, T4)>(row.Key,
+                (row.Value.Item1.Item1.Item1, row.Value.Item1.Item1.Item2, row.Value.Item1.Item2, row.Value.Item2)));
+    }
+
+    public static Flow<TActive> ToActive<TBase, TKey, TActive>(this Flow<TBase> upstream)
+        where TBase : IRowDefinition<TKey>
+        where TKey : notnull
+        where TActive : IActiveRow<TBase, TKey>
+    {
+        return new ActiveRowFlow<TBase, TKey, TActive>
+        {
+            Upstream = [upstream],
+            DebugInfo = new DebugInfo
+            {
+                Name = "ToActive",
+            },
+        };
+
+    }
 }

@@ -4,6 +4,10 @@
     "Generators": {
       "commandName": "DebugRoslynComponent",
       "targetProject": "../../tests/NexusMods.Cascade.Tests/NexusMods.Cascade.Tests.csproj"
+    },
+    "GeneratorsLVar": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "../NexusMods.Cascade/NexusMods.Cascade.csproj"
     }
   }
 }

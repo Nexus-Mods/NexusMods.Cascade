@@ -9,7 +9,6 @@ public class MemberDefinition
         Name = parameter.Name;
         Type = parameter.Type;
         Index = i;
-
     }
 
     public int Index { get; set; }

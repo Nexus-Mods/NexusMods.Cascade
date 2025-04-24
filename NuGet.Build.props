@@ -30,7 +30,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="assets" />
-        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="docs" />
+        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="assets"/>
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="docs"/>
     </ItemGroup>
 </Project>
