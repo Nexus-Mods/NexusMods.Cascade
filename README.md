@@ -177,3 +177,98 @@ Flow<(int ClassId, int MaxScore)> flow = studentScores
     .Rekey(x => x.Class)
     .MaxOf(x => x.Score);
 ```
+
+
+## Patterns
+So far most of the operators discussed (select, where, join) are fairly low level, in an application like NMA we are often
+interested in higher level patterns. Patterns provide a way of abstracting away the details of flows and type creation into
+a higher level pattern matching api.
+
+### Simple Pattern Matching
+To create a patter, start by calling `Pattern.Create()`, then use `Match` to combine existing flows. Each call to `Match` acts somewhat
+like a `Destructure` in C#, in that the values in the flow are pulled apart and joined into the existing pattern. This is best seen
+by an example:
+
+```csharp
+
+Flow<(string Name, int Score)> StudentScores =
+    Pattern.Create()
+       .Define<string>(out var name)
+       .Define<int>(out var score)
+       .Define<long>(out var id)
+       .Match(names, id, name)
+       .Match(scores, id, score)
+       .Return(name, score);
+```
+
+This example shows the basics of pattern, matching, we start by creating the pattern then defining the vars that will
+be used in the pattern (called lvars or "logic variables"). Then we call `Match` on the pattern, passing in the vars
+that will be used in the match. Each match clause causes a join on the common vars found in the previous flows and
+the current flow.
+
+Now clearly, declaring all these variables is a bit of a pain, so Cascade provides overloads for most match methods
+that have variants with `out var` baked right into the signature. This allows for a more compact definition of this
+pattern matching:
+
+```csharp
+Flow<(string Name, int Score)> StudentScores =
+    Pattern.Create()
+       .Match(names, out var id, out var name)
+       .Match(scores, id, out var score)
+       .Return(name, score);
+```
+
+The pattern matching sytnax is fairly limited by C#'s syntax restrictions, but is type-checked at compile-time. In the
+future the system could be improved by using a custom syntax, perhaps patterned after Datalog or Prolog:
+
+```datalog
+
+student_scores(?name, ?score) :-
+    names(?id, ?name),
+    scores(?id, ?score).
+
+```
+
+### Pattern matching in MnemonicDB
+
+MnemonicDB provides shorthand for using attributes with the pattern matching system. Firstly every attribute is itself a
+flow, meaning it can particpate in matching:
+
+```csharp
+// Gets the name of the nexus mod for every associated loadout item
+Pattern.Create()
+   .Match(LibraryLinkedLoadoutItem.LibraryItem, out var loadoutItem, out var libraryItem)
+   .Match(NexusModsLibraryItem.ModPage, libraryItem, out var modPage)
+   .Match(NexusModsModPageMetadata.Name, modPage, out var name)
+   .Return(loadoutItem, name);
+```
+
+However, this syntax is a bit strange since the normal way of thinking about tuples in MnemonicDB is `EAV` not `AEV`. So
+MnemonicDB provides the `.Db` extension method that allows for a more natural syntax:
+
+```csharp
+Pattern.Create()
+   .Db(out var loadoutItem, LibraryLinkedLoadoutItem.LibraryItem, out var libraryItem)
+   .Db(libraryItem, NexusModsLibraryItem.ModPage, libraryItem)
+   .Db(modPage, NexusModsModPageMetadata.Name, out var name)
+   .Return(loadoutItem, name);
+```
+
+Other methods are supplied in MnemonicDB for doing `LeftOuterJoins` for use with optional attributes or links in the
+entity graph that are not always present.
+
+### Pattern matching with Aggregates
+
+Pattern matching can also be used with aggregates, this is done by using one of the aggregation method in the `.Return`
+of the pattern, let's take the above example, but modify it to return the number of loadout items for each NexusMod.
+
+```csharp
+Pattern.Create()
+   .Db(out var loadoutItem, LibraryLinkedLoadoutItem.LibraryItem, out var libraryItem)
+   .Db(libraryItem, NexusModsLibraryItem.ModPage, libraryItem)
+   .Db(modPage, NexusModsModPageMetadata.Name, out var name)
+   .Return(name, loadoutItem.Count());
+```
+
+The only difference here is `.Count()` is used in the return. This triggers the pattern compiler to generate the proper
+rekeying and aggregation code. Aggregates are fairly easy to add, but initially only `Count`, `Max` and `Sum` are implemented.

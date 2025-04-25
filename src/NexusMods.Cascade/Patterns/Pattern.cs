@@ -250,7 +250,7 @@ public record Pattern
         {
             if (!newMappings.ContainsKey(lvar))
             {
-                newMappings = _mappings.Add(lvar, newMappings.Count);
+                newMappings = newMappings.Add(lvar, newMappings.Count);
             }
         }
 
