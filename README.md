@@ -4,87 +4,176 @@ Cascade is a generic framework for performing either ad-hoc or reactive queries 
 
 ## Design Overview
 
-At its core this library is a differential dataflow framework. Data is entered into the `Flow` as sets of values. These values are then joined into other sets via various operators (called stages). An application can read these stages to get the final data result, or listen to them via various reactive collection systems. Cascade was designed to work hand-in-hand with MnemonicDB, but is so generic that it likely can be used in many other reactive applications.
+At its core this library is a differential dataflow framework. Dataflow is a form of programming in which processing
+is configured via the connecting of nodes into a dataflow graph
 
-## Differential Dataflow
+. Data is then pushed into the flow, and the graph of
+nodes processes the data transforming it until it flows into one of the graph outlets.
 
-Dataflow is a rather broad term for a form of computation that operates by having a set of nodes that emit data that is then passed into another set of nodes. Differential dataflow extends on this idea by attaching a delta to each message. So instead of communicating "I saw a cat, I saw another cat, one cat ran away" we would perhaps communicate: `[cat, +2]`, `[cat, -1]`. Differential dataflow is a great optmization for reactive systems because it allows only the parts of the dataflow that care about the deltas to be re-calculated when the deltas change. In the previous example, a query sub-segment that asks "do we have cats" need only re-calculate if the number of cats moves between 0 and 1, if we have 100 cats, it's the same as having one cat (at least in this example, 100 cats in any one location is likely to bring with it a plethora of side effects).
+A variant of Dataflow is known as "Differential Dataflow". In this model, only diffs or changes to the data are pushed
+through the graph. This form of processing often results in more complex operators, but allows for minimal graph updates
+when only a subset of the inlets are updated.
 
-## Terms
+In Cascade these diffs are represented by a tuple-like structure called a `Diff<T>` that pairs a value `T` with a delta,
+which is a `int`. A positive integer means that the count of the given value is to be increased by that amount, a negative
+number results in a decrease of that value.
 
-In Cascade, the individual operators in the dataflow are known as "stages" and a group of them is known as a "flow". Each flow is a Directed Acyclic Graph. At least initially the flow executors will not handle cyclic graphs, but there's no technical limitation to adding cycles later on.
+### Example
 
-## Usage
+Let's say that we are tracking people that enter and exit a room, and we are only interested in their first names. If "Bill"
+and "Sally" walk into the room, we would push `["Bill", 1], ["Sally", -1]` into the graph. If Sally exits the room
+and another person named Bill entered the room, we would push `["Sally", -1], ["Bill", 1]`. At which point the state
+of the room would be `["Bill", 2]`. Any value with a delta of `0` ceases to exist in the graph and is removed.
 
-The base of a flow is the `InflowStage` these stages do not contain logic of their own, but are updated by code outside the flow. The output of the flow is called a `OutletView`, there are many ways to make these views that expose data in various ways.
+---
 
-## Flow lock
+Various Differential Dataflow libraries have different constraints and features. Cascade is no different. `Timely Dataflow` a
+Rust-based differential dataflow framework heavily emphasises multi-process and multi-core programming, but does not allow the
+graph to be updated at runtime. Essentially changing the structure of the flow requires restarting the flow (and re-flowing all previous
+data to get back to a steady state)
 
-For performance reasons a given flow is single threaded and carries with it a flow-level "global" lock. This may seem like a serious limitation but it carries with it a plethora of valuable performance benefits. As a former co-worker of mine (halgari speaking here) once said: "My boss has given me one thread, when I can show that I know how to use it properly, he may allow me to have another". There is value to this saying, if enough care is given to optimizing an inner loop, the fact that it is single threaded will matter less than one may expect.
+Cascade takes a different approach. All modifications to the graph, including the flow of data is done by a single primary
+thread. That thread may (later on) divide up work and hand it to other cores, but the key concession is that a single system
+of nodes (called a Topology in Cascade) can only be modified by a single thread, messages are sent to this thread and it
+will update the topology as required. Thanks to immutable data the outlets of the topology can be read at any time, but modification
+and the addition of new data must be queued up for later processing. Methods exist on the Topology for flushing all pending
+data making consistent tests much easier.
 
-Several of the benefits of a global flow lock are as follows:
+## Design Constraints
+When making Cascade several problems and constraints were taken into account. They are listed below:
 
-* Inputs to the flow can be in the forms of spans. The `InflowStage` code can lock the flow, use spans to track the input data, then unlock once the processing is done
-* Several parts of the flow execution require temporary lists and other collections. These collections can be reset after each execution allowing for re-use of the allocated data. In addition, communication with the logic of each stage can be done via spans instead of via heap objects
-* The OutletViews that are bindable via reactiveUI constructs can alert their listeners in one large update batch. Put another way, the graph can execute, then swap to the UI thread and then update *all* the UI at one time.
-* Attachment of `OutletViews` to the graph need not carry with them a large amount of failsafe logic for attachment raceconditions. In normal Rx code care must be taken that the initial value from a `.Connect` not skip or double-emit a value. Getting this right is hard to do, and often carries with it a operator level lock
-* Stages can be *very* lightweight. Essentially a stage can be a one or more input pointers (pointers to other stages), an update function and a stage Id. The graph updator can keep most of its bookkeeping logic on the stack and not have to create heap lists of "subscribers" and "listeners".
+### Ad-hoc queries
+In a app like the Nexus Mods app, certain queries will only be required at certain times. So a large static flow
+is not a workable design constraint. Some queries, like those for diagnostics or specific tools may be used at certain times,
+then the query needs to be torn down and the memory freed. This also means that attaching a new flow should reuse existing
+operators already in the Topology. New nodes attaching to existing nodes then need a way to backflow existing information, so that
+the entire graph does not need to be re-queried every time a new node attaches
 
-NOTE: this does not mean that the execution of the graph need always be single-threaded. Only that only one source can be updating the graph at one time.
+### Node reuse
+As mentioned above, many queries in NMA will use the same base views, so there needs to be some sort of method for de-dupping
+operators or reusing parts of the graph. This will save on memory usage and peformance (as the same data will not be recalculated many times)
+
+### Active and Static queries
+Part of NMA requires static queries: Do we have mod X in loadout Y? Other parts of the app require active queries:
+"Let me know whenever a new mod is added to loadout Y". This means that both methods need to be considered
+by the framework. Before Cascade was written this required developers in NMA to write queries twice: once with `foreach` or
+`linq` and once again using `DynamicData` due to differences in the two approaches this often meant writing the same query
+in two completely different ways. A key goal of Cascade is to unify these methods. A query should be written once
+and be reusable in both contexts
+
+### Clean interop with existing UI systems
+Most of NMA uses Dynamic Data and Rx, these interfaces are fairly well understood, if a bit janky at times, we would like clean
+interop with these systems.
 
 
-## Examples
+## Usage Overview
 
-### Initial Data
+As mentioned above, Cascade pulls apart the concepts of creation of a dataflow and the context in which that flow is executed.
+In other reactive data libraries (like Rx) the context of a flow is liked directly the creation of a flow `observable.Select(...)` ties
+the `Select` directly to the specific instance of an observable. It's not possible to define a flow without having a subject
+already in existence. This means that the same flow cannot be used in multiple places, it must be re-created for every new observer/subject.
 
-Like any logic system, we'll start by describing a family tree.
-
-Let's start by defining the InletStages
+Cascade takes a different approach: Flows are abstract descriptions of how data is processed, flows are then later handed to a
+Topology that configures the flow. This is best seen in an example:
 
 ```csharp
-var ages = new InletStage<(string Name, int age)>();
-var married = new InletStage<(string A, string B)>();
-var parent = new InletStage<(string Parent, string Child)>();
+
+// Define a inlet, where eventually we will push data into the flow
+InletNode<(string Name, int Score)> inlet = new Inlet<(string Name, int Score)>();
+
+// create two flows
+Flow<(string Name, int Score)> passingFlow = inlet.Where(x => x.Score > 90);
+Flow<(string Name, int Score)> failingFlow = inlet.Where(x => x.Score < 50);
+
+// create an execution topology
+var t = new Topology();
+
+OutletNode<(string Name, int Score)> inletNode = t.Intern(inlet);
+
+var passingFlowResults = t.Outlet(passingFlow);
+var failingFlowResults = t.Outlet(failingFlow);
+
+// Set the data
+inletNode.Values = [("Bill", 40), ("Sally", 99), ("James", 55)];
+
+// The outlets now have the correct data.
+passingFlowResults.Should().Be([("Sally", 99)]);
+failingFlowResults.Should().Be([("Bill", 40)]);
+
 ```
 
-And populating them with data:
+Here we see all the main parts:
+
+* Flow - an abstract description of the transformation of data, can include joins, aggregates, filters and transforms
+* Topology - a grouping of nodes that are created by adding flows to the topology
+* Inlet - a definition of data that will be injected into the topology
+* InletNode - the instance of a given inlet inside a flow
+* Outlet - the definition of query results, the "output" of the topology
+* OutletNode - a instance of a given outlet in a give Topology
+
+In a full program it is recommended that Inlets, Flows be defined as static members on a class. This
+way any part of the application can expand on and reference these primitives. Topologies can then be
+created on a per-page, per-module or per-app basis.
+
+## Detailed Overview
+Now that the basics of the library are defined, let's go over the design constraints listed above and
+discuss how each is handled in Cascade.
+
+### Ad-hoc queries
+Since each Topology has a single thread of control, nodes can be attached without concern of the graph updating
+while a new subset of the graph is being initialized. Each node in Cascade has a `.Prime()` method that is used
+to backflow information into the node. Attaching a new flow to the topology, creates the nodes for the flow first,
+then backflows data into the new nodes.
+
+### Node reuse
+Since flows are defined at a static level, `ReferenceEquals` can be used to determine if a flow has already
+been added to the graph. Each time a new outlet is attached (which requires passing in a flow to attach to the outlet)
+the flow it is attached to is compared against the nodes already in the topology, any existing nodes are reused.
+
+### Active and static queries
+Since the graph only ever updates when new data is pushed in, and since flows can be added at any time, it is easy
+to support both query types by restricting when data updates. This is most clearly seen in MnenmonicDB which automatically
+creates a new Topology for every Connection and DB revision. Whenever the database is updated, the topology on the new instance
+of IDb is handed the matching DB value, also the new IDb is pushed into the Connection's topology and the old IDb
+value is removed. Thanks to some efficient diffing code in MnemonicDB this results in only the changed datoms being pushed
+through the Topology.
+
+Back on topic: in MnemonicDB if you want a static query, use `db.Topology` if you want an active query go against
+`conn.Topology`.
+
+### Clean interop with existing UI systems
+Cascade includes a source generator for `Rows` which are named tuples. On a flow of `Flow<MyRow>` one can call
+`.ToActive()` and get back a flow of `Flow<MyRo
+w.Active>` which compacts the results together based on a primary
+key. These `.Active` rows express their values as a `R3` `BindableReactiveProperty` allowing for binding of data when the
+row updates. Outlets themselves are collections and implement `INotifyCollectionChanged` allowing for easy binding to
+a outlet in a UI application.
+
+
+## Complex operators
+Beyond the simple `Where` and `Select` operators, Cascade also includes a number of more complex operators. These include:
+Joins and Aggregates, both of these work first off the concept of `Rekey`ing.
+
+### Rekeying
+Rekeying is the process of tagging a value with a key. For example if one were to join student scores and student ages,
+you may wish to key the data based on the student id. Joins take two keyed sources and return a matching of the data based on
+keys that match in the two input sets. Aggregates work in a similar way, and that will be discussed later
+
+### Join types
+Currently Cascade implements two join types: LeftInnerJoin and LeftOuterJoin. The main difference between the two is what
+happens when values are missing from the right side of the Join. LeftInnerJoin will only return values that exist in both
+sides of the join, while LeftOuterJoin will return all values from the left side of the join, and any values missing from the
+right side will be replaced with a default value.
+
+### Aggregates
+One would think that an aggregate is a simple as summing or counting the values in a set. But this is not the case, because most
+of the time what people want is a group aggregate. They want to know the max score of students in a clas, not the max score of all
+students. Therefore most aggregates require a keying of some sort as input. One could imagine that the max score of students by
+class would then look like:
 
 ```csharp
-// TODO: Fix formatting here, needs to use a flow instance.
-age.Add(("James Johnson", 70));
-age.Add(("Margaret Johnson", 68));
-age.Add(("Michael Johnson", 45));
-age.Add(("Sarah Johnson", 43));
-age.Add(("Emily Williams", 40));
-age.Add(("David Williams", 44));
-age.Add(("Hannah Johnson", 16));
-age.Add(("Chris Johnson", 14));
-age.Add(("Daniel Williams", 12));
-age.Add(("Ava Williams", 10));
 
-
-married.Add(("James Johnson", "Margaret Johnson"));
-married.Add(("Michael Johnson", "Sarah Johnson"));
-married.Add(("Emily Williams", "David Williams"));
+Flow<(int ClassId, int MaxScore)> flow = studentScores
+    .Rekey(x => x.Class)
+    .MaxOf(x => x.Score);
 ```
-
-Now let's write a join query that just gets the age difference for every married couple:
-
-```csharp
-
-var ageDifference = (from rel in married.Query
-                    join aRel in age.Query on rel.Name equals aRel.Name
-                    join bRel in age.Query on rel.Name equals bRel.Name
-                    select (rel.A, rel.B, Math.Abs(aRel.Age - bRel.Age));
-
-var flow = new Flow();
-
-var results = await flow.All(ageDifference);
-
-// Returns:
-// - (James Johnson, Margaret Johnson, 2)
-// - (Michael Johnson, Sarah Johnson, 2)
-// - (Emily Williams, David Williams, 4)
-
-```
-
