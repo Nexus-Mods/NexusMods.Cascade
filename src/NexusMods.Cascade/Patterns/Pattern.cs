@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -237,6 +238,26 @@ public record Pattern
             .Invoke(null, [_flow, retFn, "<unknown>", "", 0])!;
 
         return resultFlow;
+    }
+
+    internal Pattern Where(Func<Expression, Expression, Expression> comparison, LVar left, LVar right)
+    {
+        var predicate = TupleHelpers.MakeItemCompareFn(
+            _flow!.OutputType,
+            _mappings[left],
+            _mappings[right],
+            comparison);
+
+        var whereFlow = (Flow)typeof(FlowExtensions)
+            .GetMethod(nameof(FlowExtensions.Where))!
+            .MakeGenericMethod(_flow.OutputType)
+            .Invoke(null, [_flow, predicate, "Where", "", 0])!;
+
+        return new Pattern
+        {
+            _mappings = _mappings,
+            _flow = whereFlow
+        };
     }
 
     /// <summary>

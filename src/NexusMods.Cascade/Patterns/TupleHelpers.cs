@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using NexusMods.Cascade.Structures;
 
@@ -215,6 +216,17 @@ public static class TupleHelpers
 
         var tuple = Expression.New(finalResultType.GetConstructors().First(), argExprs);
         var lambda = Expression.Lambda(tuple, keyedInput);
+        return lambda.Compile();
+    }
+
+    public static Delegate MakeItemCompareFn(Type inputType, int leftIdx, int rightIdx, Func<Expression, Expression, Expression> comparison)
+    {
+        var param = Expression.Parameter(inputType, "input");
+        var left = Getter(inputType, param, leftIdx);
+        var right = Getter(inputType, param, rightIdx);
+
+        var result = comparison(left, right);
+        var lambda = Expression.Lambda(result, param);
         return lambda.Compile();
     }
 }
