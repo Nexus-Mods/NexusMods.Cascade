@@ -260,6 +260,25 @@ public record Pattern
         };
     }
 
+    internal Pattern Where(Func<Expression, Expression> comparison, LVar testLVar)
+    {
+        var predicate = TupleHelpers.MakeFilter(
+            _flow!.OutputType,
+            _mappings[testLVar],
+            comparison);
+
+        var whereFlow = (Flow)typeof(FlowExtensions)
+            .GetMethod(nameof(FlowExtensions.Where))!
+            .MakeGenericMethod(_flow.OutputType)
+            .Invoke(null, [_flow, predicate, "Where", "", 0])!;
+
+        return new Pattern
+        {
+            _mappings = _mappings,
+            _flow = whereFlow
+        };
+    }
+
     /// <summary>
     /// Performs a join between two flows
     /// </summary>

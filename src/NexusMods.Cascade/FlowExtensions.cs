@@ -590,6 +590,14 @@ public static class FlowExtensions
                 Name = "ToActive",
             },
         };
+    }
 
+    /// <summary>
+    /// Creates a union flow from the given node. Additional sources of data can be added to the union flow using the
+    /// "With" method.
+    /// </summary>
+    public static UnionFlow<T> Union<T>(this Flow<T> upstream) where T : notnull
+    {
+        return new UnionFlow<T>(upstream);
     }
 }

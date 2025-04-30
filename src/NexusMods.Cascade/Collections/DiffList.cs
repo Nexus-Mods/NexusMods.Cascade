@@ -14,6 +14,8 @@ public class DiffList<T> : IToDiffSpan<T> where T : notnull
 
     public void Add(Diff<T> value) => _values.Add(value);
 
+    public void Add(IToDiffSpan<T> diffs) => _values.AddRange(diffs.ToDiffSpan());
+
     public void Add(DiffSet<T> values)
     {
         foreach (var (value, delta) in values)

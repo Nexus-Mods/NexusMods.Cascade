@@ -18,12 +18,12 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     {
         set
         {
-            _values = value;
             Topology.RunInMainThread(() =>
             {
                 Output.Clear();
                 Output.Add(_values, -1);
                 Output.Add(value, 1);
+                _values = value;
                 Topology.FlowData();
             }).Wait();
         }

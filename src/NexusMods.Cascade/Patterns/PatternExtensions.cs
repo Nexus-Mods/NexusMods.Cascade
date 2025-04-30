@@ -6,6 +6,13 @@ namespace NexusMods.Cascade.Patterns;
 
 public static partial class PatternExtensions
 {
+
+    [GenerateLVarOverrides]
+    public static Pattern Each<T>(this Patterns.Pattern pattern, Flow<T> flow, LVar<T> lvar)
+    {
+        return pattern.With(flow, lvar);
+    }
+
     /// <summary>
     /// Joins in the given KeyedValue flow, via a LeftInner join, to the current flow
     /// </summary>
@@ -86,5 +93,15 @@ public static partial class PatternExtensions
         where TRight : notnull
     {
         return pattern.Where(static (left, right) => Expression.LessThan(left, right), left, right);
+    }
+
+    public static Pattern IsNotDefault<T>(this Patterns.Pattern pattern, LVar<T> lvar)
+    {
+        return pattern.Where(static lvarExpr => Expression.NotEqual(lvarExpr, Expression.Default(lvarExpr.Type)), lvar);
+    }
+
+    public static Pattern IsDefault<T>(this Patterns.Pattern pattern, LVar<T> lvar)
+    {
+        return pattern.Where(static lvarExpr => Expression.Equal(lvarExpr, Expression.Default(lvarExpr.Type)), lvar);
     }
 }

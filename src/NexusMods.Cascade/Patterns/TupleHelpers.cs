@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Patterns;
@@ -143,7 +144,11 @@ public static class TupleHelpers
             6 => typeof(ValueTuple<,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5]),
             7 => typeof(ValueTuple<,,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5], types[6]),
             8 => typeof(ValueTuple<,,,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5], types[6], types[7]),
-            _ => throw new NotImplementedException()
+            9 => typeof(ExtendedTuple<,,,,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5], types[6], types[7], types[8]),
+            10 => typeof(ExtendedTuple<,,,,,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5], types[6], types[7], types[8], types[9]),
+            11 => typeof(ExtendedTuple<,,,,,,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5], types[6], types[7], types[8], types[9], types[10]),
+            12 => typeof(ExtendedTuple<,,,,,,,,,,,>).MakeGenericType(types[0], types[1], types[2], types[3], types[4], types[5], types[6], types[7], types[8], types[9], types[10], types[11]),
+            _ => throw new NotSupportedException($"Tuple of length {types.Length} is not supported."),
         };
     }
 
@@ -226,6 +231,16 @@ public static class TupleHelpers
         var right = Getter(inputType, param, rightIdx);
 
         var result = comparison(left, right);
+        var lambda = Expression.Lambda(result, param);
+        return lambda.Compile();
+    }
+
+    public static Delegate MakeFilter(Type inputType, int leftIdx, Func<Expression, Expression> comparison)
+    {
+        var param = Expression.Parameter(inputType, "input");
+        var left = Getter(inputType, param, leftIdx);
+
+        var result = comparison(left);
         var lambda = Expression.Lambda(result, param);
         return lambda.Compile();
     }
