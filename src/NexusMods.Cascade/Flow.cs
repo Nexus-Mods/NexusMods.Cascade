@@ -15,7 +15,7 @@ public abstract class Flow
     /// <summary>
     ///     The upstream flows that this flow depends on
     /// </summary>
-    public Flow[] Upstream { get; init; } = [];
+    public virtual Flow[] Upstream { get; init; } = [];
 
     public DebugInfo? DebugInfo { get; init; } = null;
 

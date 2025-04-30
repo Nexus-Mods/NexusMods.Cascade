@@ -1,10 +1,18 @@
 ﻿using System;
+using System.Linq.Expressions;
 using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Patterns;
 
 public static partial class PatternExtensions
 {
+
+    [GenerateLVarOverrides]
+    public static Pattern Each<T>(this Patterns.Pattern pattern, Flow<T> flow, LVar<T> lvar)
+    {
+        return pattern.With(flow, lvar);
+    }
+
     /// <summary>
     /// Joins in the given KeyedValue flow, via a LeftInner join, to the current flow
     /// </summary>
@@ -78,5 +86,22 @@ public static partial class PatternExtensions
         if (pattern._flow == null)
             throw new InvalidOperationException("A WithDefault(...) clause cannot be the first clause in a pattern.");
         return pattern.Join(flow, false, lvar1, lvar2);
+    }
+
+    public static Pattern IsLessThan<TLeft, TRight>(this Patterns.Pattern pattern, LVar<TLeft> left, LVar<TRight> right)
+        where TLeft : IComparable<TRight>
+        where TRight : notnull
+    {
+        return pattern.Where(static (left, right) => Expression.LessThan(left, right), left, right);
+    }
+
+    public static Pattern IsNotDefault<T>(this Patterns.Pattern pattern, LVar<T> lvar)
+    {
+        return pattern.Where(static lvarExpr => Expression.NotEqual(lvarExpr, Expression.Default(lvarExpr.Type)), lvar);
+    }
+
+    public static Pattern IsDefault<T>(this Patterns.Pattern pattern, LVar<T> lvar)
+    {
+        return pattern.Where(static lvarExpr => Expression.Equal(lvarExpr, Expression.Default(lvarExpr.Type)), lvar);
     }
 }

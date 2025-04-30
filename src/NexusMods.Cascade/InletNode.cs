@@ -27,6 +27,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
                 Topology.FlowData();
             }).Wait();
         }
+        get => _values;
     }
 
 

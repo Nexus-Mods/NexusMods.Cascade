@@ -15,6 +15,7 @@ using global::R3;
 using global::NexusMods.Cascade.Abstractions;
 using global::Clarp.Concurrency;
 using global::NexusMods.Cascade.Patterns;
+using global::NexusMods.Cascade;
 
 public partial record struct {{= model.Name}} : IRowDefinition<{{= model.PrimaryKey.Type}}>, IComparable<{{= model.Name}}>
 {

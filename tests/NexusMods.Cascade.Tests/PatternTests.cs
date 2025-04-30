@@ -266,4 +266,40 @@ public class PatternTests
             options => options.WithoutStrictOrdering());
     }
 
+    [Fact]
+    public async Task IsLessThan_FiltersCorrectly()
+    {
+        // Arrange
+        var numbers = new Inlet<(int Left, int Right)>();
+        var flow = Pattern.Create()
+            .Match(numbers, out var left, out var right)
+            .IsLessThan(left, right)
+            .Return(left, right);
+
+        var topology = new Topology();
+        var numbersNode = topology.Intern(numbers);
+        var results = topology.Outlet(flow);
+
+        // Add test values
+        numbersNode.Values = new[]
+        {
+            (1, 2),   // Valid: 1 < 2
+            (3, 3),   // Invalid: 3 is not less than 3
+            (4, 2),   // Invalid: 4 is not less than 2
+            (5, 10)   // Valid: 5 < 10
+        };
+
+        // Act
+        await topology.FlushEffectsAsync();
+
+        // Assert
+        results.Should().BeEquivalentTo(
+            new[]
+            {
+                (1, 2),
+                (5, 10)
+            },
+            options => options.WithoutStrictOrdering());
+    }
 }
+

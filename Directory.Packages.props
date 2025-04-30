@@ -2,7 +2,7 @@
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="Clarp" Version="0.2.0" />
-    <PackageVersion Include="FluentAssertions" Version="[7.2.0]" />
+    <PackageVersion Include="FluentAssertions" Version="7.1.0" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
     <PackageVersion Include="JetBrains.Annotations" Version="2024.3.0" />
     <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.8" />
@@ -20,7 +20,7 @@
     <PackageVersion Include="TransparentValueObjects" Version="1.0.2" />
     <PackageVersion Include="TUnit" Version="0.6.59" />
     <PackageVersion Include="Weave" Version="2.1.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
     <PackageVersion Include="System.CodeDom" Version="4.4.0" />
     <PackageVersion Include="ZLinq" Version="0.9.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
