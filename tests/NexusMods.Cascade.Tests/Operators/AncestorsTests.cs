@@ -16,7 +16,7 @@ namespace NexusMods.Cascade.Tests.Operators
             //      (3,2) → from 2: (2,1) → then (1,0).
             // Overall, the unique ancestor relationships (ignoring delta counts) are:
             //      (2,1), (1,0), and (3,2).
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet = new Inlet<KeyedValue<int, int>>();
             var inletNode = topology.Intern(inlet);
             inletNode.Values =
@@ -54,7 +54,7 @@ namespace NexusMods.Cascade.Tests.Operators
             // Create two independent chains:
             // Chain 1: 2 -> 1, which emits: (2,1) and (1,0).
             // Chain 2: 4 -> 3, which emits: (4,3) and (3,0).
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet = new Inlet<KeyedValue<int, int>>();
             var inletNode = topology.Intern(inlet);
             inletNode.Values =
@@ -84,7 +84,7 @@ namespace NexusMods.Cascade.Tests.Operators
         {
             // Arrange:
             // Initially supply a chain: 2 -> 1 and 3 -> 2.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet = new Inlet<KeyedValue<int, int>>();
             var inletNode = topology.Intern(inlet);
             inletNode.Values =
@@ -158,7 +158,7 @@ namespace NexusMods.Cascade.Tests.Operators
             //       => Depth of 5 is 4.
             //
             // Note: default for int is 0.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet = new Inlet<KeyedValue<int, int>>();
             var inletNode = topology.Intern(inlet);
             inletNode.Values =

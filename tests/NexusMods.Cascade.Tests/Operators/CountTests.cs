@@ -9,7 +9,7 @@ public class CountTests
     public void Count_InitialDataBeforeOutletCreation()
     {
         // Arrange: create a topology and an inlet with initial data.
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
         // Provide initial values.
@@ -33,7 +33,7 @@ public class CountTests
     public void Count_DataAddedAfterOutletCreation()
     {
         // Arrange: create the topology, inlet, and wiring.
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
         // Rekey by modulo (x % 3) so keys will be 0, 1, or 2.
@@ -62,7 +62,7 @@ public class CountTests
     public void Count_UpdatesDataContinuously()
     {
         // Arrange: initial state.
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -103,7 +103,7 @@ public class CountTests
     public void Count_WithMultipleKeysAndIntermittentUpdates()
     {
         // Arrange: create topology and inlet.
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -151,7 +151,7 @@ public class CountTests
     public void Count_WithDeletion_RemovesZeroCountKeys()
     {
         // Arrange: create topology and inlet.
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -203,7 +203,7 @@ public class CountTests
     public void Count_MultipleOutlets_SameOperator_DeliversSameResults()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -250,7 +250,7 @@ public class CountTests
     public void Count_MultipleOutlets_WithSelectAfterCount_DeliversTransformedResults()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 

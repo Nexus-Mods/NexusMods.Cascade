@@ -9,7 +9,10 @@ namespace NexusMods.Cascade;
 /// </summary>
 public interface IQueryResult : INotifyCollectionChanged, IDisposable
 {
-
+    /// <summary>
+    /// The number of references to this result set. Once a dispose reduces this to 0, the result set will be disposed.
+    /// </summary>
+    int References { get; internal set; }
 }
 
 /// <summary>

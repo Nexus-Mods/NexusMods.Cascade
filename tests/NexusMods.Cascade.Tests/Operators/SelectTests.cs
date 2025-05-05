@@ -8,7 +8,7 @@ public class SelectTests
     public void Select_InitialDataBeforeOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -27,7 +27,7 @@ public class SelectTests
     public void Select_DataAddedAfterOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -46,7 +46,7 @@ public class SelectTests
     public void Select_UpdatesDataContinuously()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -69,7 +69,7 @@ public class SelectTests
     public void Select_WithEmptyInlet_DataRemainsEmpty()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 

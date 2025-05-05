@@ -9,7 +9,7 @@ public class MaxByTests
     public void MaxBy_InitialDataBeforeOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
         inletNode.Values = [1, 2, 3, 4, 5];
@@ -36,7 +36,7 @@ public class MaxByTests
     public void MaxBy_DataAddedAfterOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -65,7 +65,7 @@ public class MaxByTests
     public void MaxBy_UpdatesDataContinuously()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -109,7 +109,7 @@ public class MaxByTests
     public void MaxBy_WithDeletion_RemovesZeroCountKeys()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -158,7 +158,7 @@ public class MaxByTests
     public void MaxBy_MultipleOutlets_SameOperator_DeliversSameResults()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -204,7 +204,7 @@ public class MaxByTests
     public void MaxBy_MultipleOutlets_WithSelectAfterMaxBy_DeliversTransformedResults()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 

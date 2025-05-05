@@ -12,7 +12,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public void LeftOuterJoin_Chained_NoRightData_EmitsDefaultsForLeft()
         {
             // Arrange
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var leftInlet = new Inlet<int>();
             var rightInlet = new Inlet<int>();
 
@@ -43,7 +43,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public void LeftOuterJoin_Chained_MatchingData_EmitsJoinedPairs()
         {
             // Arrange
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var leftInlet = new Inlet<int>();
             var rightInlet = new Inlet<int>();
 
@@ -75,7 +75,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public void LeftOuterJoin_Chained_MixedData_EmitsJoinedPairsAndDefaults()
         {
             // Arrange
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var leftInlet = new Inlet<int>();
             var rightInlet = new Inlet<int>();
 
@@ -113,7 +113,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public void LeftOuterJoin_Chained_UpdateRight_UpdatesJoinOutput()
         {
             // Arrange
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var leftInlet = new Inlet<int>();
             var rightInlet = new Inlet<int>();
 
@@ -152,7 +152,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public void LeftOuterJoin_Chained_UpdateLeft_UpdatesJoinOutput()
         {
             // Arrange
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var leftInlet = new Inlet<int>();
             var rightInlet = new Inlet<int>();
 

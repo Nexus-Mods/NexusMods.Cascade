@@ -67,5 +67,8 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     }
 
 
-
+    public void Dispose()
+    {
+        // Nothing to dispose of for now
+    }
 }

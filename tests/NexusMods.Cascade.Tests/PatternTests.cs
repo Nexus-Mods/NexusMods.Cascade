@@ -20,7 +20,7 @@ public class PatternTests
             .Return(name, distance4.Max(), distance.Count(), distance.Sum());
 
 
-        var t = new Topology();
+        using var t = Topology.Create();
 
         var distancesInlet = t.Intern(distances);
         var friendsInlet = t.Intern(friends);
@@ -70,7 +70,7 @@ public class PatternTests
             .Match(accounts, accId, out var accountName)
             .Return(accountName, amount.Sum());
 
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var accountsNode = topology.Intern(accounts);
         var transactionsNode = topology.Intern(transactions);
         using var results = topology.Query(flow);
@@ -122,7 +122,7 @@ public class PatternTests
             .Match(persons, out var personName, city)
             .Return(personName, cityUpper, population.Max());
 
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var citiesNode = topology.Intern(cities);
         var personsNode = topology.Intern(persons);
         using var results = topology.Query(flow);
@@ -176,7 +176,7 @@ public class PatternTests
             .Match(locations, locationId, out var locationName)
             .Return(empName, deptName, locationName);
 
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var employeesNode = topology.Intern(employees);
         var departmentsNode = topology.Intern(departments);
         var locationsNode = topology.Intern(locations);
@@ -234,7 +234,7 @@ public class PatternTests
             .Match(customers, customerId, out var customerName)
             .Return(customerName, orderTotal.Sum());
 
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var ordersNode = topology.Intern(orders);
         var customersNode = topology.Intern(customers);
         using var results = topology.Query(flow);
@@ -276,7 +276,7 @@ public class PatternTests
             .IsLessThan(left, right)
             .Return(left, right);
 
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var numbersNode = topology.Intern(numbers);
         using var results = topology.Query(flow);
 

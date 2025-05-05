@@ -9,7 +9,7 @@ public class LeftJoinTests
     public void Join_BothSourcesHaveInitialData()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
 
         // Create two inlets (left and right)
         var leftInlet = new Inlet<int>();
@@ -49,7 +49,7 @@ public class LeftJoinTests
     public void Join_DataAddedAfterOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
 
         var leftInlet = new Inlet<int>();
         var rightInlet = new Inlet<int>();
@@ -87,7 +87,7 @@ public class LeftJoinTests
     public void Join_EmptyLeftSource_ResultsInNoOutput()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
 
         var leftInlet = new Inlet<int>();
         var rightInlet = new Inlet<int>();
@@ -113,7 +113,7 @@ public class LeftJoinTests
     public void Join_EmptyRightSource_ResultsInNoOutput()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
 
         var leftInlet = new Inlet<int>();
         var rightInlet = new Inlet<int>();
@@ -138,7 +138,7 @@ public class LeftJoinTests
     public void Join_ChainedWithAdditionalOperators()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
 
         var leftInlet = new Inlet<int>();
         var rightInlet = new Inlet<int>();

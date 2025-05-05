@@ -8,7 +8,7 @@ public class WhereTests
     public void Where_InitialDataBeforeOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -27,7 +27,7 @@ public class WhereTests
     public void Where_DataAddedAfterOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -46,7 +46,7 @@ public class WhereTests
     public void Where_UpdatesDataContinuously()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -71,7 +71,7 @@ public class WhereTests
     public void Where_WithEmptyInlet_RemainsEmpty()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -96,7 +96,7 @@ public class WhereTests
     public void Where_MixedWithSelect_ChainOperators()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 

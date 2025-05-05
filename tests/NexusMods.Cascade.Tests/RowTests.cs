@@ -16,7 +16,7 @@ public class RowTests
     {
         var inlet = new Inlet<(int, string)>();
 
-        var t = new Topology();
+        using var t = Topology.Create();
 
         var inletNode = t.Intern(inlet);
 
@@ -41,7 +41,7 @@ public class RowTests
     {
         var inlet = new Inlet<(int, string)>();
 
-        var t = new Topology();
+        using var t = Topology.Create();
 
         var inletNode = t.Intern(inlet);
 
@@ -66,7 +66,7 @@ public class RowTests
     {
         var inlet = new Inlet<(int, string)>();
 
-        var t = new Topology();
+        using var t = Topology.Create();
         var inletNode = t.Intern(inlet);
         var flow = Pattern.Create()
             .Match(inlet, out var id, out var name)
@@ -136,7 +136,7 @@ public class RowTests
     {
         // Arrange
         var inlet = new Inlet<(int, string)>();
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inletNode = topology.Intern(inlet);
 
         // Create a flow returning active rows so that updates are visible in the outlet.
@@ -156,7 +156,7 @@ public class RowTests
     {
         // Arrange
         var inlet = new Inlet<(int, string)>();
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inletNode = topology.Intern(inlet);
 
         // Use a flow that creates active rows.
@@ -206,7 +206,7 @@ public class RowTests
     {
         // Arrange
         var inlet = new Inlet<(int, string)>();
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inletNode = topology.Intern(inlet);
 
         // Create a flow returning active rows with a count property.
@@ -275,7 +275,7 @@ public class RowTests
     {
         // Arrange
         var inlet = new Inlet<(int, string)>();
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inletNode = topology.Intern(inlet);
 
         // Use a flow that creates active rows with a count property.
@@ -314,7 +314,7 @@ public class RowTests
     {
         // Arrange
         var inlet = new Inlet<(int, string)>();
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inletNode = topology.Intern(inlet);
 
         // Use a flow that creates active rows with an aggregated count.

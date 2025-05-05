@@ -12,7 +12,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public async Task Union_SingleSource_ReturnsSameData()
         {
             // Arrange: Create a topology and a single inlet with some values.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet = new Inlet<int>();
             var inletNode = topology.Intern(inlet);
             inletNode.Values = [1, 2, 3];
@@ -30,7 +30,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public async Task Union_TwoSources_CombinesData()
         {
             // Arrange: Create a topology with two inlets.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet1 = new Inlet<int>();
             var inlet2 = new Inlet<int>();
             var node1 = topology.Intern(inlet1);
@@ -52,7 +52,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public async Task Union_MultipleSources_CombinesData()
         {
             // Arrange: Create a topology with three inlets.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet1 = new Inlet<int>();
             var inlet2 = new Inlet<int>();
             var inlet3 = new Inlet<int>();
@@ -78,7 +78,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public async Task Union_UpdatesData_DynamicallyReflectsChanges()
         {
             // Arrange: Create a topology with two inlets that will update over time.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet1 = new Inlet<int>();
             var inlet2 = new Inlet<int>();
             var n1 = topology.Intern(inlet1);
@@ -105,7 +105,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public async Task Union_EmptySources_ReturnsEmptyOutput()
         {
             // Arrange: Create a topology with two inlets that have no initial data.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet1 = new Inlet<int>();
             var inlet2 = new Inlet<int>();
             var node1 = topology.Intern(inlet1);
@@ -127,7 +127,7 @@ namespace NexusMods.Cascade.Tests.Operators
         public async Task Union_MultipleOutlets_SameUnionOperator_DeliversSameResults()
         {
             // Arrange: Create a topology with two inlets.
-            var topology = new Topology();
+            using var topology = Topology.Create();
             var inlet1 = new Inlet<int>();
             var inlet2 = new Inlet<int>();
             var node1 = topology.Intern(inlet1);

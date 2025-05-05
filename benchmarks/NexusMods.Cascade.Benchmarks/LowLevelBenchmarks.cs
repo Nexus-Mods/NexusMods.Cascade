@@ -16,7 +16,7 @@ public class LowLevelBenchmarks
     [IterationSetup]
     public void GlobalSetup()
     {
-        _flow = new Topology();
+        _flow = Topology.Create();
         _inlet = _flow.Intern(BasicInlet);
         _outlet = _flow.Query(BasicInlet);
     }

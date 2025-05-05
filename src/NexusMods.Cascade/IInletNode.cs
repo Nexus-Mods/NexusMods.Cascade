@@ -1,9 +1,11 @@
-﻿namespace NexusMods.Cascade;
+﻿using System;
+
+namespace NexusMods.Cascade;
 
 /// <summary>
 /// Marker interface for inlet nodes
 /// </summary>
-public interface IInletNode
+public interface IInletNode : IDisposable
 {
 
 }

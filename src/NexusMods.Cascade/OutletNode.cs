@@ -39,7 +39,7 @@ internal class OutletNode<T> : Node, IQueryResult<T>
 
     private int _count;
 
-    internal int _references = 1;
+    public int References { get; set; } = 1;
 
     public OutletNode(Topology topology, Flow flow) : base(topology, flow, 1) { }
 

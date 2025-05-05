@@ -1,18 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Clarp.Concurrency;
 using JetBrains.Annotations;
 
 namespace NexusMods.Cascade;
 
-public sealed class Topology
+public sealed class Topology : IDisposable
 {
+    [MustDisposeResource]
+    public static Topology Create()
+    {
+        return new Topology();
+    }
+
     private readonly HashSet<Node> _inlets = [];
 
     /// <summary>
@@ -195,7 +198,7 @@ public sealed class Topology
             if (_outletNodes.TryGetValue(flow.Id, out var node))
             {
                 var casted = ((OutletNode<T>)node);
-                casted._references++;
+                casted.References++;
                 return casted;
             }
 
@@ -313,8 +316,8 @@ public sealed class Topology
         var outletNode = (OutletNode<T>)queryResult;
         RunInMainThread(() =>
         {
-            outletNode._references--;
-            if (outletNode._references == 0)
+            outletNode.References--;
+            if (outletNode.References == 0)
             {
                 _outletNodes.Remove(outletNode.Flow.Id);
                 outletNode.Dispose();
@@ -342,5 +345,25 @@ public sealed class Topology
                 UnsubAndCleanup(upstream, (node, 0));
             }
         }
+    }
+
+    public void Dispose()
+    {
+        RunInMainThread(() =>
+        {
+            foreach (var (_, node) in _outletNodes)
+            {
+                var casted = (IQueryResult)node;
+                // Set the references to 1, so that the Dispose method fully disposes the node.
+                casted.References= 1;
+                casted.Dispose();
+            }
+
+            foreach (var inlet in _inlets)
+            {
+                if (inlet is IInletNode inletNode)
+                    inletNode.Dispose();
+            }
+        });
     }
 }

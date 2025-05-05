@@ -9,7 +9,7 @@ public class RekeyTests
     public void Rekey_InitialDataBeforeOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -34,7 +34,7 @@ public class RekeyTests
     public void Rekey_DataAddedAfterOutletCreation()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<string>();
         var inletNode = topology.Intern(inlet);
 
@@ -64,7 +64,7 @@ public class RekeyTests
     public void Rekey_UpdatesDataContinuously()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
@@ -92,7 +92,7 @@ public class RekeyTests
     public void Rekey_ChainedWithWhereAndSelect()
     {
         // Arrange
-        var topology = new Topology();
+        using var topology = Topology.Create();
         var inlet = new Inlet<int>();
         var inletNode = topology.Intern(inlet);
 
