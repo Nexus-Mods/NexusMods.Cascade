@@ -32,7 +32,7 @@ public class OutletFlow<T> : Flow
     public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
 }
 
-public class OutletNode<T> : Node, IReadOnlyCollection<T>, INotifyCollectionChanged, INotifyPropertyChanged, IDisposable
+internal class OutletNode<T> : Node, IQueryResult<T>
     where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
@@ -134,6 +134,6 @@ public class OutletNode<T> : Node, IReadOnlyCollection<T>, INotifyCollectionChan
     public event PropertyChangedEventHandler? PropertyChanged;
     public void Dispose()
     {
-        Topology.ReleaseOutlet(this);
+        Topology.Release(this);
     }
 }

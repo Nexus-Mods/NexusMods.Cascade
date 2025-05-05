@@ -11,14 +11,14 @@ public class LowLevelBenchmarks
     private static readonly Inlet<int> BasicInlet = new();
     private Topology _flow = null!;
     private InletNode<int> _inlet = null!;
-    private OutletNode<int> _outlet = null!;
+    private IQueryResult<int> _outlet = null!;
 
     [IterationSetup]
     public void GlobalSetup()
     {
         _flow = new Topology();
         _inlet = _flow.Intern(BasicInlet);
-        _outlet = _flow.Outlet(BasicInlet);
+        _outlet = _flow.Query(BasicInlet);
     }
 
     [Benchmark]

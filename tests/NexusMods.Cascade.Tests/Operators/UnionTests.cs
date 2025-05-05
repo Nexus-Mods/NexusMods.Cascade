@@ -19,7 +19,7 @@ namespace NexusMods.Cascade.Tests.Operators
 
             // Act: Build a union flow from a single source.
             var unionFlow = inlet.Union();
-            using var outlet = topology.Outlet(unionFlow);
+            using var outlet = topology.Query(unionFlow);
             await topology.FlushEffectsAsync();
 
             // Assert: The union should produce the same set as the source.
@@ -41,7 +41,7 @@ namespace NexusMods.Cascade.Tests.Operators
 
             // Act: Create a union flow by starting with the first inlet and adding the second.
             var unionFlow = inlet1.Union().With(inlet2);
-            using var outlet = topology.Outlet(unionFlow);
+            using var outlet = topology.Query(unionFlow);
             await topology.FlushEffectsAsync();
 
             // Assert: The union should combine both sources.
@@ -67,7 +67,7 @@ namespace NexusMods.Cascade.Tests.Operators
 
             // Act: Build a union flow that merges all three inlets.
             var unionFlow = inlet1.Union().With(inlet2).With(inlet3);
-            using var outlet = topology.Outlet(unionFlow);
+            using var outlet = topology.Query(unionFlow);
             await topology.FlushEffectsAsync();
 
             // Assert: All elements from all inlets should be present.
@@ -88,7 +88,7 @@ namespace NexusMods.Cascade.Tests.Operators
             n1.Values = [1, 2];
             n2.Values = [3];
             var unionFlow = inlet1.Union().With(inlet2);
-            using var outlet = topology.Outlet(unionFlow);
+            using var outlet = topology.Query(unionFlow);
             await topology.FlushEffectsAsync();
             outlet.Should().BeEquivalentTo([1, 2, 3], options => options.WithoutStrictOrdering());
 
@@ -116,7 +116,7 @@ namespace NexusMods.Cascade.Tests.Operators
 
             // Act: Build a union flow combining both empty inlets.
             var unionFlow = inlet1.Union().With(inlet2);
-            using var outlet = topology.Outlet(unionFlow);
+            using var outlet = topology.Query(unionFlow);
             await topology.FlushEffectsAsync();
 
             // Assert: The union output should be empty.
@@ -140,8 +140,8 @@ namespace NexusMods.Cascade.Tests.Operators
             var unionFlow = inlet1.Union().With(inlet2);
 
             // Act: Create two separate outlets from the same union flow.
-            using var outlet1 = topology.Outlet(unionFlow);
-            using var outlet2 = topology.Outlet(unionFlow);
+            using var outlet1 = topology.Query(unionFlow);
+            using var outlet2 = topology.Query(unionFlow);
             await topology.FlushEffectsAsync();
 
             // Assert: Both outlets should yield the same results.

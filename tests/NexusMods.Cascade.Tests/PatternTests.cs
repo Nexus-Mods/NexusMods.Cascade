@@ -25,7 +25,7 @@ public class PatternTests
         var distancesInlet = t.Intern(distances);
         var friendsInlet = t.Intern(friends);
 
-        using var results = t.Outlet(flow);
+        using var results = t.Query(flow);
 
         distancesInlet.Values = new[]
         {
@@ -73,7 +73,7 @@ public class PatternTests
         var topology = new Topology();
         var accountsNode = topology.Intern(accounts);
         var transactionsNode = topology.Intern(transactions);
-        using var results = topology.Outlet(flow);
+        using var results = topology.Query(flow);
 
         // Act
         accountsNode.Values = new[]
@@ -125,7 +125,7 @@ public class PatternTests
         var topology = new Topology();
         var citiesNode = topology.Intern(cities);
         var personsNode = topology.Intern(persons);
-        using var results = topology.Outlet(flow);
+        using var results = topology.Query(flow);
 
         // Act
         citiesNode.Values = new[]
@@ -180,7 +180,7 @@ public class PatternTests
         var employeesNode = topology.Intern(employees);
         var departmentsNode = topology.Intern(departments);
         var locationsNode = topology.Intern(locations);
-        using var results = topology.Outlet(flow);
+        using var results = topology.Query(flow);
 
         // Act
         employeesNode.Values = new[]
@@ -237,7 +237,7 @@ public class PatternTests
         var topology = new Topology();
         var ordersNode = topology.Intern(orders);
         var customersNode = topology.Intern(customers);
-        using var results = topology.Outlet(flow);
+        using var results = topology.Query(flow);
 
         // Act
         customersNode.Values = new[]
@@ -278,7 +278,7 @@ public class PatternTests
 
         var topology = new Topology();
         var numbersNode = topology.Intern(numbers);
-        using var results = topology.Outlet(flow);
+        using var results = topology.Query(flow);
 
         // Add test values
         numbersNode.Values = new[]

@@ -188,11 +188,16 @@ public sealed class Topology
     }
 
     [MustDisposeResource]
-    public Task<OutletNode<T>> OutletAsync<T>(Flow<T> flow) where T : notnull
+    public Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
     {
         return RunInMainThread(() =>
         {
-            if (_outletNodes.TryGetValue(flow.Id, out var node)) return (OutletNode<T>)node;
+            if (_outletNodes.TryGetValue(flow.Id, out var node))
+            {
+                var casted = ((OutletNode<T>)node);
+                casted._references++;
+                return casted;
+            }
 
             var upstream = (Node<T>)Intern(flow);
 
@@ -215,14 +220,14 @@ public sealed class Topology
 
             SortNodes();
 
-            return outletNode;
+            return (IQueryResult<T>)outletNode;
         });
     }
 
     [MustDisposeResource]
-    public OutletNode<T> Outlet<T>(Flow<T> flow) where T : notnull
+    public IQueryResult<T> Query<T>(Flow<T> flow) where T : notnull
     {
-        return OutletAsync(flow).Result;
+        return QueryAsync(flow).Result;
     }
 
     private void SortNodes()
@@ -303,8 +308,9 @@ public sealed class Topology
     }
 
 
-    public void ReleaseOutlet<T>(OutletNode<T> outletNode) where T : notnull
+    internal void Release<T>(IQueryResult<T> queryResult) where T : notnull
     {
+        var outletNode = (OutletNode<T>)queryResult;
         RunInMainThread(() =>
         {
             outletNode._references--;

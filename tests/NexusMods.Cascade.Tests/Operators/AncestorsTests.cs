@@ -29,7 +29,7 @@ namespace NexusMods.Cascade.Tests.Operators
             var ancestorsFlow = inlet.Ancestors();
 
             // Create and prime the outlet.
-            using var outlet = topology.Outlet(ancestorsFlow);
+            using var outlet = topology.Query(ancestorsFlow);
 
             // Assert:
             // Although the internal DiffSet tracks "counts" (e.g. (2,1) appears twice),
@@ -64,7 +64,7 @@ namespace NexusMods.Cascade.Tests.Operators
             ];
 
             var ancestorsFlow = inlet.Ancestors();
-            using var outlet = topology.Outlet(ancestorsFlow);
+            using var outlet = topology.Query(ancestorsFlow);
 
             var expected = new KeyedValue<int, int>[]
             {
@@ -94,7 +94,7 @@ namespace NexusMods.Cascade.Tests.Operators
             ];
 
             var ancestorsFlow = inlet.Ancestors();
-            using var outlet = topology.Outlet(ancestorsFlow);
+            using var outlet = topology.Query(ancestorsFlow);
 
             // Expected (unique set):
             //   For child 2: (2,1) and (1,0);
@@ -174,7 +174,7 @@ namespace NexusMods.Cascade.Tests.Operators
             // Applying Count to that flow will aggregate the ancestor count per child,
             // which is equivalent to the depth of the node.
             var depthFlow = inlet.Ancestors().Count();
-            using var outlet = topology.Outlet(depthFlow);
+            using var outlet = topology.Query(depthFlow);
 
             // Assert:
             // We expect depths as follows:

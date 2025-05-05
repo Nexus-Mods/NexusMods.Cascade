@@ -17,7 +17,7 @@ public class SelectTests
 
         // Act
         var selectFlow = inlet.Select(x => x + 1);
-        using var outlet = topology.Outlet(selectFlow);
+        using var outlet = topology.Query(selectFlow);
 
         // Assert that the outlet picked up the initial data.
         outlet.Should().BeEquivalentTo([2, 3, 4]);
@@ -33,7 +33,7 @@ public class SelectTests
 
         // Create outlet BEFORE any data is added.
         var selectFlow = inlet.Select(x => x + 1);
-        using var outlet = topology.Outlet(selectFlow);
+        using var outlet = topology.Query(selectFlow);
 
         // Act: add data after the outlet has been created.
         inletNode.Values = [7, 8, 9];
@@ -53,7 +53,7 @@ public class SelectTests
         // Prepopulate inlet with a set of values and create the outlet.
         inletNode.Values = [10, 20, 30];
         var selectFlow = inlet.Select(x => x * 2);
-        using var outlet = topology.Outlet(selectFlow);
+        using var outlet = topology.Query(selectFlow);
 
         // Assert initial transformation.
         outlet.Should().BeEquivalentTo([20, 40, 60]);
@@ -78,7 +78,7 @@ public class SelectTests
 
         // Act: create outlet.
         var selectFlow = inlet.Select(x => x + 100);
-        using var outlet = topology.Outlet(selectFlow);
+        using var outlet = topology.Query(selectFlow);
 
         // Assert that no data flows through.
         outlet.Should().BeEmpty();

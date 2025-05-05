@@ -18,7 +18,7 @@ public class RekeyTests
 
         // Rekey: use the tens digit as key (so 10->1, 20->2, etc).
         var rekeyFlow = inlet.Rekey(x => x / 10);
-        using var outlet = topology.Outlet(rekeyFlow);
+        using var outlet = topology.Query(rekeyFlow);
 
         // Act: extract keyed values from the outlet.
         var result = outlet.OrderBy(kv => kv.Key).ToList();
@@ -41,7 +41,7 @@ public class RekeyTests
         // Create Rekey operator before any data is set.
         // Use the first character as the key.
         var rekeyFlow = inlet.Rekey(s => s.Substring(0, 1));
-        using var outlet = topology.Outlet(rekeyFlow);
+        using var outlet = topology.Query(rekeyFlow);
 
         // Act: add inlet data after outlet creation.
         inletNode.Values = ["apple", "avocado", "banana", "berry"];
@@ -73,7 +73,7 @@ public class RekeyTests
 
         // Rekey: key will be the number of digits (3 for 100,200,300).
         var rekeyFlow = inlet.Rekey(x => x.ToString().Length);
-        using var outlet = topology.Outlet(rekeyFlow);
+        using var outlet = topology.Query(rekeyFlow);
 
         // Verify initial state.
         var initial = outlet.Cast<KeyedValue<int, int>>().ToList();
@@ -104,7 +104,7 @@ public class RekeyTests
         var flow = inlet.Where(x => x % 2 == 0)
             .Rekey(x => $"key-{x}")
             .Select(kv => new KeyedValue<string, int>(kv.Key, kv.Value * 3));
-        using var outlet = topology.Outlet(flow);
+        using var outlet = topology.Query(flow);
 
         // Act: The inlet produces 10 and 20.
         var result = outlet.OrderBy(kv => kv.Key).ToList();
