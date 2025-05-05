@@ -6,7 +6,7 @@ using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;
 
-public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology, inlet, 0)
+public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology, inlet, 0), IInletNode
     where T : notnull
 {
     private T[] _values = [];

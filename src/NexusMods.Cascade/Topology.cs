@@ -327,6 +327,13 @@ public sealed class Topology
     private void UnsubAndCleanup(Node node, (Node downstream, int tag) subscriber)
     {
         node.Subscribers.Remove(subscriber);
+
+        // Don't dispose inlets, they are always alive.
+        if (node is IInletNode)
+        {
+            return;
+        }
+
         if (node.Subscribers.Count == 0)
         {
             _nodes.Remove(node.Flow.Id);
