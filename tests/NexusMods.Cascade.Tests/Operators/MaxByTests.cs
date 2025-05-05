@@ -20,7 +20,7 @@ public class MaxByTests
         var maxByFlow = keyedFlow.MaxBy(x => x);
 
         // Act
-        var outlet = topology.Outlet(maxByFlow);
+        using var outlet = topology.Outlet(maxByFlow);
 
         // Assert:
         // key 0: values 2 and 4 -> max = 4.
@@ -44,7 +44,7 @@ public class MaxByTests
         var keyedFlow = inlet.Rekey(x => x % 3);
         var maxByFlow = keyedFlow.MaxBy(x => x);
         // Create outlet before any data is supplied.
-        var outlet = topology.Outlet(maxByFlow);
+        using var outlet = topology.Outlet(maxByFlow);
 
         // Act: supply new data.
         inletNode.Values = [3, 4, 5, 6, 7, 8];
@@ -72,7 +72,7 @@ public class MaxByTests
         // Group by modulo 2.
         var keyedFlow = inlet.Rekey(x => x % 2);
         var maxByFlow = keyedFlow.MaxBy(x => x);
-        var outlet = topology.Outlet(maxByFlow);
+        using var outlet = topology.Outlet(maxByFlow);
 
         // Provide initial values.
         inletNode.Values = [10, 11, 12, 13];
@@ -116,7 +116,7 @@ public class MaxByTests
         // Group by modulo 4.
         var keyedFlow = inlet.Rekey(x => x % 4);
         var maxByFlow = keyedFlow.MaxBy(x => x);
-        var outlet = topology.Outlet(maxByFlow);
+        using var outlet = topology.Outlet(maxByFlow);
 
         // Provide initial data.
         inletNode.Values = [4, 5, 6, 7, 8, 9];
@@ -167,8 +167,8 @@ public class MaxByTests
         var maxByFlow = keyedFlow.MaxBy(x => x);
 
         // Create two outlets on the same MaxBy operator.
-        var outlet1 = topology.Outlet(maxByFlow);
-        var outlet2 = topology.Outlet(maxByFlow);
+        using var outlet1 = topology.Outlet(maxByFlow);
+        using var outlet2 = topology.Outlet(maxByFlow);
 
         // Act: supply data.
         inletNode.Values = [1, 2, 3, 4];
@@ -213,9 +213,9 @@ public class MaxByTests
         var maxByFlow = keyedFlow.MaxBy(x => x);
 
         // Create one outlet directly from MaxBy.
-        var outletMax = topology.Outlet(maxByFlow);
+        using var outletMax = topology.Outlet(maxByFlow);
         // Create a second outlet that applies a Select transformation (e.g., multiply the max value by 10).
-        var outletSelected = topology.Outlet(maxByFlow.Select(kv => new KeyedValue<int, int>(kv.Key, kv.Value * 10)));
+        using var outletSelected = topology.Outlet(maxByFlow.Select(kv => new KeyedValue<int, int>(kv.Key, kv.Value * 10)));
 
         // Act: supply initial data.
         inletNode.Values = [1, 2, 3, 4];

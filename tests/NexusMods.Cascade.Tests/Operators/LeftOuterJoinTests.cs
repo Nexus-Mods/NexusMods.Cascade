@@ -22,7 +22,7 @@ namespace NexusMods.Cascade.Tests.Operators
             // Chain the Rekey and LeftOuterJoin operators.
             var joinFlow = leftInlet.Rekey(x => x / 10)
                                     .LeftOuterJoin(rightInlet.Rekey(x => x / 10));
-            var outlet = topology.Outlet(joinFlow);
+            using var outlet = topology.Outlet(joinFlow);
 
             // Act: Set the values (which, in turn, updates the flows).
             leftNode.Values = [10, 21, 32];
@@ -51,7 +51,7 @@ namespace NexusMods.Cascade.Tests.Operators
             var rightNode = topology.Intern(rightInlet);
 
             // Chain calls directly.
-            var outlet = topology.Outlet(
+            using var outlet = topology.Outlet(
                 leftInlet.Rekey(x => x / 10)
                          .LeftOuterJoin(rightInlet.Rekey(x => x / 10))
             );
@@ -83,7 +83,7 @@ namespace NexusMods.Cascade.Tests.Operators
             var rightNode = topology.Intern(rightInlet);
 
             // Chain operators.
-            var outlet = topology.Outlet(
+            using var outlet = topology.Outlet(
                 leftInlet.Rekey(x => x / 10)
                          .LeftOuterJoin(rightInlet.Rekey(x => x / 10))
             );
@@ -120,7 +120,7 @@ namespace NexusMods.Cascade.Tests.Operators
             var leftNode = topology.Intern(leftInlet);
             var rightNode = topology.Intern(rightInlet);
 
-            var outlet = topology.Outlet(
+            using var outlet = topology.Outlet(
                 leftInlet.Rekey(x => x / 10)
                          .LeftOuterJoin(rightInlet.Rekey(x => x / 10))
             );
@@ -159,7 +159,7 @@ namespace NexusMods.Cascade.Tests.Operators
             var leftNode = topology.Intern(leftInlet);
             var rightNode = topology.Intern(rightInlet);
 
-            var outlet = topology.Outlet(
+            using var outlet = topology.Outlet(
                 leftInlet.Rekey(x => x / 10)
                          .LeftOuterJoin(rightInlet.Rekey(x => x / 10))
             );

@@ -24,7 +24,7 @@ public class RowTests
             .Match(inlet, out var id, out var name)
             .ReturnTestRow(id, name);
 
-        var outlet = t.Outlet(flow);
+        using var outlet = t.Outlet(flow);
 
         inletNode.Values =
         [
@@ -49,7 +49,7 @@ public class RowTests
             .Match(inlet, out var id, out var name)
             .ReturnTestRowWithCount(id, name.Count());
 
-        var outlet = t.Outlet(flow);
+        using var outlet = t.Outlet(flow);
 
         inletNode.Values =
         [
@@ -73,7 +73,7 @@ public class RowTests
             .ReturnTestRowWithCount(id, name.Count())
             .ToActive();
 
-        var outlet = t.Outlet(flow);
+        using var outlet = t.Outlet(flow);
 
         outlet.Should().BeEmpty();
 
@@ -145,7 +145,7 @@ public class RowTests
             .ReturnTestRow(id, name)
             .ToActive();
 
-        var outlet = topology.Outlet(flow);
+        using var outlet = topology.Outlet(flow);
 
         // Assert that outlet implements INotifyCollectionChanged.
         outlet.Should().BeAssignableTo<INotifyCollectionChanged>();
@@ -165,7 +165,7 @@ public class RowTests
             .ReturnTestRow(id, name)
             .ToActive();
 
-        var outlet = topology.Outlet(flow);
+        using var outlet = topology.Outlet(flow);
 
         // List to capture collection change events.
         var events = new List<NotifyCollectionChangedEventArgs>();
@@ -215,7 +215,7 @@ public class RowTests
             .ReturnTestRowWithCount(id, name.Count())
             .ToActive();
 
-        var outlet = topology.Outlet(flow);
+        using var outlet = topology.Outlet(flow);
 
         // Initially, the outlet should be empty.
         outlet.Should().BeEmpty();
@@ -284,7 +284,7 @@ public class RowTests
             .ReturnTestRowWithCount(id, name.Count())
             .ToActive();
 
-        var outlet = topology.Outlet(flow);
+        using var outlet = topology.Outlet(flow);
 
         // Act: Insert a single row.
         inletNode.Values = new[]
@@ -323,7 +323,7 @@ public class RowTests
             .ReturnTestRowWithCount(id, name.Count())
             .ToActive();
 
-        var outlet = topology.Outlet(flow);
+        using var outlet = topology.Outlet(flow);
 
         // Act: Insert a row.
         inletNode.Values = new[]

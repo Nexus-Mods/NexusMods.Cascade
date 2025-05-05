@@ -17,7 +17,7 @@ public class WhereTests
 
         // Create a Where operator that only passes even numbers.
         var whereFlow = inlet.Where(x => x % 2 == 0);
-        var outlet = topology.Outlet(whereFlow);
+        using var outlet = topology.Outlet(whereFlow);
 
         // Assert: Only even numbers should pass.
         outlet.Should().BeEquivalentTo([2, 4]);
@@ -33,7 +33,7 @@ public class WhereTests
 
         // Create the flow and outlet before data is added.
         var whereFlow = inlet.Where(x => x > 10);
-        var outlet = topology.Outlet(whereFlow);
+        using var outlet = topology.Outlet(whereFlow);
 
         // Act: add data after outlet is created.
         inletNode.Values = [5, 15, 25];
@@ -55,7 +55,7 @@ public class WhereTests
 
         // Create a Where operator selecting only numbers greater than 5.
         var whereFlow = inlet.Where(x => x > 5);
-        var outlet = topology.Outlet(whereFlow);
+        using var outlet = topology.Outlet(whereFlow);
 
         // Assert initial condition.
         outlet.Should().BeEquivalentTo([6, 7, 9]);
@@ -80,7 +80,7 @@ public class WhereTests
 
         // Create a Where flow filtering odd numbers.
         var whereFlow = inlet.Where(x => x % 2 != 0);
-        var outlet = topology.Outlet(whereFlow);
+        using var outlet = topology.Outlet(whereFlow);
 
         // Assert: outlet remains empty.
         outlet.Should().BeEmpty();
@@ -106,7 +106,7 @@ public class WhereTests
         // Chain: first filter for even numbers, then add 10 to each.
         var filteredFlow = inlet.Where(x => x % 2 == 0);
         var selectFlow = filteredFlow.Select(x => x + 10);
-        var outlet = topology.Outlet(selectFlow);
+        using var outlet = topology.Outlet(selectFlow);
 
         // Assert that only even numbers passed and got transformed.
         outlet.Should().BeEquivalentTo([12, 14, 16]);

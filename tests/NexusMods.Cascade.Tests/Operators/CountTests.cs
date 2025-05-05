@@ -21,7 +21,7 @@ public class CountTests
         // Apply Count operator.
         var countFlow = keyedFlow.Count();
         // Act: obtain the outlet (which primes the flow).
-        var outlet = topology.Outlet(countFlow);
+        using var outlet = topology.Outlet(countFlow);
         // Assert: verify the count for each key.
         outlet.Should().BeEquivalentTo([
             new KeyedValue<int, int>(0, 2),
@@ -40,7 +40,7 @@ public class CountTests
         var keyedFlow = inlet.Rekey(x => x % 3);
         var countFlow = keyedFlow.Count();
         // Create outlet before any data is supplied.
-        var outlet = topology.Outlet(countFlow);
+        using var outlet = topology.Outlet(countFlow);
 
         // Act: supply new data.
         inletNode.Values = [3, 4, 5, 6, 7, 8];
@@ -69,7 +69,7 @@ public class CountTests
         // Use a simple rekey that groups even vs. odd.
         var keyedFlow = inlet.Rekey(x => x % 2);
         var countFlow = keyedFlow.Count();
-        var outlet = topology.Outlet(countFlow);
+        using var outlet = topology.Outlet(countFlow);
 
         // Provide initial values.
         inletNode.Values = [10, 11, 12, 13];
@@ -110,7 +110,7 @@ public class CountTests
         // Rekey with a function grouping numbers by tens.
         var keyedFlow = inlet.Rekey(x => x / 10);
         var countFlow = keyedFlow.Count();
-        var outlet = topology.Outlet(countFlow);
+        using var outlet = topology.Outlet(countFlow);
 
         // Provide initial data.
         inletNode.Values = [12, 15, 22, 28, 33, 37, 42, 47, 52];
@@ -158,7 +158,7 @@ public class CountTests
         // Group by mod 4.
         var keyedFlow = inlet.Rekey(x => x % 4);
         var countFlow = keyedFlow.Count();
-        var outlet = topology.Outlet(countFlow);
+        using var outlet = topology.Outlet(countFlow);
 
         // Provide initial data.
         inletNode.Values = [4, 5, 6, 7, 8, 9];
@@ -212,8 +212,8 @@ public class CountTests
         var countFlow = keyedFlow.Count();
 
         // Create two outlets on the same count operator.
-        var outlet1 = topology.Outlet(countFlow);
-        var outlet2 = topology.Outlet(countFlow);
+        using var outlet1 = topology.Outlet(countFlow);
+        using var outlet2 = topology.Outlet(countFlow);
 
         // Act: Provide initial values.
         // For example, values: 1,2,3,4 result in:
@@ -259,11 +259,11 @@ public class CountTests
         var countFlow = keyedFlow.Count();
 
         // Create one outlet directly from the count operator.
-        var outletCount = topology.Outlet(countFlow);
+        using var outletCount = topology.Outlet(countFlow);
 
         // Create a second outlet that applies a select on top of the count operator
         // (for instance, multiplies each count by 10).
-        var outletSelected = topology.Outlet(countFlow.Select(count => new KeyedValue<int, int>(count.Key, count.Value * 10)));
+        using var outletSelected = topology.Outlet(countFlow.Select(count => new KeyedValue<int, int>(count.Key, count.Value * 10)));
 
         // Act: Supply initial data.
         // With values: 1,2,3,4 we expect:

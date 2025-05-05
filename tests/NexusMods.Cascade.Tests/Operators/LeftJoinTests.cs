@@ -28,7 +28,7 @@ public class LeftJoinTests
 
         // Act: Join the keyed flows.
         var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
-        var outlet = topology.Outlet(joinFlow);
+        using var outlet = topology.Outlet(joinFlow);
 
         // Expected pairs for key 0:
         // left: 2,4,6 and right: 2,4 => cartesian product:
@@ -64,7 +64,7 @@ public class LeftJoinTests
 
         // Create join outlet BEFORE any data is added.
         var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
-        var outlet = topology.Outlet(joinFlow);
+        using var outlet = topology.Outlet(joinFlow);
 
         // Act: add data after the outlet has been created.
         leftNode.Values = [3, 4, 5, 6]; // keys: 0,1,2,0 respectively.
@@ -103,7 +103,7 @@ public class LeftJoinTests
         var rightRekeyed = rightInlet.Rekey(x => x);
 
         var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
-        var outlet = topology.Outlet(joinFlow);
+        using var outlet = topology.Outlet(joinFlow);
 
         // Assert: No matching pairs since left is empty.
         outlet.Should().BeEmpty();
@@ -128,7 +128,7 @@ public class LeftJoinTests
         var rightRekeyed = rightInlet.Rekey(x => x / 10); // empty
 
         var joinFlow = leftRekeyed.LeftInnerJoin(rightRekeyed);
-        var outlet = topology.Outlet(joinFlow);
+        using var outlet = topology.Outlet(joinFlow);
 
         // Assert: No join output because no matching in right.
         outlet.Should().BeEmpty();
@@ -163,7 +163,7 @@ public class LeftJoinTests
                 (kv.Value.Item1 * 2, kv.Value.Item2 * 2)
             )
         );
-        var outlet = topology.Outlet(finalFlow);
+        using var outlet = topology.Outlet(finalFlow);
 
         // Act: set initial data.
         leftNode.Values = [5, 12, 15, 25]; // leftRekeyed: keys 5,2,5,5.

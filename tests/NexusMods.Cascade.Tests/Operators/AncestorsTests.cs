@@ -19,17 +19,17 @@ namespace NexusMods.Cascade.Tests.Operators
             var topology = new Topology();
             var inlet = new Inlet<KeyedValue<int, int>>();
             var inletNode = topology.Intern(inlet);
-            inletNode.Values = new[]
-            {
+            inletNode.Values =
+            [
                 new KeyedValue<int, int>(2, 1),
                 new KeyedValue<int, int>(3, 2)
-            };
+            ];
 
             // Create the Ancestors flow. (It uses the ComputeAncestorPairs function internally.)
             var ancestorsFlow = inlet.Ancestors();
 
             // Create and prime the outlet.
-            var outlet = topology.Outlet(ancestorsFlow);
+            using var outlet = topology.Outlet(ancestorsFlow);
 
             // Assert:
             // Although the internal DiffSet tracks "counts" (e.g. (2,1) appears twice),
@@ -57,14 +57,14 @@ namespace NexusMods.Cascade.Tests.Operators
             var topology = new Topology();
             var inlet = new Inlet<KeyedValue<int, int>>();
             var inletNode = topology.Intern(inlet);
-            inletNode.Values = new[]
-            {
+            inletNode.Values =
+            [
                 new KeyedValue<int, int>(2, 1),
                 new KeyedValue<int, int>(4, 3)
-            };
+            ];
 
             var ancestorsFlow = inlet.Ancestors();
-            var outlet = topology.Outlet(ancestorsFlow);
+            using var outlet = topology.Outlet(ancestorsFlow);
 
             var expected = new KeyedValue<int, int>[]
             {
@@ -94,7 +94,7 @@ namespace NexusMods.Cascade.Tests.Operators
             ];
 
             var ancestorsFlow = inlet.Ancestors();
-            var outlet = topology.Outlet(ancestorsFlow);
+            using var outlet = topology.Outlet(ancestorsFlow);
 
             // Expected (unique set):
             //   For child 2: (2,1) and (1,0);
@@ -116,11 +116,11 @@ namespace NexusMods.Cascade.Tests.Operators
             //   5 -> 4 and 6 -> 5.
             // For child 5: expect (5,4) then (4,0).
             // For child 6: expect (6,5) then (5,4) then (4,0).
-            inletNode.Values = new[]
-            {
+            inletNode.Values =
+            [
                 new KeyedValue<int, int>(5, 4),
                 new KeyedValue<int, int>(6, 5)
-            };
+            ];
 
             var expectedUpdated = new[]
             {
@@ -174,7 +174,7 @@ namespace NexusMods.Cascade.Tests.Operators
             // Applying Count to that flow will aggregate the ancestor count per child,
             // which is equivalent to the depth of the node.
             var depthFlow = inlet.Ancestors().Count();
-            var outlet = topology.Outlet(depthFlow);
+            using var outlet = topology.Outlet(depthFlow);
 
             // Assert:
             // We expect depths as follows:

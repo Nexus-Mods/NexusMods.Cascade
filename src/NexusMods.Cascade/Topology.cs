@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Clarp.Concurrency;
+using JetBrains.Annotations;
 
 namespace NexusMods.Cascade;
 
@@ -186,6 +187,7 @@ public sealed class Topology
         return node;
     }
 
+    [MustDisposeResource]
     public Task<OutletNode<T>> OutletAsync<T>(Flow<T> flow) where T : notnull
     {
         return RunInMainThread(() =>
@@ -217,6 +219,7 @@ public sealed class Topology
         });
     }
 
+    [MustDisposeResource]
     public OutletNode<T> Outlet<T>(Flow<T> flow) where T : notnull
     {
         return OutletAsync(flow).Result;
@@ -297,5 +300,34 @@ public sealed class Topology
 
             return sb.ToString();
         }).Result;
+    }
+
+
+    public void ReleaseOutlet<T>(OutletNode<T> outletNode) where T : notnull
+    {
+        RunInMainThread(() =>
+        {
+            outletNode._references--;
+            if (outletNode._references == 0)
+            {
+                _outletNodes.Remove(outletNode.Flow.Id);
+                outletNode.Dispose();
+            }
+
+            UnsubAndCleanup(outletNode.Upstream[0], (outletNode, 0));
+        });
+    }
+
+    private void UnsubAndCleanup(Node node, (Node downstream, int tag) subscriber)
+    {
+        node.Subscribers.Remove(subscriber);
+        if (node.Subscribers.Count == 0)
+        {
+            _nodes.Remove(node.Flow.Id);
+            foreach (var upstream in node.Upstream)
+            {
+                UnsubAndCleanup(upstream, (node, 0));
+            }
+        }
     }
 }
