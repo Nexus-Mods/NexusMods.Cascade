@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0 - 5/5/2025
+* Renamed "Outlet" to "Query" in most of the user facing code
+* Added annotations and interfaces to encourage users to treat queries as disposable resources
+* Added disposable interfaces to the topology and query classes
+
 ## 0.6.0 - 30/4/2025
 * Added support for Union (concat) operator, several other small fixes to source generators
 
