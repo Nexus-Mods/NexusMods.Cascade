@@ -26,6 +26,11 @@ public interface IActiveRow<TBase, TKey> : IDisposable
     public int NextDelta { get; }
 
     /// <summary>
+    /// The unique identifier for the row
+    /// </summary>
+    public TKey RowId { get; }
+
+    /// <summary>
     /// True if the row is disposed
     /// </summary>
     public BindableReactiveProperty<bool> IsDisposed { get; }

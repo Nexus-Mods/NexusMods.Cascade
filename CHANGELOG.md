@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.0 - 7/5/2025
+* Implement `Observe` and `ObserveCell` and rework observables a bit
+
 ## 0.7.0 - 5/5/2025
 * Renamed "Outlet" to "Query" in most of the user facing code
 * Added annotations and interfaces to encourage users to treat queries as disposable resources

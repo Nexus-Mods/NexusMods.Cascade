@@ -89,27 +89,28 @@ internal class OutletNode<T> : Node, IQueryResult<T>
                 PropertyChanged?.Invoke(this, CountChangedEventArgs);
             }
 
-            // Early exit if there are no changes
-            if (CollectionChanged == null)
+            // Early exit if there are no change listeners
+            if (OutputChanged == null)
                 return;
 
-            var added = new List<T>();
-            var removed = new List<T>();
+            var changes = new DiffList<T>();
 
             foreach (var key in keysToCheck)
             {
                 if (!oldState.ContainsKey(key) && newState.ContainsKey(key))
                 {
-                    added.Add(key);
+                    changes.Add(key, 1);
                 }
                 else if (oldState.ContainsKey(key) && !newState.ContainsKey(key))
                 {
-                    removed.Add(key);
+                    changes.Add(key, -1);
                 }
             }
 
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, added));
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removed));
+            if (changes.Count == 0)
+                return;
+
+            OutputChanged?.Invoke(changes);
         });
     }
 
@@ -130,10 +131,11 @@ internal class OutletNode<T> : Node, IQueryResult<T>
     }
 
     public int Count => _state.Count;
-    public event NotifyCollectionChangedEventHandler? CollectionChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
     public void Dispose()
     {
         Topology.Release(this);
     }
+
+    public event IQueryResult<T>.OutputChangedDelegate? OutputChanged;
 }

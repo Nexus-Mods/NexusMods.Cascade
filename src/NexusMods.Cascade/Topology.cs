@@ -227,6 +227,7 @@ public sealed class Topology : IDisposable
         });
     }
 
+
     [MustDisposeResource]
     public IQueryResult<T> Query<T>(Flow<T> flow) where T : notnull
     {

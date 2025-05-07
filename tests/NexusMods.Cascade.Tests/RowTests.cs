@@ -1,6 +1,9 @@
-﻿using System.Collections.Specialized;
+﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using DynamicData;
 using FluentAssertions;
 using NexusMods.Cascade.Patterns;
+using R3;
 
 namespace NexusMods.Cascade.Tests;
 
@@ -73,9 +76,12 @@ public class RowTests
             .ReturnTestRowWithCount(id, name.Count())
             .ToActive();
 
-        using var outlet = t.Query(flow);
+        var coll = new ReadOnlyObservableCollection<TestRowWithCount.Active>([]);
+        using var _ = t.Observe(flow)
+            .Bind(out coll)
+            .Subscribe();
 
-        outlet.Should().BeEmpty();
+        coll.Should().BeEmpty();
 
         inletNode.Values =
         [
@@ -84,9 +90,11 @@ public class RowTests
             (3, "C")
         ];
 
-        outlet.Count.Should().Be(3);
+        await t.FlushEffectsAsync();
 
-        var sortedRows = outlet.OrderBy(v => v.RowId).ToArray();
+        coll.Count.Should().Be(3);
+
+        var sortedRows = coll.OrderBy(v => v.RowId).ToArray();
         var row1 = sortedRows[0];
         var row2 = sortedRows[1];
         var row3 = sortedRows[2];
@@ -105,7 +113,7 @@ public class RowTests
         row2.Count.Value.Should().Be(1);
         row3.Count.Value.Should().Be(1);
 
-        outlet.Count.Should().Be(3);
+        coll.Count.Should().Be(3);
 
         await inletNode.Remove((1, "B"));
 
@@ -115,7 +123,7 @@ public class RowTests
         row1.Count.Value.Should().Be(1);
         row2.Count.Value.Should().Be(1);
         row3.Count.Value.Should().Be(1);
-        outlet.Count.Should().Be(3);
+        coll.Count.Should().Be(3);
 
         // Now remove two rows completely
         await inletNode.Remove((1, "A"), (2, "B"));
@@ -127,79 +135,10 @@ public class RowTests
         row2.IsDisposed.Value.Should().BeTrue();
         row3.Count.Value.Should().Be(1);
 
-        outlet.Count.Should().Be(1);
+        coll.Count.Should().Be(1);
 
     }
 
-   [Fact]
-    public async Task OutletImplementsINotifyCollectionChanged()
-    {
-        // Arrange
-        var inlet = new Inlet<(int, string)>();
-        using var topology = Topology.Create();
-        var inletNode = topology.Intern(inlet);
-
-        // Create a flow returning active rows so that updates are visible in the outlet.
-        var flow = Pattern.Create()
-            .Match(inlet, out var id, out var name)
-            .ReturnTestRow(id, name)
-            .ToActive();
-
-        using var outlet = topology.Query(flow);
-
-        // Assert that outlet implements INotifyCollectionChanged.
-        outlet.Should().BeAssignableTo<INotifyCollectionChanged>();
-    }
-
-    [Fact]
-    public async Task OutletNotifiesOnAdditionAndRemoval()
-    {
-        // Arrange
-        var inlet = new Inlet<(int, string)>();
-        using var topology = Topology.Create();
-        var inletNode = topology.Intern(inlet);
-
-        // Use a flow that creates active rows.
-        var flow = Pattern.Create()
-            .Match(inlet, out var id, out var name)
-            .ReturnTestRow(id, name)
-            .ToActive();
-
-        using var outlet = topology.Query(flow);
-
-        // List to capture collection change events.
-        var events = new List<NotifyCollectionChangedEventArgs>();
-
-        ((INotifyCollectionChanged)outlet).CollectionChanged += (s, e) =>
-        {
-            events.Add(e);
-        };
-
-        // Act: Set initial values.
-        inletNode.Values = new[]
-        {
-            (1, "A"),
-            (2, "B")
-        };
-
-        await topology.FlushEffectsAsync();
-
-        // Assert: There should be at least one event raising an Add action.
-        events.Should().NotBeEmpty("because adding items should trigger CollectionChanged events");
-        events.Any(e => e.Action == NotifyCollectionChangedAction.Add)
-            .Should().BeTrue("because items added at startup should have raised an Add event");
-
-        // Clear events and test removal.
-        events.Clear();
-
-        // Act: Remove one item.
-        await inletNode.Remove((1, "A"));
-        await topology.FlushEffectsAsync();
-
-        // Assert: A removal event should have been reported.
-        events.Any(e => e.Action == NotifyCollectionChangedAction.Remove)
-            .Should().BeTrue("because removing an item should raise a Remove event");
-    }
 
     [Fact]
     public async Task ActiveRowsReactToDataChanges()
@@ -354,5 +293,55 @@ public class RowTests
         activeRow.Count.Value.Should().Be(initialCount + 2);
     }
 
+
+    [Fact]
+    public async Task ActiveRowAllowsForCellSubscribing()
+    {
+        // Arrange
+        var inlet = new Inlet<(int, string)>();
+        using var topology = Topology.Create();
+        var inletNode = topology.Intern(inlet);
+
+        // Use a flow that creates active rows with an aggregated count.
+        var flow = Pattern.Create()
+            .Match(inlet, out var id, out var name)
+            .ReturnTestRow(id, name)
+            .ToActive();
+
+        var rowOneName = new BindableReactiveProperty<string>("unset");
+        var rowTwoName = new BindableReactiveProperty<string>("unset");
+
+        using var _1 = topology.ObserveCell<TestRow.Active, TestRow, int, string>(flow, 1, r => r.Name)
+            .Subscribe(v => rowOneName.Value = v);
+        using var _2 = topology.ObserveCell<TestRow.Active, TestRow, int, string>(flow, 2, r => r.Name)
+            .Subscribe(v => rowTwoName.Value = v);
+
+        rowTwoName.Value.Should().Be("unset");
+        rowOneName.Value.Should().Be("unset");
+
+        // Act: Insert a row.
+        inletNode.Values = new[]
+        {
+            (1, "Initial")
+        };
+
+        await topology.FlushEffectsAsync();
+
+        rowOneName.Value.Should().Be("Initial");
+        rowTwoName.Value.Should().Be("unset");
+
+        // Act: Perform a first update.
+        // For example, update the row data leading to an increment in count.
+        inletNode.Values = new[]
+        {
+            (1, "Update1"),
+            (2, "Initial2")
+        };
+        await topology.FlushEffectsAsync();
+
+        // Assert: The active row instance is not replaced.
+        rowOneName.Value.Should().Be("Update1");
+        rowTwoName.Value.Should().Be("Initial2");
+    }
 
 }
