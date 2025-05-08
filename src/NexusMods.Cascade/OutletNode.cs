@@ -138,4 +138,14 @@ internal class OutletNode<T> : Node, IQueryResult<T>
     }
 
     public event IQueryResult<T>.OutputChangedDelegate? OutputChanged;
+    public IToDiffSpan<T> ToIDiffSpan()
+    {
+        var diffSet = new DiffList<T>();
+        foreach (var (key, delta) in _state)
+        {
+            diffSet.Add(key, delta);
+        }
+
+        return diffSet;
+    }
 }

@@ -26,4 +26,5 @@ public interface IQueryResult<T> : IQueryResult, IReadOnlyCollection<T>
     public delegate void OutputChangedDelegate(IToDiffSpan<T> diffSet);
 
     public event OutputChangedDelegate? OutputChanged;
+    IToDiffSpan<T> ToIDiffSpan();
 }

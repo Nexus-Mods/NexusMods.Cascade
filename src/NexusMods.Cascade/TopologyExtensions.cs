@@ -19,32 +19,41 @@ public static class TopologyExtensions
     {
         var observable = Observable.Create<ChangeSet<TValue>>(async observer =>
         {
-            var outlet = await topology.QueryAsync(flow);
-
-            var disposable = Disposable.Create(() =>
+            await topology.RunInMainThread(async () =>
             {
-                outlet.OutputChanged -= UpdateFn;
-                outlet.Dispose();
+                var outlet = topology.QueryCore(flow);
+
+                var disposable = Disposable.Create(() =>
+                {
+                    outlet.OutputChanged -= UpdateFn;
+                    outlet.Dispose();
+                });
+
+                outlet.OutputChanged += UpdateFn;
+
+                var span = outlet.ToIDiffSpan();
+
+                // Prime the observable
+                topology.EnqueueEffect(() => { UpdateFn(span); });
+                return disposable;
+
+                void UpdateFn(IToDiffSpan<TValue> diffSpan)
+                {
+                    var changes = new ChangeSet<TValue>();
+                    foreach (var (val, diff) in diffSpan.ToDiffSpan())
+                    {
+                        if (diff > 0)
+                            changes.Add(new Change<TValue>(ListChangeReason.Add, val));
+                        else if (diff < 0)
+                            changes.Add(new Change<TValue>(ListChangeReason.Remove, val));
+                    }
+
+                    if (changes.Count > 0)
+                    {
+                        observer.OnNext(changes);
+                    }
+                }
             });
-
-            outlet.OutputChanged += UpdateFn;
-            return disposable;
-
-            void UpdateFn(IToDiffSpan<TValue> diffSpan)
-            {
-                var changes = new ChangeSet<TValue>();
-                foreach (var (val, diff) in diffSpan.ToDiffSpan())
-                {
-                    if (diff > 0)
-                        changes.Add(new Change<TValue>(ListChangeReason.Add, val));
-                    else if (diff < 0)
-                        changes.Add(new Change<TValue>(ListChangeReason.Remove, val));
-                }
-                if (changes.Count > 0)
-                {
-                    observer.OnNext(changes);
-                }
-            }
         });
         return observable;
     }
@@ -61,7 +70,12 @@ public static class TopologyExtensions
         return topology
             .Observe(activeRows)
             .Filter(f => f.RowId.Equals(forKey))
-            .Transform(f => cellSelector(f).AsSystemObservable())
+            .Transform(f =>
+            {
+                var cell = cellSelector(f);
+                var observable = cell.AsSystemObservable().StartWith(cell.Value);
+                return observable;
+            })
             .Select(s => s.First(static f => f.Reason == ListChangeReason.Add).Item.Current)
             .Switch();
     }

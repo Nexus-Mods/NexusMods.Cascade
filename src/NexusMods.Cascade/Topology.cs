@@ -191,40 +191,42 @@ public sealed class Topology : IDisposable
     }
 
     [MustDisposeResource]
-    public Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
+    public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
     {
-        return RunInMainThread(() =>
+        return await RunInMainThread(() => QueryCore(flow));
+    }
+
+    internal IQueryResult<T> QueryCore<T>(Flow<T> flow) where T : notnull
+    {
+        if (_outletNodes.TryGetValue(flow.Id, out var node))
         {
-            if (_outletNodes.TryGetValue(flow.Id, out var node))
+            var casted = ((OutletNode<T>)node);
+            casted.References++;
+            return casted;
+        }
+
+        var upstream = (Node<T>)Intern(flow);
+
+        var outletFlow = new OutletFlow<T>(flow);
+
+        var outletNode = new OutletNode<T>(this, outletFlow)
+        {
+            Upstream =
             {
-                var casted = ((OutletNode<T>)node);
-                casted.References++;
-                return casted;
+                [0] = upstream
             }
+        };
+        upstream.Subscribers.Add((outletNode, 0));
 
-            var upstream = (Node<T>)Intern(flow);
+        upstream.Prime();
+        outletNode.Accept(0, upstream.Output);
+        upstream.ResetOutput();
 
-            var outletFlow = new OutletFlow<T>(flow);
+        _outletNodes[flow.Id] = outletNode;
 
-            var outletNode = new OutletNode<T>(this, outletFlow)
-            {
-                Upstream =
-                {
-                    [0] = upstream
-                }
-            };
-            upstream.Subscribers.Add((outletNode, 0));
+        SortNodes();
 
-            upstream.Prime();
-            outletNode.Accept(0, upstream.Output);
-            upstream.ResetOutput();
-
-            _outletNodes[flow.Id] = outletNode;
-
-            SortNodes();
-
-            return (IQueryResult<T>)outletNode;
-        });
+        return outletNode;
     }
 
 
