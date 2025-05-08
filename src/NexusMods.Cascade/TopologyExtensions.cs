@@ -19,7 +19,7 @@ public static class TopologyExtensions
     {
         var observable = Observable.Create<ChangeSet<TValue>>(async observer =>
         {
-            await topology.RunInMainThread(async () =>
+            return await topology.RunInMainThread(async () =>
             {
                 var outlet = topology.QueryCore(flow);
 
@@ -31,10 +31,14 @@ public static class TopologyExtensions
 
                 outlet.OutputChanged += UpdateFn;
 
-                var span = outlet.ToIDiffSpan();
+                if (outlet.Count > 0)
+                {
+                    var span = outlet.ToIDiffSpan();
 
-                // Prime the observable
-                topology.EnqueueEffect(() => { UpdateFn(span); });
+                    // Prime the observable
+                    topology.EnqueueEffect(() => { UpdateFn(span); });
+                }
+
                 return disposable;
 
                 void UpdateFn(IToDiffSpan<TValue> diffSpan)
@@ -76,7 +80,18 @@ public static class TopologyExtensions
                 var observable = cell.AsSystemObservable().StartWith(cell.Value);
                 return observable;
             })
-            .Select(s => s.First(static f => f.Reason == ListChangeReason.Add).Item.Current)
+            .Where(changes => changes.Any(c => c.Reason is ListChangeReason.Add or ListChangeReason.AddRange))
+            .Select(changes =>
+            {
+                foreach (var change in changes)
+                {
+                    if (change.Reason == ListChangeReason.Add)
+                        return change.Item.Current;
+                    if (change.Reason == ListChangeReason.AddRange)
+                        return change.Range.First();
+                }
+                throw new InvalidOperationException("No added changes found, this should not happen");
+            })
             .Switch();
     }
 
