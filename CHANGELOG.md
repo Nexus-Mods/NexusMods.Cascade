@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.0 - 8/5/2025
+* Fix `AddRange` support for ObserveCell
+
 ## 0.10.0 - 7/5/2025
 * Make sure that listeners to queries are initially populated with the current value of the query
 
