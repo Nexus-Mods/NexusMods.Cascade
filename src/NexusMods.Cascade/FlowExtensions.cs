@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using NexusMods.Cascade.Collections;
 using NexusMods.Cascade.Flows;
 using NexusMods.Cascade.Structures;
@@ -37,6 +38,71 @@ public static class FlowExtensions
             {
                 foreach (var (value, delta) in inlet.ToDiffSpan())
                     outlet.Add(fn(value), delta);
+            }
+        };
+    }
+
+    /// <summary>
+    ///     Creates a new flow that applies the given function to each element of the upstream flow. Expects the function
+    /// to be async.
+    /// </summary>
+    public static Flow<TOut> SelectAsync<TIn, TOut>(
+        this Flow<TIn> flow,
+        Func<TIn, Task<TOut>> fn,
+        [CallerArgumentExpression(nameof(fn))] string? expression = null,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TIn : notnull
+        where TOut : notnull
+    {
+        return new UnaryFlow<TIn, TOut>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Select",
+                Expression = expression ?? string.Empty,
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [flow],
+            StepFn = (inlet, outlet) =>
+            {
+                foreach (var (value, delta) in inlet.ToDiffSpan())
+                    outlet.Add(fn(value).Result, delta);
+            }
+        };
+    }
+
+    /// <summary>
+    /// Like Select, but runs the function in parallel.
+    /// </summary>
+    public static Flow<TOut> ParallelSelect<TIn, TOut>(
+        this Flow<TIn> flow,
+        Func<TIn, TOut> fn,
+        [CallerArgumentExpression(nameof(fn))] string? expression = null,
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = 0)
+        where TIn : notnull
+        where TOut : notnull
+    {
+        return new UnaryFlow<TIn, TOut>
+        {
+            DebugInfo = new DebugInfo
+            {
+                Name = "Select",
+                Expression = expression ?? string.Empty,
+                FilePath = filePath ?? string.Empty,
+                LineNumber = lineNumber
+            },
+            Upstream = [flow],
+            StepFn = (inlet, outlet) =>
+            {
+                List<Task<Diff<TOut>>> tasks = [];
+                foreach (var itm in inlet.ToDiffSpan())
+                    tasks.Add(Task.Run(() => new Diff<TOut>(fn(itm.Value), itm.Delta)));
+
+                foreach (var task in tasks)
+                    outlet.Add(task.Result);
             }
         };
     }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0 - 13/5/2025
+* Add a "ParallelSelect" operator for parallel processing of values in a select
+* Add an async variant of the "Select" operator
+
 ## 0.11.0 - 8/5/2025
 * Fix `AddRange` support for ObserveCell
 
