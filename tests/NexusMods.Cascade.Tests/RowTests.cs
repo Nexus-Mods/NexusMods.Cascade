@@ -76,12 +76,6 @@ public class RowTests
             .ReturnTestRowWithCount(id, name.Count())
             .ToActive();
 
-        var coll = new ReadOnlyObservableCollection<TestRowWithCount.Active>([]);
-        using var _ = t.Observe(flow)
-            .Bind(out coll)
-            .Subscribe();
-
-        coll.Should().BeEmpty();
 
         inletNode.Values =
         [
@@ -90,7 +84,18 @@ public class RowTests
             (3, "C")
         ];
 
+
+        var coll = new ReadOnlyObservableCollection<TestRowWithCount.Active>([]);
+        using var _ = t.Observe(flow)
+            .Bind(out coll)
+            .Subscribe();
+
         await t.FlushEffectsAsync();
+
+        // Wait for the effects to flush out a bit, there's a race condition we're trying to catch here
+        // it was possible in older versions for values to be duplicated because the Rx side of things would prime
+        // while the Query prime function was still running.
+        await Task.Delay(1000);
 
         coll.Count.Should().Be(3);
 

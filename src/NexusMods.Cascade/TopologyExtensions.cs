@@ -31,13 +31,20 @@ public static class TopologyExtensions
 
                 outlet.OutputChanged += UpdateFn;
 
-                if (outlet.Count > 0)
+                topology.EnqueueEffect(() =>
                 {
-                    var span = outlet.ToIDiffSpan();
+                    if (outlet.Count > 0)
+                    {
+                        var span = outlet.ToIDiffSpan();
 
-                    // Prime the observable
-                    topology.EnqueueEffect(() => { UpdateFn(span); });
-                }
+                        // Prime the observable
+                        topology.EnqueueEffect(() =>
+                        {
+                            UpdateFn(span);
+                        });
+
+                    }
+                });
 
                 return disposable;
 

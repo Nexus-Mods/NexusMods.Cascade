@@ -83,14 +83,18 @@ internal class OutletNode<T> : Node, IQueryResult<T>
 
     private void ProcessEffects(ImmutableDictionary<T, int> oldState, ImmutableDictionary<T, int> newState, HashSet<T> keysToCheck)
     {
+        // We don't want the listeners to change while we're processing the effects, so we take a copy for now
+        var changedListeners = PropertyChanged;
+        var outputChangedListeners = OutputChanged;
+
         Topology.EnqueueEffect(() => {
             if (oldState.Count == newState.Count)
             {
-                PropertyChanged?.Invoke(this, CountChangedEventArgs);
+                changedListeners?.Invoke(this, CountChangedEventArgs);
             }
 
             // Early exit if there are no change listeners
-            if (OutputChanged == null)
+            if (outputChangedListeners == null)
                 return;
 
             var changes = new DiffList<T>();
@@ -110,7 +114,7 @@ internal class OutletNode<T> : Node, IQueryResult<T>
             if (changes.Count == 0)
                 return;
 
-            OutputChanged?.Invoke(changes);
+            outputChangedListeners?.Invoke(changes);
         });
     }
 
