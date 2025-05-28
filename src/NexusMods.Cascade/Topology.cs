@@ -92,6 +92,25 @@ public sealed class Topology : IDisposable
         return tcs.Task;
     }
 
+    internal void RunInMainThreadNoWait(Action func)
+    {
+        var tcs = new TaskCompletionSource();
+        _primaryRunner.Send(_ =>
+        {
+            try
+            {
+                func();
+                tcs.SetResult();
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+                return 0;
+            }
+        });
+    }
+
     internal Task RunInMainThread(Action func)
     {
         var tcs = new TaskCompletionSource();
@@ -193,16 +212,32 @@ public sealed class Topology : IDisposable
     [MustDisposeResource]
     public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
     {
-        return await RunInMainThread(() => QueryCore(flow));
+        var view = new OutletNodeView<T>(this, flow);
+        RunInMainThreadNoWait(() => QueryCore(flow, view));
+        await view.Initialized;
+        return view;
     }
 
-    internal IQueryResult<T> QueryCore<T>(Flow<T> flow) where T : notnull
+    [MustDisposeResource]
+    public IQueryResult<T> Query<T>(Flow<T> flow) where T : notnull
+    {
+        return QueryAsync(flow).Result;
+    }
+
+    [MustDisposeResource]
+    public IQueryResult<T> QueryNoWait<T>(Flow<T> flow) where T : notnull
+    {
+        var view = new OutletNodeView<T>(this, flow);
+        RunInMainThreadNoWait(() => QueryCore(flow, view));
+        return view;
+    }
+
+    internal void QueryCore<T>(Flow<T> flow, OutletNodeView<T> view) where T : notnull
     {
         if (_outletNodes.TryGetValue(flow.Id, out var node))
         {
             var casted = ((OutletNode<T>)node);
-            casted.References++;
-            return casted;
+            casted.AddView(view);
         }
 
         var upstream = (Node<T>)Intern(flow);
@@ -225,16 +260,11 @@ public sealed class Topology : IDisposable
         _outletNodes[flow.Id] = outletNode;
 
         SortNodes();
-
-        return outletNode;
+        outletNode.AddView(view);
     }
 
 
-    [MustDisposeResource]
-    public IQueryResult<T> Query<T>(Flow<T> flow) where T : notnull
-    {
-        return QueryAsync(flow).Result;
-    }
+
 
     private void SortNodes()
     {
@@ -314,23 +344,8 @@ public sealed class Topology : IDisposable
     }
 
 
-    internal void Release<T>(IQueryResult<T> queryResult) where T : notnull
-    {
-        var outletNode = (OutletNode<T>)queryResult;
-        RunInMainThread(() =>
-        {
-            outletNode.References--;
-            if (outletNode.References == 0)
-            {
-                _outletNodes.Remove(outletNode.Flow.Id);
-                outletNode.Dispose();
-            }
 
-            UnsubAndCleanup(outletNode.Upstream[0], (outletNode, 0));
-        });
-    }
-
-    private void UnsubAndCleanup(Node node, (Node downstream, int tag) subscriber)
+    internal void UnsubAndCleanup(Node node, (Node downstream, int tag) subscriber)
     {
         node.Subscribers.Remove(subscriber);
 
@@ -358,7 +373,6 @@ public sealed class Topology : IDisposable
             {
                 var casted = (IQueryResult)node;
                 // Set the references to 1, so that the Dispose method fully disposes the node.
-                casted.References= 1;
                 casted.Dispose();
             }
 
