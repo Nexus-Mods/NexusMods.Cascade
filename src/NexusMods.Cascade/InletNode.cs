@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NexusMods.Cascade.Collections;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade;
 
 public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology, inlet, 0), IInletNode
     where T : notnull
 {
-    private T[] _values = [];
+    private DiffSet<T> _values = new();
 
     /// <summary>
     ///     A somewhat slow way to get and set the values of an inlet, used mostly for testing.
@@ -21,13 +22,28 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
             Topology.RunInMainThread(() =>
             {
                 Output.Clear();
-                Output.Add(_values, -1);
+                Output.AddInverted(_values);
                 Output.Add(value, 1);
-                _values = value;
+                _values.Reset(value);
                 Topology.FlowData();
             }).Wait();
         }
-        get => _values;
+    }
+
+    /// <summary>
+    /// Update the inlet node with a set of diffs.
+    /// </summary>
+    /// <param name="diffs"></param>
+    /// <returns></returns>
+    public Task Update(params Diff<T>[] diffs)
+    {
+        return Topology.RunInMainThread(() =>
+        {
+            Output.Clear();
+            foreach (var diff in diffs)
+                Output.Add(diff);
+            Topology.FlowData();
+        });
     }
 
 
@@ -39,7 +55,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     public override void Prime()
     {
         Output.Clear();
-        Output.Add(_values, 1);
+        Output.Add(_values);
     }
 
     /// <summary>

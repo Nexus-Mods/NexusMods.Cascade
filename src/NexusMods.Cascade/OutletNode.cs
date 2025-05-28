@@ -56,7 +56,9 @@ internal class OutletNode<T> : Node
         Topology.EnqueueEffect(() =>
         {
             listeners.PropertyChanged?.Invoke(this, CountChangedEventArgs);
-            listeners.OutputChanged?.Invoke(diffSpan);
+            if (diffSpan.ToDiffSpan().Length != 0)
+                listeners.OutputChanged?.Invoke(diffSpan);
+            view.SetInitialized();
         });
     }
 

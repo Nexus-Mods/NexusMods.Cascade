@@ -19,10 +19,10 @@ public static class TopologyExtensions
     {
         var observable = Observable.Create<ChangeSet<TValue>>(async observer =>
         {
-            return await topology.RunInMainThread(async () =>
+            var (disposable, view) = await topology.RunInMainThread(() =>
             {
                 var view = new OutletNodeView<TValue>(topology, flow);
-                topology.QueryCore(flow, view);
+
 
                 var disposable = Disposable.Create(() =>
                 {
@@ -32,22 +32,9 @@ public static class TopologyExtensions
 
                 view.OutputChanged += UpdateFn;
 
-                topology.EnqueueEffect(() =>
-                {
-                    if (view.Count > 0)
-                    {
-                        var span = view.ToIDiffSpan();
+                topology.QueryCore(flow, view);
 
-                        // Prime the observable
-                        topology.EnqueueEffect(() =>
-                        {
-                            UpdateFn(span);
-                        });
-
-                    }
-                });
-
-                return disposable;
+                return (disposable, view);
 
                 void UpdateFn(IToDiffSpan<TValue> diffSpan)
                 {
@@ -66,6 +53,8 @@ public static class TopologyExtensions
                     }
                 }
             });
+            await view.Initialized;
+            return disposable;
         });
         return observable;
     }

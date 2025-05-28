@@ -236,8 +236,9 @@ public sealed class Topology : IDisposable
     {
         if (_outletNodes.TryGetValue(flow.Id, out var node))
         {
-            var casted = ((OutletNode<T>)node);
+            var casted = (OutletNode<T>)node;
             casted.AddView(view);
+            return;
         }
 
         var upstream = (Node<T>)Intern(flow);

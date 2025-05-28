@@ -36,8 +36,13 @@ public class OutletNodeView<T> : IQueryResult<T>
         if (_node != null)
             throw new InvalidOperationException("OutletNodeView can only be set once.");
         _node = node;
+    }
+
+    internal void SetInitialized()
+    {
         _tcs.TrySetResult();
     }
+
 
     public void Dispose()
     {
