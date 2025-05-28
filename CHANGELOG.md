@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0 - 28/5/2025
+* Rework how Queries are created, now supports a lazy "no wait" syntax for situations where users will eventually query the data
+but cannot block the initial call.
+
 ## 0.13.0 - 21/5/2025
 * Fix a race condition in ProcessEffects that would result in items being observed twice
 
