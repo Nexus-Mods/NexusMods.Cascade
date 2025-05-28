@@ -49,6 +49,15 @@ internal class OutletNode<T> : Node
     {
         _views.Add(view);
         view.SetNode(this);
+        view.State = _state;
+
+        var diffSpan = view.ToIDiffSpan();
+        var listeners = view.GetListeners();
+        Topology.EnqueueEffect(() =>
+        {
+            listeners.PropertyChanged?.Invoke(this, CountChangedEventArgs);
+            listeners.OutputChanged?.Invoke(diffSpan);
+        });
     }
 
     internal void RemoveView(OutletNodeView<T> view)
