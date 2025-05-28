@@ -32,20 +32,46 @@ public class OutletFlow<T> : Flow
     public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
 }
 
-internal class OutletNode<T> : Node, IQueryResult<T>
+internal class OutletNode<T> : Node
     where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
-
-    private int _count;
-
-    public int References { get; set; } = 1;
+    private HashSet<OutletNodeView<T>> _views = new();
 
     public OutletNode(Topology topology, Flow flow) : base(topology, flow, 1) { }
 
     internal override void FlowOut(Node subscriberNode, int tag)
     {
         throw new NotSupportedException("Outlet nodes do not have subscribers");
+    }
+
+    internal void AddView(OutletNodeView<T> view)
+    {
+        _views.Add(view);
+        view.SetNode(this);
+        view.State = _state;
+
+        var diffSpan = view.ToIDiffSpan();
+        var listeners = view.GetListeners();
+        Topology.EnqueueEffect(() =>
+        {
+            listeners.PropertyChanged?.Invoke(this, CountChangedEventArgs);
+            if (diffSpan.ToDiffSpan().Length != 0)
+                listeners.OutputChanged?.Invoke(diffSpan);
+            view.SetInitialized();
+        });
+    }
+
+    internal void RemoveView(OutletNodeView<T> view)
+    {
+        if (_views.Remove(view))
+        {
+            if (_views.Count == 0)
+            {
+                // If there are no views left, we can release the node
+                Topology.UnsubAndCleanup(Upstream[0], (this, 0));
+            }
+        }
     }
 
     public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
@@ -75,27 +101,34 @@ internal class OutletNode<T> : Node, IQueryResult<T>
 
         _state = builder.ToImmutable();
 
+        foreach (var view in _views)
+        {
+            view.State = _state;
+        }
+
         ProcessEffects(oldState, _state, keysToCheck);
 
     }
 
-    private static readonly PropertyChangedEventArgs CountChangedEventArgs = new(nameof(Count));
+    private static readonly PropertyChangedEventArgs CountChangedEventArgs = new("Count");
 
     private void ProcessEffects(ImmutableDictionary<T, int> oldState, ImmutableDictionary<T, int> newState, HashSet<T> keysToCheck)
     {
         // We don't want the listeners to change while we're processing the effects, so we take a copy for now
-        var changedListeners = PropertyChanged;
-        var outputChangedListeners = OutputChanged;
+        List<(PropertyChangedEventHandler? PropertyChanged, IQueryResult<T>.OutputChangedDelegate? OutputChanged)> listeners = new();
+        foreach (var view in _views)
+        {
+            listeners.Add(view.GetListeners());
+        }
 
         Topology.EnqueueEffect(() => {
-            if (oldState.Count == newState.Count)
+            if (oldState.Count != newState.Count)
             {
-                changedListeners?.Invoke(this, CountChangedEventArgs);
+                foreach (var (listener, _) in listeners)
+                    listener?.Invoke(this, CountChangedEventArgs);
             }
 
             // Early exit if there are no change listeners
-            if (outputChangedListeners == null)
-                return;
 
             var changes = new DiffList<T>();
 
@@ -114,7 +147,11 @@ internal class OutletNode<T> : Node, IQueryResult<T>
             if (changes.Count == 0)
                 return;
 
-            outputChangedListeners?.Invoke(changes);
+            foreach (var (_, listener) in listeners)
+            {
+                listener?.Invoke(changes);
+            }
+
         });
     }
 
@@ -124,24 +161,11 @@ internal class OutletNode<T> : Node, IQueryResult<T>
         return false;
     }
 
-    public IEnumerator<T> GetEnumerator()
-    {
-        return _state.Keys.GetEnumerator();
-    }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    public int Count => _state.Count;
-    public event PropertyChangedEventHandler? PropertyChanged;
     public void Dispose()
     {
-        Topology.Release(this);
     }
 
-    public event IQueryResult<T>.OutputChangedDelegate? OutputChanged;
     public IToDiffSpan<T> ToIDiffSpan()
     {
         var diffSet = new DiffList<T>();
@@ -152,4 +176,6 @@ internal class OutletNode<T> : Node, IQueryResult<T>
 
         return diffSet;
     }
+
+    public bool Contains(T item) => _state.ContainsKey(item);
 }

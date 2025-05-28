@@ -344,6 +344,7 @@ public class RowTests
         };
         await topology.FlushEffectsAsync();
 
+
         // Assert: The active row instance is not replaced.
         rowOneName.Value.Should().Be("Update1");
         rowTwoName.Value.Should().Be("Initial2");

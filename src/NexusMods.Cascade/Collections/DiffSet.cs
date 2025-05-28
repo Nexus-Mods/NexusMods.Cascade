@@ -54,4 +54,14 @@ public class DiffSet<T> : Dictionary<T, int> where T : notnull
         currentDelta += delta;
         if (currentDelta == 0) Remove(item);
     }
+
+    public void Reset(T[] value)
+    {
+        Clear();
+        foreach (var item in value)
+        {
+            ref var currentDelta = ref CollectionsMarshal.GetValueRefOrAddDefault(this, item, out var exists);
+            currentDelta += 1; // assume delta is 1
+        }
+    }
 }

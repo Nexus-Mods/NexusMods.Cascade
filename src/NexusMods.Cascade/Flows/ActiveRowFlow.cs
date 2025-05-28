@@ -62,22 +62,25 @@ public class ActiveRowFlow<TBase, TKey, TActive> : Flow<TActive>
             var newState = builder.ToImmutable();
             _rows = newState;
 
-            Topology.EnqueueEffect(() =>
+            if (toCheck.Count > 0)
             {
-                foreach (var key in toCheck)
+                Topology.EnqueueEffect(() =>
                 {
-                    if (newState.TryGetValue(key, out var row))
+                    foreach (var key in toCheck)
                     {
-                        row.ApplyUpdates();
-                        continue;
-                    }
+                        if (newState.TryGetValue(key, out var row))
+                        {
+                            row.ApplyUpdates();
+                            continue;
+                        }
 
-                    // It's not in the new state, so it must have been deleted
-                    var oldRow = oldState[key];
-                    oldRow.ApplyUpdates();
-                    oldRow.Dispose();
-                }
-            });
+                        // It's not in the new state, so it must have been deleted
+                        var oldRow = oldState[key];
+                        oldRow.ApplyUpdates();
+                        oldRow.Dispose();
+                    }
+                });
+            }
 
         }
 

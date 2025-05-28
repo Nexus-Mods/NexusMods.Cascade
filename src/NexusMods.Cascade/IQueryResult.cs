@@ -11,10 +11,7 @@ namespace NexusMods.Cascade;
 /// </summary>
 public interface IQueryResult : IDisposable, INotifyPropertyChanged
 {
-    /// <summary>
-    /// The number of references to this result set. Once a dispose reduces this to 0, the result set will be disposed.
-    /// </summary>
-    int References { get; internal set; }
+
 }
 
 /// <summary>
@@ -27,4 +24,9 @@ public interface IQueryResult<T> : IQueryResult, IReadOnlyCollection<T>
 
     public event OutputChangedDelegate? OutputChanged;
     IToDiffSpan<T> ToIDiffSpan();
+
+    /// <summary>
+    /// Returns true if the result set contains the given item.
+    /// </summary>
+    bool Contains(T item);
 }
