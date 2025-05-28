@@ -21,21 +21,22 @@ public static class TopologyExtensions
         {
             return await topology.RunInMainThread(async () =>
             {
-                var outlet = topology.QueryCore(flow);
+                var view = new OutletNodeView<TValue>(topology, flow);
+                topology.QueryCore(flow, view);
 
                 var disposable = Disposable.Create(() =>
                 {
-                    outlet.OutputChanged -= UpdateFn;
-                    outlet.Dispose();
+                    view.OutputChanged -= UpdateFn;
+                    view.Dispose();
                 });
 
-                outlet.OutputChanged += UpdateFn;
+                view.OutputChanged += UpdateFn;
 
                 topology.EnqueueEffect(() =>
                 {
-                    if (outlet.Count > 0)
+                    if (view.Count > 0)
                     {
-                        var span = outlet.ToIDiffSpan();
+                        var span = view.ToIDiffSpan();
 
                         // Prime the observable
                         topology.EnqueueEffect(() =>
