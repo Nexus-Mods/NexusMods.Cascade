@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using FluentAssertions;
 using NexusMods.Cascade.Patterns;
+using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Tests;
 
@@ -301,5 +302,49 @@ public class PatternTests
             },
             options => options.WithoutStrictOrdering());
     }
+
+    [Fact]
+    public async Task MatchDefault_AcceptsUserProvidedDefaults()
+    {
+
+        var ages = new Inlet<KeyedValue<string, int>>();
+        var scores = new Inlet<KeyedValue<string, int>>();
+
+        var flow = Pattern.Create()
+            .Match(ages, out var name, out var age)
+            .MatchDefault<string, int>(scores, name, out var score, "", -42) // Default score is 0 if not found
+            .Return(name, age, score);
+
+        using var topology = Topology.Create();
+
+        var agesNode = topology.Intern(ages);
+        var scoresNode = topology.Intern(scores);
+
+        agesNode.Values = new[]
+        {
+            new KeyedValue<string, int>("Alice", 30),
+            new KeyedValue<string, int>("Bob", 25),
+        };
+
+        scoresNode.Values = new[]
+        {
+            new KeyedValue<string, int>("Alice", 100),
+            // Bob's score is not provided, should use default value of -100
+        };
+
+        using var results = topology.Query(flow);
+
+
+        var expected = new[]
+        {
+            ("Alice", 30, 100),
+            ("Bob", 25, -42) // Bob uses the default score
+        };
+
+        results.Should().BeEquivalentTo(expected, options => options.WithoutStrictOrdering());
+
+    }
+
+
 }
 

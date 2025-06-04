@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using NexusMods.Cascade.Patterns;
 using NexusMods.Cascade.Structures;
 
 namespace NexusMods.Cascade.Tests.Operators;
@@ -296,6 +297,46 @@ public class CountTests
             new KeyedValue<int, int>(0, 30),
             new KeyedValue<int, int>(1, 30)
         ]);
+    }
+
+    [Fact]
+    public void MultipleAggregatesDontDuplicateCounts()
+    {
+        var inlet = new Inlet<(int Id, int Count)>();
+        using var topology = Topology.Create();
+
+        var inletNode = topology.Intern(inlet);
+
+        var query = Pattern.Create()
+            .Match(inlet, out var id, out var count)
+            .Return(id, count.Count(), count.Count());
+
+        using var outlet = topology.Query(query);
+
+        inletNode.Values = [(1, 2)];
+
+        inletNode.Values = [
+            (1, 2), // Id 1, Count 2
+            (2, 3), // Id 2, Count 3
+            (1, 4), // Id 1, Count 4
+            (3, 5)  // Id 3, Count 5
+        ];
+
+
+
+        var diagram = topology.Diagram();
+
+        // Assert that the counts are correct.
+
+        outlet.OrderBy(a => a.Item1)
+            .ToArray()
+            .Should()
+            .BeEquivalentTo([
+                (1, 2, 2), // Id 1, Max Count 4, Count 2
+                (2, 1, 1), // Id 2, Max Count 3, Count 1
+                (3, 1, 1)  // Id 3, Max Count 5, Count 1
+            ]);
+
     }
 }
 

@@ -79,13 +79,13 @@ public static partial class PatternExtensions
     /// Joins in the given KeyedValue flow, via a LeftOuter join, to the current flow. Any missing joins will be filled with the default value of the type.
     /// </summary>
     [GenerateLVarOverrides]
-    public static Patterns.Pattern MatchDefault<T1, T2>(this Patterns.Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2)
+    public static Patterns.Pattern MatchDefault<T1, T2>(this Patterns.Pattern pattern, Flow<KeyedValue<T1, T2>> flow, LVar<T1> lvar1, LVar<T2> lvar2, T1? defaultValue1 = default, T2? defaultValue2 = default)
         where T1 : notnull
         where T2 : notnull
     {
         if (pattern._flow == null)
             throw new InvalidOperationException("A WithDefault(...) clause cannot be the first clause in a pattern.");
-        return pattern.Join(flow, false, lvar1, lvar2);
+        return pattern.Join(flow, false, [lvar1, lvar2], new KeyedValue<T1, T2>(defaultValue1!, defaultValue2!));
     }
 
     public static Pattern IsLessThan<TLeft, TRight>(this Patterns.Pattern pattern, LVar<TLeft> left, LVar<TRight> right)

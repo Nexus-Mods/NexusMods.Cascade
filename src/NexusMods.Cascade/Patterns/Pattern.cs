@@ -56,7 +56,7 @@ public record Pattern
         }
 
 
-        return Join(flow, true, lvars);
+        return Join(flow, true, lvars.ToArray());
     }
 
     /// <summary>
@@ -282,9 +282,8 @@ public record Pattern
     /// <summary>
     /// Performs a join between two flows
     /// </summary>
-    public Pattern Join(Flow rightFlow, bool innerJoin, params ReadOnlySpan<LVar> lvars)
+    public Pattern Join(Flow rightFlow, bool innerJoin, LVar[] lvars, object? rightDefaultValue = null)
     {
-        var lvarsArray = lvars.ToArray();
         var newMappings = _mappings;
         foreach (var lvar in lvars)
         {
@@ -294,13 +293,13 @@ public record Pattern
             }
         }
 
-        var joinKeys = _mappings.Keys.Intersect(lvarsArray).ToArray();
+        var joinKeys = _mappings.Keys.Intersect(lvars).ToArray();
         var joinType = TupleHelpers.TupleTypeFor(joinKeys.Select(l => l.Type).ToArray());
 
         var leftIdxes = joinKeys.Select(k => _mappings[k]).ToArray();
         var leftFn = TupleHelpers.Selector(_flow!.OutputType, leftIdxes);
 
-        var rightIdxes = joinKeys.Select(k => Array.IndexOf(lvarsArray, k)).ToArray();
+        var rightIdxes = joinKeys.Select(k => Array.IndexOf(lvars, k)).ToArray();
         var rightFn = TupleHelpers.Selector(rightFlow.OutputType, rightIdxes);
 
         var selectMappings = new List<(bool Left, int idx)>();
@@ -316,25 +315,40 @@ public record Pattern
             }
             else
             {
-                selectMappings.Add((false, Array.IndexOf(lvarsArray, lvar)));
+                selectMappings.Add((false, Array.IndexOf(lvars, lvar)));
             }
         }
 
         var resultSelector = TupleHelpers.ResultSelector(
             _flow.OutputType, rightFlow.OutputType, selectMappings.ToArray());
 
-        var methodName = innerJoin ? nameof(FlowExtensions.Join) : nameof(FlowExtensions.OuterJoin);
-
-        var joinFlow = (Flow)typeof(FlowExtensions)
-            .GetMethod(methodName)
-            ?.MakeGenericMethod(new[]
-            {
-                _flow.OutputType,
-                rightFlow.OutputType,
-                joinType,
-                resultType
-            })
-            .Invoke(null, [_flow, rightFlow, leftFn, rightFn, resultSelector])!;
+        Flow joinFlow;
+        if (innerJoin)
+        {
+            joinFlow = (Flow)typeof(FlowExtensions)
+                .GetMethod(nameof(FlowExtensions.Join))
+                ?.MakeGenericMethod(new[]
+                {
+                    _flow.OutputType,
+                    rightFlow.OutputType,
+                    joinType,
+                    resultType
+                })
+                .Invoke(null, [_flow, rightFlow, leftFn, rightFn, resultSelector])!;
+        }
+        else
+        {
+            joinFlow = (Flow)typeof(FlowExtensions)
+                .GetMethod(nameof(FlowExtensions.OuterJoin))
+                ?.MakeGenericMethod(new[]
+                {
+                    _flow.OutputType,
+                    rightFlow.OutputType,
+                    joinType,
+                    resultType
+                })
+                .Invoke(null, [_flow, rightFlow, leftFn, rightFn, resultSelector, rightDefaultValue])!;
+        }
 
         return new Pattern
         {

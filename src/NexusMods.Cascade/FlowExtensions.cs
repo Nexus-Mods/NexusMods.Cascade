@@ -235,8 +235,7 @@ public static class FlowExtensions
     public static Flow<KeyedValue<TKey, (TLeft, TRight)>> LeftOuterJoin<TLeft, TRight, TKey>(
         this Flow<KeyedValue<TKey, TLeft>> leftFlow,
         Flow<KeyedValue<TKey, TRight>> rightFlow,
-        [CallerFilePath] string? filePath = null,
-        [CallerLineNumber] int lineNumber = 0)
+        TRight? defaultRightValue = default!)
         where TLeft : notnull
         where TRight : notnull
         where TKey : notnull
@@ -251,8 +250,6 @@ public static class FlowExtensions
             {
                 Name = "LeftOuterJoin",
                 Expression = "",
-                FilePath = filePath ?? string.Empty,
-                LineNumber = lineNumber
             },
             Upstream = [leftFlow, rightFlow],
             StateFactory = () => (new KeyedDiffSet<TKey, TLeft>(), new KeyedDiffSet<TKey, TRight>()),
@@ -272,7 +269,7 @@ public static class FlowExtensions
                     if (!matchFound)
                     {
                         // Emit pairing with default(TRight) when no matching right record exists.
-                        output.Add((leftKv.Key, (leftKv.Value, default!)), delta);
+                        output.Add((leftKv.Key, (leftKv.Value, defaultRightValue!)), delta);
                     }
                 }
                 lefts.MergeIn(input);
@@ -290,7 +287,7 @@ public static class FlowExtensions
                         if (!rights.Contains(rightKv.Key))
                         {
                             // Emit pairing with default(TLeft) when no matching left record exists.
-                            output.Add((rightKv.Key, (leftValue, default!)), -leftDelta);
+                            output.Add((rightKv.Key, (leftValue, defaultRightValue!)), -leftDelta);
                         }
                         // Note: It is expected that any previous default join output will be canceled by a negative delta.
                         output.Add((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
@@ -315,7 +312,7 @@ public static class FlowExtensions
                     }
                     else
                     {
-                        output.Add((leftKv.Key, (leftKv.Value, default!)), leftDelta);
+                        output.Add((leftKv.Key, (leftKv.Value, defaultRightValue!)), leftDelta);
                     }
                 }
             }
@@ -589,7 +586,8 @@ public static class FlowExtensions
         Flow<TRight> rightFlow,
         Func<TLeft, TKey> leftKeySelector,
         Func<TRight, TKey> rightKeySelector,
-        Func<TLeft, TRight, TResult> resultSelector)
+        Func<TLeft, TRight, TResult> resultSelector,
+        TRight? defaultRightValue = default!)
         where TLeft : notnull
         where TRight : notnull
         where TKey : notnull
@@ -597,7 +595,7 @@ public static class FlowExtensions
     {
         var leftKey = leftFlow.Rekey(leftKeySelector);
         var rightKey = rightFlow.Rekey(rightKeySelector);
-        var joined = leftKey.LeftOuterJoin(rightKey);
+        var joined = leftKey.LeftOuterJoin(rightKey, defaultRightValue: defaultRightValue);
         var result = joined.Select(row => resultSelector(row.Value.Item1, row.Value.Item2));
         return result;
     }
