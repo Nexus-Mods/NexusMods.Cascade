@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.15.0 - 4/6/2025
+* Add user defined defaults for `MatchDefault`
+
 ## 0.14.0 - 28/5/2025
 * Rework how Queries are created, now supports a lazy "no wait" syntax for situations where users will eventually query the data
 but cannot block the initial call.
