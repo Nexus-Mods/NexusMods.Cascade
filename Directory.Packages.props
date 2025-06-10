@@ -1,7 +1,6 @@
 ﻿<Project>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageVersion Include="Clarp" Version="0.2.0" />
     <PackageVersion Include="DynamicData" Version="9.3.2" />
     <PackageVersion Include="FluentAssertions" Version="7.1.0" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />

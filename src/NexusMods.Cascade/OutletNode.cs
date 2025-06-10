@@ -32,7 +32,7 @@ public class OutletFlow<T> : Flow
     public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
 }
 
-internal class OutletNode<T> : Node
+internal class OutletNode<T> : Node, IDisposable
     where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
@@ -45,7 +45,7 @@ internal class OutletNode<T> : Node
         throw new NotSupportedException("Outlet nodes do not have subscribers");
     }
 
-    internal void AddView(OutletNodeView<T> view)
+    internal void AddView(OutletNodeView<T> view, bool asyncMode)
     {
         _views.Add(view);
         view.SetNode(this);
@@ -53,13 +53,25 @@ internal class OutletNode<T> : Node
 
         var diffSpan = view.ToIDiffSpan();
         var listeners = view.GetListeners();
-        Topology.EnqueueEffect(() =>
+
+        // In async mode, there's a possibility that a listener may have connected
+        // to the view between when it was created and when it's finished initializing,
+        // so we'll need to check for any connected listeners before marking the view as
+        // initialized. In sync mode, we don't need this check
+        if (asyncMode)
         {
-            listeners.PropertyChanged?.Invoke(this, CountChangedEventArgs);
-            if (diffSpan.ToDiffSpan().Length != 0)
-                listeners.OutputChanged?.Invoke(diffSpan);
+            Topology.EnqueueEffect(() =>
+            {
+                listeners.PropertyChanged?.Invoke(this, CountChangedEventArgs);
+                if (diffSpan.ToDiffSpan().Length != 0)
+                    listeners.OutputChanged?.Invoke(diffSpan);
+                view.SetInitialized();
+            });
+        }
+        else
+        {
             view.SetInitialized();
-        });
+        }
     }
 
     internal void RemoveView(OutletNodeView<T> view)
@@ -164,6 +176,8 @@ internal class OutletNode<T> : Node
 
     public void Dispose()
     {
+        foreach (var view in _views)
+            view.Dispose();
     }
 
     public IToDiffSpan<T> ToIDiffSpan()

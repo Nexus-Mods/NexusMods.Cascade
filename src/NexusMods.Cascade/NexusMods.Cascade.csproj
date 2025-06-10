@@ -3,7 +3,6 @@
     <Import Project="$([MSBuild]::GetPathOfFileAbove('NuGet.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
 
     <ItemGroup>
-        <PackageReference Include="Clarp"/>
         <PackageReference Include="DynamicData" />
         <PackageReference Include="FluentAssertions"/>
         <PackageReference Include="JetBrains.Annotations"/>

@@ -19,14 +19,15 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     {
         set
         {
-            Topology.RunInMainThread(() =>
+            Topology.PrimaryRunner.RunInline(_ =>
             {
                 Output.Clear();
                 Output.AddInverted(_values);
                 Output.Add(value, 1);
                 _values.Reset(value);
                 Topology.FlowData();
-            }).Wait();
+                return 0;
+            }, this);
         }
     }
 
@@ -37,13 +38,23 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// <returns></returns>
     public Task Update(params Diff<T>[] diffs)
     {
-        return Topology.RunInMainThread(() =>
+        var tcs = new TaskCompletionSource();
+        Topology.PrimaryRunner.Enqueue(() =>
         {
-            Output.Clear();
-            foreach (var diff in diffs)
-                Output.Add(diff);
-            Topology.FlowData();
+            try
+            {
+                Output.Clear();
+                foreach (var diff in diffs)
+                    Output.Add(diff);
+                Topology.FlowData();
+                tcs.SetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
         });
+        return tcs.Task;
     }
 
 
@@ -61,25 +72,49 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// <summary>
     /// Updates the values of the inlet node, assuming the delta is 1.
     /// </summary>
-    public async Task Add(params T[] values)
+    public Task Add(params T[] values)
     {
-        await Topology.RunInMainThread(() =>
+        var tcs = new TaskCompletionSource();
+        Topology.PrimaryRunner.Enqueue(() =>
         {
-            Output.Add(values, 1);
-            Topology.FlowData();
+            try
+            {
+                Output.Clear();
+                foreach (var diff in values)
+                    Output.Add(values, 1);
+                Topology.FlowData();
+                tcs.SetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
         });
+        return tcs.Task;
     }
 
     /// <summary>
     /// Updates the values of the inlet node, assuming the delta is -1.
     /// </summary>
-    public async Task Remove(params T[] values)
+    public Task Remove(params T[] values)
     {
-        await Topology.RunInMainThread(() =>
+        var tcs = new TaskCompletionSource();
+        Topology.PrimaryRunner.Enqueue(() =>
         {
-            Output.Add(values, -1);
-            Topology.FlowData();
+            try
+            {
+                Output.Clear();
+                foreach (var diff in values)
+                    Output.Add(values, -1);
+                Topology.FlowData();
+                tcs.SetResult();
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
         });
+        return tcs.Task;
     }
 
 

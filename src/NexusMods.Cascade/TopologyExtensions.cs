@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using DynamicData;
 using NexusMods.Cascade.Collections;
 using R3;
@@ -19,42 +20,49 @@ public static class TopologyExtensions
     {
         var observable = Observable.Create<ChangeSet<TValue>>(async observer =>
         {
-            var (disposable, view) = await topology.RunInMainThread(() =>
+            var tcs = new TaskCompletionSource<IDisposable>();
+            var view = new OutletNodeView<TValue>(topology, flow);
+            topology.PrimaryRunner.Enqueue(() =>
             {
-                var view = new OutletNodeView<TValue>(topology, flow);
-
-
-                var disposable = Disposable.Create(() =>
+                try
                 {
-                    view.OutputChanged -= UpdateFn;
-                    view.Dispose();
-                });
+                    var disposable = Disposable.Create(() =>
+                    {
+                        view.OutputChanged -= UpdateFn;
+                        view.Dispose();
+                    });
 
-                view.OutputChanged += UpdateFn;
+                    view.OutputChanged += UpdateFn;
 
-                topology.QueryCore(flow, view);
+                    topology.QueryCore(flow, view, true);
 
-                return (disposable, view);
+                    tcs.SetResult(disposable);
+                    return;
 
-                void UpdateFn(IToDiffSpan<TValue> diffSpan)
+                    void UpdateFn(IToDiffSpan<TValue> diffSpan)
+                    {
+                        var changes = new ChangeSet<TValue>();
+                        foreach (var (val, diff) in diffSpan.ToDiffSpan())
+                        {
+                            if (diff > 0)
+                                changes.Add(new Change<TValue>(ListChangeReason.Add, val));
+                            else if (diff < 0)
+                                changes.Add(new Change<TValue>(ListChangeReason.Remove, val));
+                        }
+
+                        if (changes.Count > 0)
+                        {
+                            observer.OnNext(changes);
+                        }
+                    }
+                }
+                catch (Exception ex)
                 {
-                    var changes = new ChangeSet<TValue>();
-                    foreach (var (val, diff) in diffSpan.ToDiffSpan())
-                    {
-                        if (diff > 0)
-                            changes.Add(new Change<TValue>(ListChangeReason.Add, val));
-                        else if (diff < 0)
-                            changes.Add(new Change<TValue>(ListChangeReason.Remove, val));
-                    }
-
-                    if (changes.Count > 0)
-                    {
-                        observer.OnNext(changes);
-                    }
+                    tcs.SetException(ex);
                 }
             });
             await view.Initialized;
-            return disposable;
+            return await tcs.Task;
         });
         return observable;
     }

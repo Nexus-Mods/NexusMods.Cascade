@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Clarp.Concurrency;
 using JetBrains.Annotations;
 
 namespace NexusMods.Cascade;
@@ -41,104 +40,46 @@ public sealed class Topology : IDisposable
     /// <summary>
     /// Runner queue, used to run the topology in a single thread.
     /// </summary>
-    private readonly Agent<int> _primaryRunner = new();
+    internal readonly Shard PrimaryRunner = new();
 
     /// <summary>
     /// A queue used to execute effects (change notifications)
     /// </summary>
-    private readonly Agent<int> _effectQueue = new();
+    private readonly Shard _effectQueue = new();
 
     private readonly Queue<Node> _queue = new();
 
-    public InletNode<T> Intern<T>(Inlet<T> inlet) where T : notnull
+    /// <summary>
+    /// Inline the inlet definition and return the instance from this topology
+    /// </summary>
+    public InletNode<T> Intern<T>(Inlet<T> inlet)
+        where T : notnull
     {
-        return InternAsync(inlet).Result;
+        return PrimaryRunner.RunInline(static s => s.Self.InlineCore(s.Inlet),
+            (Self: this, Inlet: inlet));
     }
 
-    public Task<InletNode<T>> InternAsync<T>(Inlet<T> inlet) where T : notnull
+    private InletNode<T> InlineCore<T>(Inlet<T> inlet)
+        where T : notnull
     {
-        return RunInMainThread(() =>
-        {
-            if (_nodes.TryGetValue(inlet.Id, out var node))
-                return (InletNode<T>)node;
+        PrimaryRunner.VerifyAccess();
+        if (_nodes.TryGetValue(inlet.Id, out var node))
+            return (InletNode<T>)node;
 
-            var inletNode = new InletNode<T>(this, inlet);
-            _nodes[inlet.Id] = inletNode;
-            _inlets.Add(inletNode);
+        var inletNode = new InletNode<T>(this, inlet);
+        _nodes[inlet.Id] = inletNode;
+        _inlets.Add(inletNode);
 
-            SortNodes();
-            return inletNode;
-        });
+        SortNodes();
+        return inletNode;
     }
 
-    internal Task<T> RunInMainThread<T>(Func<T> func)
-    {
-        var tcs = new TaskCompletionSource<T>();
-        _primaryRunner.Send(_ =>
-        {
-            try
-            {
-                var result = func();
-                tcs.SetResult(result);
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-                return 0;
-            }
-        });
 
-        return tcs.Task;
-    }
 
-    internal void RunInMainThreadNoWait(Action func)
-    {
-        var tcs = new TaskCompletionSource();
-        _primaryRunner.Send(_ =>
-        {
-            try
-            {
-                func();
-                tcs.SetResult();
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-                return 0;
-            }
-        });
-    }
-
-    internal Task RunInMainThread(Action func)
-    {
-        var tcs = new TaskCompletionSource();
-        _primaryRunner.Send(_ =>
-        {
-            try
-            {
-                func();
-                tcs.SetResult();
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-                return 0;
-            }
-        });
-
-        return tcs.Task;
-    }
 
     public void EnqueueEffect(Action a)
     {
-        _effectQueue.Send(_ =>
-        {
-            a();
-            return 0;
-        });
+        _effectQueue.Enqueue(a);
     }
 
     /// <summary>
@@ -148,22 +89,13 @@ public sealed class Topology : IDisposable
     public Task FlushEffectsAsync()
     {
         var tcs = new TaskCompletionSource();
-        _effectQueue.Send(_ =>
+        _effectQueue.Enqueue(() =>
         {
             tcs.SetResult();
-            return 0;
         });
         return tcs.Task;
     }
 
-
-    /// <summary>
-    ///     Flows data from any inlets through the topology to all graph nodes.
-    /// </summary>
-    public Task FlowDataAsync()
-    {
-        return RunInMainThread(FlowData);
-    }
 
     internal void FlowData()
     {
@@ -213,7 +145,9 @@ public sealed class Topology : IDisposable
     public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        RunInMainThreadNoWait(() => QueryCore(flow, view));
+        // It's an async initialization, but no one can attach a listener to the view, so we
+        // don't need to act like it's a full async call.
+        PrimaryRunner.Enqueue(() => QueryCore(flow, view, false));
         await view.Initialized;
         return view;
     }
@@ -221,23 +155,30 @@ public sealed class Topology : IDisposable
     [MustDisposeResource]
     public IQueryResult<T> Query<T>(Flow<T> flow) where T : notnull
     {
-        return QueryAsync(flow).Result;
+        return PrimaryRunner.RunInline(static s =>
+        {
+            s.Self.PrimaryRunner.VerifyAccess();
+            var view = new OutletNodeView<T>(s.Self, s.Flow);
+            // Not in async mode, no listeners could have attached before initialization
+            s.Self.QueryCore(s.Flow, view, false);
+            return view;
+        }, (Self: this, Flow: flow));
     }
 
     [MustDisposeResource]
     public IQueryResult<T> QueryNoWait<T>(Flow<T> flow) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        RunInMainThreadNoWait(() => QueryCore(flow, view));
+        PrimaryRunner.Enqueue(() => QueryCore(flow, view, true));
         return view;
     }
 
-    internal void QueryCore<T>(Flow<T> flow, OutletNodeView<T> view) where T : notnull
+    internal void QueryCore<T>(Flow<T> flow, OutletNodeView<T> view, bool asyncMode) where T : notnull
     {
         if (_outletNodes.TryGetValue(flow.Id, out var node))
         {
             var casted = (OutletNode<T>)node;
-            casted.AddView(view);
+            casted.AddView(view, asyncMode);
             return;
         }
 
@@ -261,7 +202,7 @@ public sealed class Topology : IDisposable
         _outletNodes[flow.Id] = outletNode;
 
         SortNodes();
-        outletNode.AddView(view);
+        outletNode.AddView(view, asyncMode);
     }
 
 
@@ -313,13 +254,13 @@ public sealed class Topology : IDisposable
     /// <returns></returns>
     public string Diagram()
     {
-        return RunInMainThread(() =>
+        return PrimaryRunner.RunInline(static s =>
         {
             var sb = new StringBuilder();
             sb.AppendLine("graph TD");
 
 
-            foreach (var node in _nodes.Concat(_outletNodes))
+            foreach (var node in s._nodes.Concat(s._outletNodes))
             {
                 var debugInfo = node.Value.Flow.DebugInfo;
                 string nodeName;
@@ -341,7 +282,7 @@ public sealed class Topology : IDisposable
             }
 
             return sb.ToString();
-        }).Result;
+        }, this);
     }
 
 
@@ -368,20 +309,24 @@ public sealed class Topology : IDisposable
 
     public void Dispose()
     {
-        RunInMainThread(() =>
+        PrimaryRunner.RunInline(static s =>
         {
-            foreach (var (_, node) in _outletNodes)
+            foreach (var (_, node) in s._outletNodes)
             {
-                var casted = (IQueryResult)node;
+                var casted = (IDisposable)node;
                 // Set the references to 1, so that the Dispose method fully disposes the node.
                 casted.Dispose();
             }
 
-            foreach (var inlet in _inlets)
+            foreach (var inlet in s._inlets)
             {
                 if (inlet is IInletNode inletNode)
                     inletNode.Dispose();
             }
-        });
+
+            return 0;
+        }, this);
+        _effectQueue.Dispose();
+        PrimaryRunner.Dispose();
     }
 }
