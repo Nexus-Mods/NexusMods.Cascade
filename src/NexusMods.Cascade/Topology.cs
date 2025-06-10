@@ -213,7 +213,7 @@ public sealed class Topology : IDisposable
     public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        RunInMainThreadNoWait(() => QueryCore(flow, view));
+        await RunInMainThread(() => QueryCore(flow, view));
         await view.Initialized;
         return view;
     }
