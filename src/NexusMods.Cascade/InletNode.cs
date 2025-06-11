@@ -10,7 +10,7 @@ namespace NexusMods.Cascade;
 public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology, inlet, 0), IInletNode
     where T : notnull
 {
-    private DiffSet<T> _values = new();
+    private readonly DiffSet<T> _values = new();
 
     /// <summary>
     ///     A somewhat slow way to get and set the values of an inlet, used mostly for testing.
@@ -19,14 +19,14 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     {
         set
         {
-            Topology.RunInMainThread(() =>
+            Topology.Run(() =>
             {
                 Output.Clear();
                 Output.AddInverted(_values);
                 Output.Add(value, 1);
                 _values.Reset(value);
-                Topology.FlowData();
-            }).Wait();
+                Topology.FlowDataImpl();
+            });
         }
     }
 
@@ -37,15 +37,14 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// <returns></returns>
     public Task Update(params Diff<T>[] diffs)
     {
-        return Topology.RunInMainThread(() =>
+        return Topology.RunAsync(() =>
         {
             Output.Clear();
             foreach (var diff in diffs)
                 Output.Add(diff);
-            Topology.FlowData();
+            Topology.FlowDataImpl();
         });
     }
-
 
     public override void Accept<TIn>(int idx, IToDiffSpan<TIn> diffSet)
     {
@@ -63,10 +62,10 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// </summary>
     public async Task Add(params T[] values)
     {
-        await Topology.RunInMainThread(() =>
+        await Topology.RunAsync(() =>
         {
             Output.Add(values, 1);
-            Topology.FlowData();
+            Topology.FlowDataImpl();
         });
     }
 
@@ -75,13 +74,12 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// </summary>
     public async Task Remove(params T[] values)
     {
-        await Topology.RunInMainThread(() =>
+        await Topology.RunAsync(() =>
         {
             Output.Add(values, -1);
-            Topology.FlowData();
+            Topology.FlowDataImpl();
         });
     }
-
 
     public void Dispose()
     {
