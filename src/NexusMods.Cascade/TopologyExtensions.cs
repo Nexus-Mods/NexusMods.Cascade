@@ -19,7 +19,7 @@ public static class TopologyExtensions
     {
         var observable = Observable.Create<ChangeSet<TValue>>(async observer =>
         {
-            var (disposable, view) = await topology.RunAsync(() =>
+            var (disposable, view) = await topology.RunOnAgentAsync(() =>
             {
                 var view = new OutletNodeView<TValue>(topology, flow);
 

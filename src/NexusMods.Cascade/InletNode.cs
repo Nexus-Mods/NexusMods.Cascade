@@ -19,7 +19,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     {
         set
         {
-            Topology.Run(() =>
+            Topology.RunOnAgent(() =>
             {
                 Output.Clear();
                 Output.AddInverted(_values);
@@ -37,7 +37,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// <returns></returns>
     public Task Update(params Diff<T>[] diffs)
     {
-        return Topology.RunAsync(() =>
+        return Topology.RunOnAgentAsync(() =>
         {
             Output.Clear();
             foreach (var diff in diffs)
@@ -62,7 +62,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// </summary>
     public async Task Add(params T[] values)
     {
-        await Topology.RunAsync(() =>
+        await Topology.RunOnAgentAsync(() =>
         {
             Output.Add(values, 1);
             Topology.FlowDataImpl();
@@ -74,7 +74,7 @@ public class InletNode<T>(Topology topology, Inlet<T> inlet) : Node<T>(topology,
     /// </summary>
     public async Task Remove(params T[] values)
     {
-        await Topology.RunAsync(() =>
+        await Topology.RunOnAgentAsync(() =>
         {
             Output.Add(values, -1);
             Topology.FlowDataImpl();

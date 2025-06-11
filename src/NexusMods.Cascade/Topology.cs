@@ -68,24 +68,24 @@ public sealed class Topology : IDisposable
 
     public InletNode<T> Intern<T>(Inlet<T> inlet, CancellationToken cancellationToken = default) where T : notnull
     {
-        return Run(() => InternImpl(inlet), cancellationToken: cancellationToken);
+        return RunOnAgent(() => InternImpl(inlet), cancellationToken: cancellationToken);
     }
 
     public Task<InletNode<T>> InternAsync<T>(Inlet<T> inlet, CancellationToken cancellationToken = default) where T : notnull
     {
-        return RunAsync(() => InternImpl(inlet), cancellationToken: cancellationToken);
+        return RunOnAgentAsync(() => InternImpl(inlet), cancellationToken: cancellationToken);
     }
 
-    internal void Run(Action func, CancellationToken cancellationToken = default)
+    internal void RunOnAgent(Action func, CancellationToken cancellationToken = default)
     {
-        Run(() =>
+        RunOnAgent(() =>
         {
             func();
             return 0;
         }, cancellationToken: cancellationToken);
     }
 
-    internal T Run<T>(Func<T> func, CancellationToken cancellationToken = default)
+    internal T RunOnAgent<T>(Func<T> func, CancellationToken cancellationToken = default)
     {
         using var semaphoreSlim = new SemaphoreSlim(initialCount: 0, maxCount: 1);
         Exception? thrownException = null;
@@ -120,16 +120,16 @@ public sealed class Topology : IDisposable
         return result;
     }
 
-    internal Task RunAsync(Action func, CancellationToken cancellationToken = default)
+    internal Task RunOnAgentAsync(Action func, CancellationToken cancellationToken = default)
     {
-        return RunAsync(() =>
+        return RunOnAgentAsync(() =>
         {
             func();
             return 0;
         }, cancellationToken: cancellationToken);
     }
 
-    internal async Task<T> RunAsync<T>(Func<T> func, CancellationToken cancellationToken = default)
+    internal async Task<T> RunOnAgentAsync<T>(Func<T> func, CancellationToken cancellationToken = default)
     {
         using var semaphoreSlim = new SemaphoreSlim(initialCount: 0, maxCount: 1);
         Exception? thrownException = null;
@@ -193,7 +193,7 @@ public sealed class Topology : IDisposable
     /// </summary>
     public void FlowData(CancellationToken cancellationToken = default)
     {
-        Run(FlowDataImpl, cancellationToken: cancellationToken);
+        RunOnAgent(FlowDataImpl, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ public sealed class Topology : IDisposable
     /// </summary>
     public Task FlowDataAsync(CancellationToken cancellationToken = default)
     {
-        return RunAsync(FlowDataImpl, cancellationToken: cancellationToken);
+        return RunOnAgentAsync(FlowDataImpl, cancellationToken: cancellationToken);
     }
 
     internal void FlowDataImpl()
@@ -251,7 +251,7 @@ public sealed class Topology : IDisposable
     public IQueryResult<T> Query<T>(Flow<T> flow, CancellationToken cancellationToken = default) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        Run(() => QueryImpl(flow, view), cancellationToken: cancellationToken);
+        RunOnAgent(() => QueryImpl(flow, view), cancellationToken: cancellationToken);
         view.WaitForInitializationBlocking(cancellationToken: cancellationToken);
         return view;
     }
@@ -259,7 +259,7 @@ public sealed class Topology : IDisposable
     public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow, CancellationToken cancellationToken = default) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        await RunAsync(() => QueryImpl(flow, view), cancellationToken: cancellationToken);
+        await RunOnAgentAsync(() => QueryImpl(flow, view), cancellationToken: cancellationToken);
         await view.WaitForInitializationAsync(cancellationToken: cancellationToken);
         return view;
     }
@@ -342,7 +342,7 @@ public sealed class Topology : IDisposable
     /// <returns></returns>
     public string Diagram()
     {
-        return Run(() =>
+        return RunOnAgent(() =>
         {
             var sb = new StringBuilder();
             sb.AppendLine("graph TD");
@@ -395,7 +395,7 @@ public sealed class Topology : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        Run(() =>
+        RunOnAgent(() =>
         {
             foreach (var (_, node) in _outletNodes)
             {
