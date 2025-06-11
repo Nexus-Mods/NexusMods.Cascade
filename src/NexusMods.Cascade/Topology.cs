@@ -101,9 +101,12 @@ public sealed class Topology : IDisposable
             {
                 thrownException = e;
             }
+            finally
+            {
+                // ReSharper disable once AccessToDisposedClosure
+                semaphoreSlim.Release(releaseCount: 1);
+            }
 
-            // ReSharper disable once AccessToDisposedClosure
-            semaphoreSlim.Release(releaseCount: 1);
             return 0;
         });
 
@@ -138,9 +141,12 @@ public sealed class Topology : IDisposable
             {
                 thrownException = e;
             }
+            finally
+            {
+                // ReSharper disable once AccessToDisposedClosure
+                semaphoreSlim.Release(releaseCount: 1);
+            }
 
-            // ReSharper disable once AccessToDisposedClosure
-            semaphoreSlim.Release(releaseCount: 1);
             return 0;
         });
 
