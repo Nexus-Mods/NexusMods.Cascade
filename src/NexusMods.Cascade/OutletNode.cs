@@ -176,8 +176,10 @@ internal class OutletNode<T> : Node, IDisposable
 
     public void Dispose()
     {
+        /*
         foreach (var view in _views)
             view.Dispose();
+            */
     }
 
     public IToDiffSpan<T> ToIDiffSpan()

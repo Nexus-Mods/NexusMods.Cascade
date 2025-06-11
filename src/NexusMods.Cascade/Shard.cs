@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace NexusMods.Cascade;
 
 using System;
@@ -23,6 +25,12 @@ public class Shard : IDisposable
             Name = "ShardWorkerThread"
         };
         _workerThread.Start();
+    }
+
+
+    private class ExitException : Exception
+    {
+
     }
 
     /// <summary>
@@ -113,28 +121,23 @@ public class Shard : IDisposable
                 {
                     if (_disposed)
                     {
-                        // Someone called Dispose(): stop the thread now
-                        return;
+                        return; // Exit immediately on dispose, regardless of other flags
                     }
 
-                    // If any inline caller is waiting, yield immediately
                     if (_inlinePending)
                     {
+                        if (_disposed) return; // double check inside loop
                         Monitor.Wait(_lock);
                         continue;
                     }
 
-                    // **NEW CHECK**: If _isRunning is already true, that means either:
-                    //   • an inline call grabbed the shard, or
-                    //   • we’re in the middle of a queued action (though typically we clear it in finally).
-                    // Either way: don’t dequeue or start a new action now.
                     if (_isRunning)
                     {
+                        if (_disposed) return; // allow exit even if running
                         Monitor.Wait(_lock);
                         continue;
                     }
 
-                    // If there is a queued action, grab it & set _isRunning = true
                     if (_queue.Count > 0)
                     {
                         nextAction = _queue.Dequeue();
@@ -142,10 +145,6 @@ public class Shard : IDisposable
                         break;
                     }
 
-                    // Nothing to do → park until either:
-                    //  • Enqueue() calls PulseAll
-                    //  • RunInline() calls PulseAll
-                    //  • Dispose() calls PulseAll
                     Monitor.Wait(_lock);
                 }
             }
@@ -157,10 +156,15 @@ public class Shard : IDisposable
                 _runningThreadId = Environment.CurrentManagedThreadId;
                 nextAction();
             }
-            catch
+            catch (ExitException)
             {
+                break;
                 // Swallow exceptions from the user’s callback.
                 // (If you want them bubbled up, store & rethrow, etc.)
+            }
+            catch
+            {
+
             }
             finally
             {
@@ -190,13 +194,10 @@ public class Shard : IDisposable
     /// </summary>
     public void Dispose()
     {
-        lock (_lock)
-        {
-            if (_disposed) return;
-            _disposed = true;
-            Monitor.PulseAll(_lock);
-        }
-
+        if (_disposed)
+            return;
+        Enqueue(() => throw new ExitException());
         _workerThread.Join();
+        _disposed = true;
     }
 }
