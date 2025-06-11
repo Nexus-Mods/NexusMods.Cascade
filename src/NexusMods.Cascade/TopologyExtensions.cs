@@ -19,10 +19,9 @@ public static class TopologyExtensions
     {
         var observable = Observable.Create<ChangeSet<TValue>>(async observer =>
         {
-            var (disposable, view) = await topology.RunInMainThread(() =>
+            var (disposable, view) = await topology.RunOnAgentAsync(() =>
             {
                 var view = new OutletNodeView<TValue>(topology, flow);
-
 
                 var disposable = Disposable.Create(() =>
                 {
@@ -32,7 +31,7 @@ public static class TopologyExtensions
 
                 view.OutputChanged += UpdateFn;
 
-                topology.QueryCore(flow, view);
+                topology.QueryImpl(flow, view);
 
                 return (disposable, view);
 
@@ -53,9 +52,11 @@ public static class TopologyExtensions
                     }
                 }
             });
-            await view.Initialized;
+
+            await view.WaitForInitializationAsync();
             return disposable;
         });
+
         return observable;
     }
 

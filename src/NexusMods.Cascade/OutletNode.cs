@@ -32,7 +32,7 @@ public class OutletFlow<T> : Flow
     public override Type OutputType => throw new NotSupportedException("Outlet flows do not have output types.");
 }
 
-internal class OutletNode<T> : Node
+internal class OutletNode<T> : Node, IDisposable
     where T : notnull
 {
     private ImmutableDictionary<T, int> _state = ImmutableDictionary<T, int>.Empty;
@@ -161,9 +161,14 @@ internal class OutletNode<T> : Node
         return false;
     }
 
-
     public void Dispose()
     {
+        foreach (var view in _views)
+        {
+            view.Dispose();
+        }
+
+        _views.Clear();
     }
 
     public IToDiffSpan<T> ToIDiffSpan()

@@ -4,32 +4,47 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using NexusMods.Cascade.Collections;
 
 namespace NexusMods.Cascade;
 
-public class OutletNodeView<T> : IQueryResult<T>
+public sealed class OutletNodeView<T> : IQueryResult<T>
     where T : notnull
 {
+    private readonly SemaphoreSlim _initializationSemaphore = new(initialCount: 0, maxCount: 1);
+    private bool _isInitialized;
+
     private readonly Topology _topology;
     private readonly Flow<T> _flow;
     private OutletNode<T>? _node;
-    private readonly TaskCompletionSource _tcs;
 
     public OutletNodeView(Topology topology, Flow<T> flow)
     {
-        // A task that completes when the node is fully initialized and ready to use.
-        _tcs = new TaskCompletionSource();
         _topology = topology;
         _flow = flow;
         _node = null;
     }
 
     /// <summary>
-    /// Completes when the OutletNodeView is fully initialized and ready to use.
+    /// Synchronously waits for initialization to finish.
     /// </summary>
-    public Task Initialized => _tcs.Task;
+    /// <param name="cancellationToken"></param>
+    public void WaitForInitializationBlocking(CancellationToken cancellationToken = default)
+    {
+        if (_isInitialized) return;
+        _initializationSemaphore.Wait(cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously waits for initialization to finish.
+    /// </summary>
+    public Task WaitForInitializationAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isInitialized) return Task.CompletedTask;
+        return _initializationSemaphore.WaitAsync(cancellationToken: cancellationToken);
+    }
 
     internal void SetNode(OutletNode<T> node)
     {
@@ -40,12 +55,16 @@ public class OutletNodeView<T> : IQueryResult<T>
 
     internal void SetInitialized()
     {
-        _tcs.TrySetResult();
+        if (_isInitialized) return;
+
+        _isInitialized = true;
+        _initializationSemaphore.Release(releaseCount: 1);
     }
 
-
+    /// <inheritdoc/>
     public void Dispose()
     {
+        _initializationSemaphore.Dispose();
         _node?.RemoveView(this);
     }
 

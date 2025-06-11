@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Clarp.Concurrency;
 using JetBrains.Annotations;
 
 namespace NexusMods.Cascade;
 
+[PublicAPI]
 public sealed class Topology : IDisposable
 {
     [MustDisposeResource]
@@ -50,86 +53,115 @@ public sealed class Topology : IDisposable
 
     private readonly Queue<Node> _queue = new();
 
-    public InletNode<T> Intern<T>(Inlet<T> inlet) where T : notnull
+    private InletNode<T> InternImpl<T>(Inlet<T> inlet) where T : notnull
     {
-        return InternAsync(inlet).Result;
+        if (_nodes.TryGetValue(inlet.Id, out var node))
+            return (InletNode<T>)node;
+
+        var inletNode = new InletNode<T>(this, inlet);
+        _nodes[inlet.Id] = inletNode;
+        _inlets.Add(inletNode);
+
+        SortNodes();
+        return inletNode;
     }
 
-    public Task<InletNode<T>> InternAsync<T>(Inlet<T> inlet) where T : notnull
+    public InletNode<T> Intern<T>(Inlet<T> inlet, CancellationToken cancellationToken = default) where T : notnull
     {
-        return RunInMainThread(() =>
+        return RunOnAgent(() => InternImpl(inlet), cancellationToken: cancellationToken);
+    }
+
+    public Task<InletNode<T>> InternAsync<T>(Inlet<T> inlet, CancellationToken cancellationToken = default) where T : notnull
+    {
+        return RunOnAgentAsync(() => InternImpl(inlet), cancellationToken: cancellationToken);
+    }
+
+    internal void RunOnAgent(Action func, CancellationToken cancellationToken = default)
+    {
+        RunOnAgent(() =>
         {
-            if (_nodes.TryGetValue(inlet.Id, out var node))
-                return (InletNode<T>)node;
-
-            var inletNode = new InletNode<T>(this, inlet);
-            _nodes[inlet.Id] = inletNode;
-            _inlets.Add(inletNode);
-
-            SortNodes();
-            return inletNode;
-        });
+            func();
+            return 0;
+        }, cancellationToken: cancellationToken);
     }
 
-    internal Task<T> RunInMainThread<T>(Func<T> func)
+    internal T RunOnAgent<T>(Func<T> func, CancellationToken cancellationToken = default)
     {
-        var tcs = new TaskCompletionSource<T>();
+        using var semaphoreSlim = new SemaphoreSlim(initialCount: 0, maxCount: 1);
+        Exception? thrownException = null;
+        T? result = default;
+
         _primaryRunner.Send(_ =>
         {
             try
             {
-                var result = func();
-                tcs.SetResult(result);
-                return 0;
+                result = func();
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                tcs.SetException(ex);
-                return 0;
+                thrownException = e;
             }
+            finally
+            {
+                // NOTE(erri120): don't release if cancellation is requested, otherwise semaphore might be disposed
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    semaphoreSlim.Release(releaseCount: 1);
+                }
+            }
+
+            return 0;
         });
 
-        return tcs.Task;
+        semaphoreSlim.Wait(cancellationToken: cancellationToken);
+        if (thrownException is not null) throw thrownException;
+        Debug.Assert(result is not null);
+        return result;
     }
 
-    internal void RunInMainThreadNoWait(Action func)
+    internal Task RunOnAgentAsync(Action func, CancellationToken cancellationToken = default)
     {
-        var tcs = new TaskCompletionSource();
+        return RunOnAgentAsync(() =>
+        {
+            func();
+            return 0;
+        }, cancellationToken: cancellationToken);
+    }
+
+    internal async Task<T> RunOnAgentAsync<T>(Func<T> func, CancellationToken cancellationToken = default)
+    {
+        using var semaphoreSlim = new SemaphoreSlim(initialCount: 0, maxCount: 1);
+        Exception? thrownException = null;
+        T? result = default;
+
         _primaryRunner.Send(_ =>
         {
             try
             {
-                func();
-                tcs.SetResult();
-                return 0;
+                result = func();
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                tcs.SetException(ex);
-                return 0;
+                thrownException = e;
             }
-        });
-    }
+            finally
+            {
+                // NOTE(erri120): don't release if cancellation is requested, otherwise semaphore might be disposed
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    semaphoreSlim.Release(releaseCount: 1);
+                }
+            }
 
-    internal Task RunInMainThread(Action func)
-    {
-        var tcs = new TaskCompletionSource();
-        _primaryRunner.Send(_ =>
-        {
-            try
-            {
-                func();
-                tcs.SetResult();
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-                return 0;
-            }
+            return 0;
         });
 
-        return tcs.Task;
+        await semaphoreSlim.WaitAsync(cancellationToken: cancellationToken);
+        if (thrownException is not null) throw thrownException;
+        Debug.Assert(result is not null);
+        return result;
     }
 
     public void EnqueueEffect(Action a)
@@ -156,16 +188,23 @@ public sealed class Topology : IDisposable
         return tcs.Task;
     }
 
+    /// <summary>
+    ///     Flows data from any inlets through the topology to all graph nodes.
+    /// </summary>
+    public void FlowData(CancellationToken cancellationToken = default)
+    {
+        RunOnAgent(FlowDataImpl, cancellationToken: cancellationToken);
+    }
 
     /// <summary>
     ///     Flows data from any inlets through the topology to all graph nodes.
     /// </summary>
-    public Task FlowDataAsync()
+    public Task FlowDataAsync(CancellationToken cancellationToken = default)
     {
-        return RunInMainThread(FlowData);
+        return RunOnAgentAsync(FlowDataImpl, cancellationToken: cancellationToken);
     }
 
-    internal void FlowData()
+    internal void FlowDataImpl()
     {
         foreach (var node in _processOrder)
         {
@@ -209,30 +248,23 @@ public sealed class Topology : IDisposable
         return node;
     }
 
-    [MustDisposeResource]
-    public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow) where T : notnull
+    public IQueryResult<T> Query<T>(Flow<T> flow, CancellationToken cancellationToken = default) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        RunInMainThreadNoWait(() => QueryCore(flow, view));
-        await view.Initialized;
+        RunOnAgent(() => QueryImpl(flow, view), cancellationToken: cancellationToken);
+        view.WaitForInitializationBlocking(cancellationToken: cancellationToken);
         return view;
     }
 
-    [MustDisposeResource]
-    public IQueryResult<T> Query<T>(Flow<T> flow) where T : notnull
-    {
-        return QueryAsync(flow).Result;
-    }
-
-    [MustDisposeResource]
-    public IQueryResult<T> QueryNoWait<T>(Flow<T> flow) where T : notnull
+    public async Task<IQueryResult<T>> QueryAsync<T>(Flow<T> flow, CancellationToken cancellationToken = default) where T : notnull
     {
         var view = new OutletNodeView<T>(this, flow);
-        RunInMainThreadNoWait(() => QueryCore(flow, view));
+        await RunOnAgentAsync(() => QueryImpl(flow, view), cancellationToken: cancellationToken);
+        await view.WaitForInitializationAsync(cancellationToken: cancellationToken);
         return view;
     }
 
-    internal void QueryCore<T>(Flow<T> flow, OutletNodeView<T> view) where T : notnull
+    internal void QueryImpl<T>(Flow<T> flow, OutletNodeView<T> view) where T : notnull
     {
         if (_outletNodes.TryGetValue(flow.Id, out var node))
         {
@@ -263,9 +295,6 @@ public sealed class Topology : IDisposable
         SortNodes();
         outletNode.AddView(view);
     }
-
-
-
 
     private void SortNodes()
     {
@@ -313,11 +342,10 @@ public sealed class Topology : IDisposable
     /// <returns></returns>
     public string Diagram()
     {
-        return RunInMainThread(() =>
+        return RunOnAgent(() =>
         {
             var sb = new StringBuilder();
             sb.AppendLine("graph TD");
-
 
             foreach (var node in _nodes.Concat(_outletNodes))
             {
@@ -341,10 +369,8 @@ public sealed class Topology : IDisposable
             }
 
             return sb.ToString();
-        }).Result;
+        });
     }
-
-
 
     internal void UnsubAndCleanup(Node node, (Node downstream, int tag) subscriber)
     {
@@ -366,15 +392,15 @@ public sealed class Topology : IDisposable
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
-        RunInMainThread(() =>
+        RunOnAgent(() =>
         {
             foreach (var (_, node) in _outletNodes)
             {
-                var casted = (IQueryResult)node;
-                // Set the references to 1, so that the Dispose method fully disposes the node.
-                casted.Dispose();
+                if (node is IDisposable disposable)
+                    disposable.Dispose();
             }
 
             foreach (var inlet in _inlets)
@@ -382,6 +408,9 @@ public sealed class Topology : IDisposable
                 if (inlet is IInletNode inletNode)
                     inletNode.Dispose();
             }
+
+            _outletNodes.Clear();
+            _inlets.Clear();
         });
     }
 }
