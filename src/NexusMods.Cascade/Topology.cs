@@ -103,8 +103,12 @@ public sealed class Topology : IDisposable
             }
             finally
             {
-                // ReSharper disable once AccessToDisposedClosure
-                semaphoreSlim.Release(releaseCount: 1);
+                // NOTE(erri120): don't release if cancellation is requested, otherwise semaphore might be disposed
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    semaphoreSlim.Release(releaseCount: 1);
+                }
             }
 
             return 0;
@@ -143,8 +147,12 @@ public sealed class Topology : IDisposable
             }
             finally
             {
-                // ReSharper disable once AccessToDisposedClosure
-                semaphoreSlim.Release(releaseCount: 1);
+                // NOTE(erri120): don't release if cancellation is requested, otherwise semaphore might be disposed
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    semaphoreSlim.Release(releaseCount: 1);
+                }
             }
 
             return 0;
