@@ -13,7 +13,7 @@ namespace NexusMods.Cascade;
 public sealed class OutletNodeView<T> : IQueryResult<T>
     where T : notnull
 {
-    private readonly SemaphoreSlim _semaphoreSlim = new(initialCount: 0, maxCount: 1);
+    private readonly SemaphoreSlim _initializationSemaphore = new(initialCount: 0, maxCount: 1);
     private bool _isInitialized;
 
     private readonly Topology _topology;
@@ -33,7 +33,8 @@ public sealed class OutletNodeView<T> : IQueryResult<T>
     /// <param name="cancellationToken"></param>
     public void WaitForInitializationBlocking(CancellationToken cancellationToken = default)
     {
-        _semaphoreSlim.Wait(cancellationToken: cancellationToken);
+        if (_isInitialized) return;
+        _initializationSemaphore.Wait(cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -41,7 +42,8 @@ public sealed class OutletNodeView<T> : IQueryResult<T>
     /// </summary>
     public Task WaitForInitializationAsync(CancellationToken cancellationToken = default)
     {
-        return _semaphoreSlim.WaitAsync(cancellationToken: cancellationToken);
+        if (_isInitialized) return Task.CompletedTask;
+        return _initializationSemaphore.WaitAsync(cancellationToken: cancellationToken);
     }
 
     internal void SetNode(OutletNode<T> node)
@@ -56,13 +58,13 @@ public sealed class OutletNodeView<T> : IQueryResult<T>
         if (_isInitialized) return;
 
         _isInitialized = true;
-        _semaphoreSlim.Release(releaseCount: 1);
+        _initializationSemaphore.Release(releaseCount: 1);
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        _semaphoreSlim.Dispose();
+        _initializationSemaphore.Dispose();
         _node?.RemoveView(this);
     }
 
