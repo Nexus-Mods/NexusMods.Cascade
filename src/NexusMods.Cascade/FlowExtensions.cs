@@ -197,7 +197,7 @@ public static class FlowExtensions
                 {
                     foreach (var right in rights[value.Key])
                     {
-                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (value.Value, right.Key)), delta * right.Value);
+                        output?.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (value.Value, right.Key)), delta * right.Value);
                     }
                 }
                 lefts.MergeIn(input);
@@ -209,7 +209,7 @@ public static class FlowExtensions
                 {
                     foreach (var left in lefts[value.Key])
                     {
-                        output.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (left.Key, value.Value)), delta * left.Value);
+                        output?.Add(new KeyedValue<TKey, (TLeft, TRight)>(value.Key, (left.Key, value.Value)), delta * left.Value);
                     }
                 }
                 rights.MergeIn(input);
@@ -263,13 +263,13 @@ public static class FlowExtensions
                     var matchFound = false;
                     foreach (var rightKv in rights[leftKv.Key])
                     {
-                        output.Add((leftKv.Key, (leftKv.Value, rightKv.Key)), delta * rightKv.Value);
+                        output?.Add((leftKv.Key, (leftKv.Value, rightKv.Key)), delta * rightKv.Value);
                         matchFound = true;
                     }
                     if (!matchFound)
                     {
                         // Emit pairing with default(TRight) when no matching right record exists.
-                        output.Add((leftKv.Key, (leftKv.Value, defaultRightValue!)), delta);
+                        output?.Add((leftKv.Key, (leftKv.Value, defaultRightValue!)), delta);
                     }
                 }
                 lefts.MergeIn(input);
@@ -287,10 +287,10 @@ public static class FlowExtensions
                         if (!rights.Contains(rightKv.Key))
                         {
                             // Emit pairing with default(TLeft) when no matching left record exists.
-                            output.Add((rightKv.Key, (leftValue, defaultRightValue!)), -leftDelta);
+                            output?.Add((rightKv.Key, (leftValue, defaultRightValue!)), -leftDelta);
                         }
                         // Note: It is expected that any previous default join output will be canceled by a negative delta.
-                        output.Add((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
+                        output?.Add((rightKv.Key, (leftValue, rightKv.Value)), delta * leftDelta);
                     }
                 }
                 rights.MergeIn(input);

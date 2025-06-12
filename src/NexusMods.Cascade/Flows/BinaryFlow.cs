@@ -11,8 +11,8 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
 {
     public required Func<TState> StateFactory { get; init; }
 
-    public required Action<IToDiffSpan<TLeft>, TState, DiffList<TResult>> StepLeftFn { get; init; }
-    public required Action<IToDiffSpan<TRight>, TState, DiffList<TResult>> StepRightFn { get; init; }
+    public required Action<IToDiffSpan<TLeft>, TState, DiffList<TResult>?> StepLeftFn { get; init; }
+    public required Action<IToDiffSpan<TRight>, TState, DiffList<TResult>?> StepRightFn { get; init; }
     public required Action<TState, DiffList<TResult>> PrimeFn { get; init; }
 
     public override Node CreateNode(Topology topology)
@@ -52,11 +52,13 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
             var leftCasted = (Node<TLeft>)Upstream[0];
             var rightCasted = (Node<TRight>)Upstream[1];
             Output.Clear();
+
             leftCasted.ResetOutput();
             leftCasted.Prime();
             if (leftCasted.HasOutputData())
             {
-                flow.StepLeftFn(leftCasted.Output, _state, Output);
+                // Update the state without changing the output
+                flow.StepLeftFn(leftCasted.Output, _state, null);
                 leftCasted.ResetOutput();
             }
 
@@ -64,9 +66,12 @@ public class BinaryFlow<TLeft, TRight, TResult, TState> : Flow<TResult>
             rightCasted.Prime();
             if (rightCasted.HasOutputData())
             {
-                flow.StepRightFn(rightCasted.Output, _state, Output);
+                // Update the state without changing the output
+                flow.StepRightFn(rightCasted.Output, _state, null);
                 rightCasted.ResetOutput();
             }
+
+            flow.PrimeFn(_state, Output);
         }
     }
 }
